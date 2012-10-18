@@ -77,9 +77,9 @@ namespace Trace {
 
 struct BaseSimpleCPUParams;
 
-
 class BaseSimpleCPU : public BaseCPU
 {
+
   protected:
     typedef TheISA::MiscReg MiscReg;
     typedef TheISA::FloatReg FloatReg;
@@ -165,6 +165,7 @@ class BaseSimpleCPU : public BaseCPU
     void preExecute();
     void postExecute();
     void advancePC(Fault fault);
+    MasterPort & getMasterPort(const std::string &if_name, int idx);
 
     virtual void deallocateContext(ThreadID thread_num);
     virtual void haltContext(ThreadID thread_num);
@@ -424,6 +425,25 @@ class BaseSimpleCPU : public BaseCPU
 
     bool misspeculating() { return thread->misspeculating(); }
     ThreadContext *tcBase() { return tc; }
+
+    // Port for monitoring fifo
+    CpuPort fifoPort;
+
+    // Fifo Event
+    void handleFifoEvent();
+    typedef EventWrapper<BaseSimpleCPU, &BaseSimpleCPU::handleFifoEvent> FifoEvent;
+    FifoEvent fifoEvent;
+
+    // Data structure for handling fifo event
+    class fifoEventDetails {
+      public:
+        Addr instAddr;
+        Packet *pkt;
+        Request req;
+    };
+    fifoEventDetails fed;
+
+
 };
 
 #endif // __CPU_SIMPLE_BASE_HH__

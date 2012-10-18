@@ -85,7 +85,8 @@ using namespace std;
 using namespace TheISA;
 
 BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
-    : BaseCPU(p), traceData(NULL), thread(NULL)
+    : BaseCPU(p), traceData(NULL), thread(NULL),
+    fifoPort(name() + "-iport", this), fifoEvent(this)
 {
     if (FullSystem)
         thread = new SimpleThread(this, 0, p->system, p->itb, p->dtb);
@@ -426,13 +427,45 @@ BaseSimpleCPU::preExecute()
     }
 }
 
+void BaseSimpleCPU::handleFifoEvent() {
+  printf("Handling: %llu\n", fed.instAddr);
+
+  // Create request
+  Request *req = &fed.req;
+  unsigned size = sizeof(fed.instAddr);
+  unsigned flags = ArmISA::TLB::AllowUnaligned;
+  // set physical address
+  req->setPhys((Addr)0x30000000, size, flags, 
+      dataMasterId());
+
+  // Create write packet
+  MemCmd cmd = MemCmd::WriteReq;
+  PacketPtr pkt = new Packet(req, cmd);
+  // Set data
+  pkt->dataStatic(&fed.instAddr);
+
+  // Send packet on fifo port
+  fifoPort.sendFunctional(pkt);
+}
+
 void
 BaseSimpleCPU::postExecute()
 {
+
+
     assert(curStaticInst);
 
     TheISA::PCState pc = tc->pcState();
     Addr instAddr = pc.instAddr();
+
+    // Currently on loads, generate fifo event
+    if (curStaticInst->isLoad()) {
+      schedule(fifoEvent, curTick());
+      // Store instruction address that generated this event
+      fed.instAddr = instAddr;
+      printf("instAddr: %llu\n", instAddr);
+    }
+
     if (FullSystem && thread->profile) {
         bool usermode = TheISA::inUserMode(tc);
         thread->profilePC = usermode ? 1 : instAddr;
@@ -517,6 +550,17 @@ BaseSimpleCPU::advancePC(Fault fault)
         }
     }
 }
+
+MasterPort &
+BaseSimpleCPU::getMasterPort(const std::string &if_name, int idx)
+{
+  if (if_name == "fifo_port") {
+    return fifoPort;
+  } else {
+    return BaseCPU::getMasterPort(if_name, idx);
+  }
+}
+
 
 /*Fault
 BaseSimpleCPU::CacheOp(uint8_t Op, Addr EffAddr)

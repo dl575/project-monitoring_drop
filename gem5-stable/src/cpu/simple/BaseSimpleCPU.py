@@ -35,6 +35,8 @@ class BaseSimpleCPU(BaseCPU):
     type = 'BaseSimpleCPU'
     abstract = True
 
+    fifo_port = MasterPort("Fifo Port")
+
     def addCheckerCpu(self):
         if buildEnv['TARGET_ISA'] in ['arm']:
             from ArmTLB import ArmTLB

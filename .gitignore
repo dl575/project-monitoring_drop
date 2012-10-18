@@ -1,4 +1,11 @@
 
+# gem5 build
+gem5-stable/build
+*.pyc
+gem5-stable/m5out
+gem5-stable/parser.out
+gem5-stable/parsetab.py
+
 # Mercurial files
 .hg
 .hgignore
