@@ -1,0 +1,8 @@
+
+# Mercurial files
+.hg
+.hgignore
+.hgtags
+
+# Vim swap files
+*.swp
