@@ -49,6 +49,7 @@
 #include "cpu/exetrace.hh"
 #include "debug/ExecFaulting.hh"
 #include "debug/SimpleCPU.hh"
+#include "debug/Fifo.hh"
 #include "mem/packet.hh"
 #include "mem/packet_access.hh"
 #include "mem/physical.hh"
@@ -242,6 +243,26 @@ Fault
 AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags)
 {
+    // Read from fifo
+    if (addr == 0x30000000) {
+      DPRINTF(Fifo, "Read from fifo\n");
+
+      // Create request at fifo location
+      Request *req = &data_read_req;
+      req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
+      // Read command
+      MemCmd cmd = MemCmd::ReadReq;
+      // Create packet
+      PacketPtr pkt = new Packet(req, cmd);
+      // Point packet to data pointer
+      pkt->dataStatic(data);
+
+      // Send read request
+      fifoPort.sendFunctional(pkt);
+
+      return NoFault;
+    }
+
     // use the CPU's statically allocated read request and packet objects
     Request *req = &data_read_req;
 

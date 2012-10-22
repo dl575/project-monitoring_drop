@@ -67,6 +67,7 @@
 #include "cpu/thread_context.hh"
 #include "debug/Decode.hh"
 #include "debug/Fetch.hh"
+#include "debug/Fifo.hh"
 #include "debug/Quiesce.hh"
 #include "mem/mem_object.hh"
 #include "mem/packet.hh"
@@ -428,15 +429,14 @@ BaseSimpleCPU::preExecute()
 }
 
 void BaseSimpleCPU::handleFifoEvent() {
-  printf("Handling: %llu\n", fed.instAddr);
+  DPRINTF(Fifo, "Handling: %llu\n", fed.instAddr);
 
   // Create request
   Request *req = &fed.req;
   unsigned size = sizeof(fed.instAddr);
   unsigned flags = ArmISA::TLB::AllowUnaligned;
   // set physical address
-  req->setPhys((Addr)0x30000000, size, flags, 
-      dataMasterId());
+  req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
 
   // Create write packet
   MemCmd cmd = MemCmd::WriteReq;
@@ -463,7 +463,7 @@ BaseSimpleCPU::postExecute()
       schedule(fifoEvent, curTick());
       // Store instruction address that generated this event
       fed.instAddr = instAddr;
-      printf("instAddr: %llu\n", instAddr);
+      DPRINTF(Fifo, "instAddr: %llu\n", instAddr);
     }
 
     if (FullSystem && thread->profile) {

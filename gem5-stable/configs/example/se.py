@@ -155,11 +155,12 @@ system = System(cpu = [CPUClass(cpu_id=i) for i in xrange(np)],
                 physmem = SimpleMemory(range=AddrRange("512MB")),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
-# # Create a "fifo" memory
-fifo = Fifo(range=AddrRange(start=0x30000000,size="1MB")) 
-system.fifo = fifo
-# Connect CPU to fifo
-system.cpu[0].fifo_port = system.fifo.port
+if options.cpu_type == "atomic" or options.cpu_type == "timing":
+  # Create a "fifo" memory
+  fifo = Fifo(range=AddrRange(start=0x30000000,size="1MB")) 
+  system.fifo = fifo
+  # Connect CPU to fifo
+  system.cpu[0].fifo_port = system.fifo.port
 
 # Sanity check
 if options.fastmem and (options.caches or options.l2cache):

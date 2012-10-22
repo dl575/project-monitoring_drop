@@ -44,6 +44,7 @@
 
 #include "base/random.hh"
 #include "mem/fifo.hh"
+#include "debug/Fifo.hh"
 
 using namespace std;
 
@@ -154,7 +155,7 @@ Fifo::MemoryPort::recvFunctional(PacketPtr pkt)
     uint8_t *data_ptr = (uint8_t *) &data;
     pkt->writeData(data_ptr);
     
-    printf("fifo receiving data %d\n", data);
+    DPRINTF(Fifo, "fifo receiving data %d\n", data);
 
     if (!queue.checkFunctional(pkt)) {
         // Default implementation of SimpleTimingPort::recvFunctional()
