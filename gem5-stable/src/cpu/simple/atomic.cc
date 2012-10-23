@@ -244,7 +244,7 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags)
 {
     // Read from fifo
-    if (addr == 0x30000000) {
+    if (fifo_enabled && (addr == 0x30000000)) {
       DPRINTF(Fifo, "Read from fifo\n");
 
       // Create request at fifo location

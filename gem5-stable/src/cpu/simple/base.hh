@@ -426,6 +426,8 @@ class BaseSimpleCPU : public BaseCPU
     bool misspeculating() { return thread->misspeculating(); }
     ThreadContext *tcBase() { return tc; }
 
+    // Whether monitoring fifo is enabled
+    bool fifo_enabled;
     // Port for monitoring fifo
     CpuPort fifoPort;
 

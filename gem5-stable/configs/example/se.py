@@ -101,7 +101,6 @@ else:
     print >> sys.stderr, "No workload specified. Exiting!\n"
     sys.exit(1)
 
-
 if options.input != "":
     process.input = options.input
 if options.output != "":
@@ -143,11 +142,13 @@ if options.cpu_type == "detailed" or options.cpu_type == "inorder":
                 smt_process.errout = errouts[smt_idx]
             process += [smt_process, ]
             smt_idx += 1
+
     numThreads = len(workloads)
 
 (CPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 CPUClass.clock = '2GHz'
 CPUClass.numThreads = numThreads;
+CPUClass.fifo_enabled = True
 
 np = options.num_cpus
 

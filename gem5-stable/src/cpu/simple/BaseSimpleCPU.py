@@ -35,7 +35,10 @@ class BaseSimpleCPU(BaseCPU):
     type = 'BaseSimpleCPU'
     abstract = True
 
-    fifo_port = MasterPort("Fifo Port")
+    fifo_enabled = Param.Bool(False, "monitoring fifo enabled")
+
+    if fifo_enabled:
+      fifo_port = MasterPort("Fifo Port")
 
     def addCheckerCpu(self):
         if buildEnv['TARGET_ISA'] in ['arm']:
