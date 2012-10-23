@@ -429,8 +429,6 @@ BaseSimpleCPU::preExecute()
 }
 
 void BaseSimpleCPU::handleFifoEvent() {
-  DPRINTF(Fifo, "Handling: %llu\n", fed.instAddr);
-
   // Create request
   Request *req = &fed.req;
   unsigned size = sizeof(fed.instAddr);
@@ -463,7 +461,6 @@ BaseSimpleCPU::postExecute()
       schedule(fifoEvent, curTick());
       // Store instruction address that generated this event
       fed.instAddr = instAddr;
-      DPRINTF(Fifo, "instAddr: %llu\n", instAddr);
     }
 
     if (FullSystem && thread->profile) {

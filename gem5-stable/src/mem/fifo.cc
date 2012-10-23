@@ -69,6 +69,10 @@ Fifo::init()
             (*p)->sendRangeChange();
         }
     }
+
+    // Initialize head/tail pointers
+    head_pointer = 0;
+    tail_pointer = 0;
 }
 
 Tick
@@ -94,7 +98,60 @@ Fifo::doAtomicAccess(PacketPtr pkt)
 void
 Fifo::doFunctionalAccess(PacketPtr pkt)
 {
-    functionalAccess(pkt);
+    //functionalAccess(pkt);
+
+    /* Based on AbstractMemory::functionalAccess */
+    
+    // Check that address is within bounds
+    assert(pkt->getAddr() >= range.start &&
+           (pkt->getAddr() + pkt->getSize() - 1) <= range.end);
+
+    // "Local" address
+    uint8_t *hostAddr = pmemAddr + pkt->getAddr() - range.start;
+
+    // Read request
+    if (pkt->isRead()) {
+        // If there is something to read
+        if (!empty()) {
+            // Copy from memory to packet
+            if (pmemAddr)
+                memcpy(pkt->getPtr<uint8_t>(), hostAddr + 0x10*tail_pointer, pkt->getSize());
+            // Update tail pointer
+            tail_pointer++;
+            tail_pointer %= FIFO_SIZE;
+            //TRACE_PACKET("Read");
+            DPRINTF(Fifo, "Read from tail %d, head at %d\n", tail_pointer, head_pointer);
+        } else
+            DPRINTF(Fifo, "Empty from tail %d, head at %d\n", tail_pointer, head_pointer);
+        pkt->makeResponse();
+    // Write request
+    } else if (pkt->isWrite()) {
+        // If there is space in the fifo
+        if (!full()) {
+            // Copy from packet to memory
+            if (pmemAddr)
+                memcpy(hostAddr + 0x10*head_pointer, pkt->getPtr<uint8_t>(), pkt->getSize());
+            // Update head_pointer
+            head_pointer++;
+            head_pointer %= FIFO_SIZE;
+            DPRINTF(Fifo, "Write at head %d, tail is at %d\n", head_pointer, tail_pointer);
+        } else
+            DPRINTF(Fifo, "Full at head %d, tail is at %d\n", head_pointer, tail_pointer);
+        pkt->makeResponse();
+    } else if (pkt->isPrint()) {
+        Packet::PrintReqState *prs =
+            dynamic_cast<Packet::PrintReqState*>(pkt->senderState);
+        assert(prs);
+        // Need to call printLabels() explicitly since we're not going
+        // through printObj().
+        prs->printLabels();
+        // Right now we just print the single byte at the specified address.
+        ccprintf(prs->os, "%s%#x\n", prs->curPrefix(), *hostAddr);
+    } else {
+        panic("AbstractMemory: unimplemented functional command %s",
+              pkt->cmdString());
+    }
+
 }
 
 SlavePort &

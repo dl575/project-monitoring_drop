@@ -53,6 +53,8 @@
 #include "mem/tport.hh"
 #include "params/Fifo.hh"
 
+#define FIFO_SIZE 8
+
 /**
  * The simple memory is a basic multi-ported memory with an infinite
  * throughput and a fixed latency, potentially with a variance added
@@ -108,6 +110,19 @@ class Fifo : public AbstractMemory
     Tick doAtomicAccess(PacketPtr pkt);
     void doFunctionalAccess(PacketPtr pkt);
     virtual Tick calculateLatency(PacketPtr pkt);
+
+  private:
+    // Fifo head/tail pointers
+    int head_pointer;
+    int tail_pointer;
+
+  public:
+    bool empty() {
+      return (head_pointer == tail_pointer);
+    }
+    bool full() {
+      return (((head_pointer + 1) % FIFO_SIZE) == tail_pointer);
+    }
 
 };
 
