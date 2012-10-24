@@ -35,7 +35,8 @@ class BaseSimpleCPU(BaseCPU):
     type = 'BaseSimpleCPU'
     abstract = True
 
-    fifo_enabled = Param.Bool(False, "monitoring fifo enabled")
+    fifo_enabled = Param.Bool(False, "monitoring fifo port enabled")
+    monitoring_enabled = Param.Bool(False, "monitoring enabled")
 
     if fifo_enabled:
       fifo_port = MasterPort("Fifo Port")

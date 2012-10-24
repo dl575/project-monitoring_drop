@@ -89,7 +89,9 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     : BaseCPU(p), traceData(NULL), thread(NULL),
     fifoPort(name() + "-iport", this), fifoEvent(this)
 {
+    // Store monitoring parameters
     fifo_enabled = p->fifo_enabled;
+    monitoring_enabled = p->monitoring_enabled;
 
     if (FullSystem)
         thread = new SimpleThread(this, 0, p->system, p->itb, p->dtb);
@@ -451,16 +453,15 @@ void BaseSimpleCPU::handleFifoEvent() {
 void
 BaseSimpleCPU::postExecute()
 {
-
-
     assert(curStaticInst);
 
     TheISA::PCState pc = tc->pcState();
     Addr instAddr = pc.instAddr();
 
     // Currently on loads, generate fifo event
-    if (fifo_enabled && curStaticInst->isLoad()) {
+    if (fifo_enabled && monitoring_enabled && curStaticInst->isLoad()) {
       schedule(fifoEvent, curTick());
+      DPRINTF(Fifo, "Monitoring event at %d\n", curTick());
       // Store instruction address that generated this event
       fed.instAddr = instAddr;
     }

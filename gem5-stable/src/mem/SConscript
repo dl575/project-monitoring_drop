@@ -88,8 +88,6 @@ DebugFlag('RubySlicc')
 DebugFlag('RubySystem')
 DebugFlag('RubyTester')
 
-DebugFlag('Fifo')
-
 CompoundFlag('Ruby', [ 'RubyQueue', 'RubyNetwork', 'RubyTester',
     'RubyGenerated', 'RubySlicc', 'RubySystem', 'RubyCache',
     'RubyMemory', 'RubyDma', 'RubyPort', 'RubySequencer', 'RubyCacheTrace'])

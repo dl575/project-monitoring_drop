@@ -76,35 +76,46 @@ if args:
 # Number of threads per CPU
 numThreads = 1
 
-# Create new CPU type
-(CPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
-CPUClass.clock = '2GHz'
-CPUClass.numThreads = numThreads;
-#CPUClass.fifo_enabled = True
+# Create new CPU type for main core
+(MainCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
+MainCPUClass.clock = '2GHz'
+MainCPUClass.numThreads = numThreads;
+MainCPUClass.fifo_enabled = True
+MainCPUClass.monitoring_enabled = True
+# Create new CPU type for monitoring core
+(MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
+MonCPUClass.clock = '2GHz'
+MonCPUClass.numThreads = numThreads;
+# Has port to access fifo, but does not enqueue monitoring events
+MonCPUClass.fifo_enabled = True
+MonCPUClass.monitoring_enabled = False
 
 # Number of CPUs
 np = 2
 
 # Create system, CPUs, bus, and memory
-system = System(cpu = [CPUClass(cpu_id=i) for i in xrange(np)],
+system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
                 physmem = SimpleMemory(range=AddrRange("512MB")),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
-#if options.cpu_type == "atomic" or options.cpu_type == "timing":
-#  # Create a "fifo" memory
-#  fifo = Fifo(range=AddrRange(start=0x30000000,size="1MB")) 
-#  system.fifo = fifo
-#  # Connect CPU to fifo
-#  system.cpu[0].fifo_port = system.fifo.port
+# Create a "fifo" memory
+fifo = Fifo(range=AddrRange(start=0x30000000,size="1MB")) 
+system.fifo = fifo
+# Connect CPU to fifo
+if system.cpu[0].fifo_enabled:
+  system.cpu[0].fifo_port = system.fifo.port
+# Connect CPU to fifo
+if system.cpu[1].fifo_enabled:
+  system.cpu[1].fifo_port = system.fifo.port
 
 # Assign programs
 process0 = LiveProcess()
-process0.executable = "sandbox/hello0"
+process0.executable = "sandbox/loop"
 process0.cmd = ""
 system.cpu[0].workload = process0
 
 process1 = LiveProcess()
-process1.executable = "sandbox/loop"
+process1.executable = "sandbox/monitor"
 process1.cmd = ""
 system.cpu[1].workload = process1
 
