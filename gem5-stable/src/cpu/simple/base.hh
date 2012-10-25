@@ -435,21 +435,6 @@ class BaseSimpleCPU : public BaseCPU
     // Port for monitoring fifo
     CpuPort fifoPort;
 
-    // Fifo Event
-    void handleFifoEvent();
-    typedef EventWrapper<BaseSimpleCPU, &BaseSimpleCPU::handleFifoEvent> FifoEvent;
-    FifoEvent fifoEvent;
-
-    // Data structure for handling fifo event
-    class fifoEventDetails {
-      public:
-        Addr instAddr;
-        Packet *pkt;
-        Request req;
-    };
-    fifoEventDetails fed;
-
-
 };
 
 #endif // __CPU_SIMPLE_BASE_HH__

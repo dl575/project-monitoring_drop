@@ -140,6 +140,22 @@ class AtomicSimpleCPU : public BaseSimpleCPU
      * debugging).
      */
     void printAddr(Addr a);
+
+  private:
+    // Fifo Event
+    void handleFifoEvent();
+    typedef EventWrapper<AtomicSimpleCPU, &AtomicSimpleCPU::handleFifoEvent> FifoEvent;
+    FifoEvent fifoEvent;
+
+    // Data structure for handling fifo event
+    class fifoEventDetails {
+      public:
+        Addr instAddr;
+        Packet *pkt;
+        Request req;
+    };
+    fifoEventDetails fed;
+
 };
 
 #endif // __CPU_SIMPLE_ATOMIC_HH__

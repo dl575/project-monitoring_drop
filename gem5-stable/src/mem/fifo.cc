@@ -46,6 +46,11 @@
 #include "mem/fifo.hh"
 #include "debug/Fifo.hh"
 
+#include "arch/registers.hh"
+#include "config/the_isa.hh"
+#include "debug/MemoryAccess.hh"
+//#include "mem/abstract_mem.hh"
+
 using namespace std;
 
 Fifo::Fifo(const Params* p) :
@@ -93,6 +98,110 @@ Fifo::doAtomicAccess(PacketPtr pkt)
 {
     access(pkt);
     return calculateLatency(pkt);
+}
+
+// Based on AbstractMemory::acess
+void Fifo::access(PacketPtr pkt)
+{
+    assert(pkt->getAddr() >= range.start &&
+           (pkt->getAddr() + pkt->getSize() - 1) <= range.end);
+
+    if (pkt->memInhibitAsserted()) {
+        DPRINTF(MemoryAccess, "mem inhibited on 0x%x: not responding\n",
+                pkt->getAddr());
+        return;
+    }
+
+    uint8_t *hostAddr = pmemAddr + pkt->getAddr() - range.start;
+
+    if (pkt->cmd == MemCmd::SwapReq) {
+        TheISA::IntReg overwrite_val;
+        bool overwrite_mem;
+        uint64_t condition_val64;
+        uint32_t condition_val32;
+
+        if (!pmemAddr)
+            panic("Swap only works if there is real memory (i.e. null=False)");
+        assert(sizeof(TheISA::IntReg) >= pkt->getSize());
+
+        overwrite_mem = true;
+        // keep a copy of our possible write value, and copy what is at the
+        // memory address into the packet
+        std::memcpy(&overwrite_val, pkt->getPtr<uint8_t>(), pkt->getSize());
+        std::memcpy(pkt->getPtr<uint8_t>(), hostAddr, pkt->getSize());
+
+        if (pkt->req->isCondSwap()) {
+            if (pkt->getSize() == sizeof(uint64_t)) {
+                condition_val64 = pkt->req->getExtraData();
+                overwrite_mem = !std::memcmp(&condition_val64, hostAddr,
+                                             sizeof(uint64_t));
+            } else if (pkt->getSize() == sizeof(uint32_t)) {
+                condition_val32 = (uint32_t)pkt->req->getExtraData();
+                overwrite_mem = !std::memcmp(&condition_val32, hostAddr,
+                                             sizeof(uint32_t));
+            } else
+                panic("Invalid size for conditional read/write\n");
+        }
+
+        if (overwrite_mem)
+            std::memcpy(hostAddr, &overwrite_val, pkt->getSize());
+
+        assert(!pkt->req->isInstFetch());
+        //TRACE_PACKET("Read/Write");
+        numOther[pkt->req->masterId()]++;
+    } else if (pkt->isRead()) {
+        assert(!pkt->isWrite());
+        if (pkt->isLLSC()) {
+            trackLoadLocked(pkt);
+        }
+        // If there is something to read
+        if (!empty()) {
+            // Copy from memory to packet
+            if (pmemAddr)
+                memcpy(pkt->getPtr<uint8_t>(), hostAddr + 0x10*tail_pointer, pkt->getSize());
+
+            // Update tail pointer
+            tail_pointer++;
+            tail_pointer %= FIFO_SIZE;
+            DPRINTF(Fifo, "Read from tail %d, head at %d\n", tail_pointer, head_pointer);
+        } else
+            DPRINTF(Fifo, "Empty from tail %d, head at %d\n", tail_pointer, head_pointer);
+        //TRACE_PACKET(pkt->req->isInstFetch() ? "IFetch" : "Read");
+        numReads[pkt->req->masterId()]++;
+        bytesRead[pkt->req->masterId()] += pkt->getSize();
+        if (pkt->req->isInstFetch())
+            bytesInstRead[pkt->req->masterId()] += pkt->getSize();
+    } else if (pkt->isWrite()) {
+        if (writeOK(pkt)) {
+            if(!full()) {
+                if (pmemAddr)
+                    // Copy from packet to memory
+                    memcpy(hostAddr + 0x10*head_pointer, pkt->getPtr<uint8_t>(), pkt->getSize());
+                // Update head_pointer
+                head_pointer++;
+                head_pointer %= FIFO_SIZE;
+
+                int data;
+                uint8_t *data_ptr = (uint8_t *) &data;
+                pkt->writeData(data_ptr);
+                DPRINTF(Fifo, "Write %d at head %d, tail is at %d\n", data, head_pointer, tail_pointer);
+            } else
+                DPRINTF(Fifo, "Full at head %d, tail is at %d\n", head_pointer, tail_pointer);
+            assert(!pkt->req->isInstFetch());
+            //TRACE_PACKET("Write");
+            numWrites[pkt->req->masterId()]++;
+            bytesWritten[pkt->req->masterId()] += pkt->getSize();
+        }
+    } else if (pkt->isInvalidate()) {
+        // no need to do anything
+    } else {
+        panic("unimplemented");
+    }
+
+    if (pkt->needsResponse()) {
+        pkt->makeResponse();
+    }
+
 }
 
 void

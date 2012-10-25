@@ -107,7 +107,8 @@ AtomicSimpleCPU::AtomicSimpleCPU(AtomicSimpleCPUParams *p)
       simulate_data_stalls(p->simulate_data_stalls),
       simulate_inst_stalls(p->simulate_inst_stalls),
       icachePort(name() + "-iport", this), dcachePort(name() + "-iport", this),
-      fastmem(p->fastmem)
+      fastmem(p->fastmem),
+      fifoEvent(this)
 {
     _status = Idle;
 }
@@ -482,6 +483,7 @@ AtomicSimpleCPU::tick()
 
         if (fault == NoFault) {
             Tick icache_latency = 0;
+            Tick fifo_latency = 0;
             bool icache_access = false;
             dcache_access = false; // assume no dcache access
 
@@ -523,6 +525,33 @@ AtomicSimpleCPU::tick()
                 }
 
                 postExecute();
+
+                /* Monitoring */
+                // Currently on loads, generate fifo event
+                if (fifo_enabled && monitoring_enabled && curStaticInst->isLoad()) {
+//                  schedule(fifoEvent, curTick());
+
+                  DPRINTF(Fifo, "Monitoring event at %d\n", curTick());
+                  // Store instruction address that generated this event
+                  fed.instAddr = tc->pcState().instAddr();
+
+                  // Create request
+                  Request *req = &fed.req;
+                  unsigned size = sizeof(fed.instAddr);
+                  unsigned flags = ArmISA::TLB::AllowUnaligned;
+                  // set physical address
+                  req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
+
+                  // Create write packet
+                  MemCmd cmd = MemCmd::WriteReq;
+                  PacketPtr pkt = new Packet(req, cmd);
+                  // Set data
+                  pkt->dataStatic(&fed.instAddr);
+
+                  // Send packet on fifo port
+                  //fifoPort.sendFunctional(pkt);
+                  fifo_latency = fifoPort.sendAtomic(pkt);
+                }
             }
 
             // @todo remove me after debugging with legion done
@@ -536,6 +565,9 @@ AtomicSimpleCPU::tick()
 
             if (simulate_data_stalls && dcache_access)
                 stall_ticks += dcache_latency;
+
+            // Add fifo writing stall
+            stall_ticks += fifo_latency;
 
             if (stall_ticks) {
                 Tick stall_cycles = stall_ticks / ticks(1);
@@ -560,6 +592,23 @@ AtomicSimpleCPU::tick()
         schedule(tickEvent, curTick() + latency);
 }
 
+void AtomicSimpleCPU::handleFifoEvent() {
+  // Create request
+  Request *req = &fed.req;
+  unsigned size = sizeof(fed.instAddr);
+  unsigned flags = ArmISA::TLB::AllowUnaligned;
+  // set physical address
+  req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
+
+  // Create write packet
+  MemCmd cmd = MemCmd::WriteReq;
+  PacketPtr pkt = new Packet(req, cmd);
+  // Set data
+  pkt->dataStatic(&fed.instAddr);
+
+  // Send packet on fifo port
+  fifoPort.sendFunctional(pkt);
+}
 
 void
 AtomicSimpleCPU::printAddr(Addr a)

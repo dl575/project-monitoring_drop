@@ -64,10 +64,18 @@ unameFunc(SyscallDesc *desc, int callnum, LiveProcess *process,
     int index = 0;
     TypedBufferArg<Linux::utsname> name(process->getSyscallArg(tc, index));
 
+    /*
     strcpy(name->sysname, "Linux");
     strcpy(name->nodename, "m5.eecs.umich.edu");
     strcpy(name->release, "2.6.29");
     strcpy(name->version, "#1 Mon Aug 18 11:32:15 EDT 2003");
+    strcpy(name->machine, "armv7l");
+    */
+
+    strcpy(name->sysname, "Linux");
+    strcpy(name->nodename, "m5.eecs.umich.edu");
+    strcpy(name->release, "3.2.0");
+    strcpy(name->version, "#51 Wed Sep 26 21:54:23 UTC 2012");
     strcpy(name->machine, "armv7l");
 
     name.copyOut(tc->getMemProxy());

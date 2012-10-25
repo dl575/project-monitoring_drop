@@ -87,7 +87,7 @@ using namespace TheISA;
 
 BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     : BaseCPU(p), traceData(NULL), thread(NULL),
-    fifoPort(name() + "-iport", this), fifoEvent(this)
+    fifoPort(name() + "-iport", this)
 {
     // Store monitoring parameters
     fifo_enabled = p->fifo_enabled;
@@ -432,24 +432,6 @@ BaseSimpleCPU::preExecute()
     }
 }
 
-void BaseSimpleCPU::handleFifoEvent() {
-  // Create request
-  Request *req = &fed.req;
-  unsigned size = sizeof(fed.instAddr);
-  unsigned flags = ArmISA::TLB::AllowUnaligned;
-  // set physical address
-  req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
-
-  // Create write packet
-  MemCmd cmd = MemCmd::WriteReq;
-  PacketPtr pkt = new Packet(req, cmd);
-  // Set data
-  pkt->dataStatic(&fed.instAddr);
-
-  // Send packet on fifo port
-  fifoPort.sendFunctional(pkt);
-}
-
 void
 BaseSimpleCPU::postExecute()
 {
@@ -457,14 +439,6 @@ BaseSimpleCPU::postExecute()
 
     TheISA::PCState pc = tc->pcState();
     Addr instAddr = pc.instAddr();
-
-    // Currently on loads, generate fifo event
-    if (fifo_enabled && monitoring_enabled && curStaticInst->isLoad()) {
-      schedule(fifoEvent, curTick());
-      DPRINTF(Fifo, "Monitoring event at %d\n", curTick());
-      // Store instruction address that generated this event
-      fed.instAddr = instAddr;
-    }
 
     if (FullSystem && thread->profile) {
         bool usermode = TheISA::inUserMode(tc);
