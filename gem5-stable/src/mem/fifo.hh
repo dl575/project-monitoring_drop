@@ -78,6 +78,7 @@ class Fifo : public AbstractMemory
         virtual Tick recvAtomic(PacketPtr pkt);
 
         virtual void recvFunctional(PacketPtr pkt);
+        virtual bool recvTimingReq(PacketPtr pkt);
 
         virtual AddrRangeList getAddrRanges();
 

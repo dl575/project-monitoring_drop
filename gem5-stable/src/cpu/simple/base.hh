@@ -432,8 +432,25 @@ class BaseSimpleCPU : public BaseCPU
     // If monitoring_enabled is false, this still allows a processor to read
     // from the fifo port without automatically monitoring
     bool fifo_enabled;
+
+  private:
+    class FifoPort : public CpuPort
+    {
+      public:
+        FifoPort(const std::string &_name, BaseCPU* _cpu)
+          : CpuPort(_name, _cpu)
+        { }
+        
+      protected:
+        virtual bool recvTimingResp(PacketPtr pkt)
+        {
+          return true;
+        }
+    };
+
+  protected:
     // Port for monitoring fifo
-    CpuPort fifoPort;
+    FifoPort fifoPort;
 
 };
 

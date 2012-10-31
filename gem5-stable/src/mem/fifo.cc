@@ -333,6 +333,22 @@ Fifo::MemoryPort::recvFunctional(PacketPtr pkt)
     pkt->popLabel();
 }
 
+bool
+Fifo::MemoryPort::recvTimingReq(PacketPtr pkt)
+{
+  // If full
+  if (memory.full()) {
+    // Indicate unsuccessful send
+    return false;
+  // Otherwise, there's space
+  } else {
+    // Use functional function to handle writing
+    recvFunctional(pkt);
+    // Indicate write accepted
+    return true;
+  }
+}
+
 Fifo*
 FifoParams::create()
 {

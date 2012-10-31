@@ -544,13 +544,14 @@ AtomicSimpleCPU::tick()
 
                   // Create write packet
                   MemCmd cmd = MemCmd::WriteReq;
-                  PacketPtr pkt = new Packet(req, cmd);
+                  PacketPtr fifopkt = new Packet(req, cmd);
                   // Set data
-                  pkt->dataStatic(&fed.instAddr);
+                  fifopkt->dataStatic(&fed.instAddr);
 
                   // Send packet on fifo port
                   //fifoPort.sendFunctional(pkt);
-                  fifo_latency = fifoPort.sendAtomic(pkt);
+                  //fifo_latency = fifoPort.sendAtomic(pkt);
+                  fifoPort.sendTimingReq(fifopkt);
                 }
             }
 
