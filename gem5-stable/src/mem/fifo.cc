@@ -320,7 +320,6 @@ Fifo::MemoryPort::recvFunctional(PacketPtr pkt)
     int data;
     uint8_t *data_ptr = (uint8_t *) &data;
     pkt->writeData(data_ptr);
-    
     DPRINTF(Fifo, "fifo receiving data %d\n", data);
 
     if (!queue.checkFunctional(pkt)) {
@@ -342,6 +341,7 @@ Fifo::MemoryPort::recvTimingReq(PacketPtr pkt)
     return false;
   // Otherwise, there's space
   } else {
+    DPRINTF(Fifo, "Has space, receiving\n");
     // Use functional function to handle writing
     recvFunctional(pkt);
     // Indicate write accepted

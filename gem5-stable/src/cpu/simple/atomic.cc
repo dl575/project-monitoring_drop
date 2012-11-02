@@ -100,6 +100,8 @@ AtomicSimpleCPU::init()
     ifetch_req.setThreadContext(_cpuId, 0); // Add thread ID if we add MT
     data_read_req.setThreadContext(_cpuId, 0); // Add thread ID here too
     data_write_req.setThreadContext(_cpuId, 0); // Add thread ID here too
+
+    fifoStall = false;
 }
 
 AtomicSimpleCPU::AtomicSimpleCPU(AtomicSimpleCPUParams *p)
@@ -551,7 +553,13 @@ AtomicSimpleCPU::tick()
                   // Send packet on fifo port
                   //fifoPort.sendFunctional(pkt);
                   //fifo_latency = fifoPort.sendAtomic(pkt);
-                  fifoPort.sendTimingReq(fifopkt);
+                  if(fifoPort.sendTimingReq(fifopkt)) {
+                    // Successful, no need to stall
+                    fifoStall = false;
+                  } else {
+                    // Unsuccessful, stall fifo
+                    fifoStall = true;
+                  }
                 }
             }
 
@@ -589,11 +597,18 @@ AtomicSimpleCPU::tick()
     if (latency < ticks(1))
         latency = ticks(1);
 
-    if (_status != Idle)
-        schedule(tickEvent, curTick() + latency);
+    if (_status != Idle) {
+        if (fifoStall) {
+            DPRINTF(Fifo, "Rescheduling...\n");
+            schedule(fifoEvent, curTick() + latency);
+        } else {
+            schedule(tickEvent, curTick() + latency);
+        }
+    }
 }
 
 void AtomicSimpleCPU::handleFifoEvent() {
+  /*
   // Create request
   Request *req = &fed.req;
   unsigned size = sizeof(fed.instAddr);
@@ -609,6 +624,32 @@ void AtomicSimpleCPU::handleFifoEvent() {
 
   // Send packet on fifo port
   fifoPort.sendFunctional(pkt);
+  */
+
+  // Create request
+  Request *req = &fed.req;
+  unsigned size = sizeof(fed.instAddr);
+  unsigned flags = ArmISA::TLB::AllowUnaligned;
+  // set physical address
+  req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
+
+  // Create write packet
+  MemCmd cmd = MemCmd::WriteReq;
+  PacketPtr fifopkt = new Packet(req, cmd);
+  // Set data
+  fifopkt->dataStatic(&fed.instAddr);
+
+  // Try again
+  if (fifoPort.sendTimingReq(fifopkt)) {
+    // Successful
+    // Schedule tick event to resume CPU
+    DPRINTF(Fifo, "Success!\n");
+    schedule(tickEvent, curTick() + ticks(1));
+  } else {
+    // Failed
+    // Retry
+    schedule(fifoEvent, curTick() + ticks(1));
+  }
 }
 
 void

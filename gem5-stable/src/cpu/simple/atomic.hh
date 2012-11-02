@@ -147,6 +147,9 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     typedef EventWrapper<AtomicSimpleCPU, &AtomicSimpleCPU::handleFifoEvent> FifoEvent;
     FifoEvent fifoEvent;
 
+    // Stall because need to write to fifo but fifo is full
+    bool fifoStall;
+
     // Data structure for handling fifo event
     class fifoEventDetails {
       public:
