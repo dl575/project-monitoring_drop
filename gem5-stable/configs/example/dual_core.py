@@ -110,12 +110,12 @@ if system.cpu[1].fifo_enabled:
 
 # Assign programs
 process0 = LiveProcess()
-process0.executable = "sandbox/loop"
+process0.executable = "sandbox/loop.arm"
 process0.cmd = ""
 system.cpu[0].workload = process0
 
 process1 = LiveProcess()
-process1.executable = "sandbox/monitor"
+process1.executable = "sandbox/monitor.arm"
 process1.cmd = ""
 system.cpu[1].workload = process1
 
