@@ -354,7 +354,9 @@ Fault
 AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
                           Addr addr, unsigned flags, uint64_t *res)
 {
-    // Read from fifo
+    // Write to fifo
+    // Used to handl fifo control (writing data to fifo is done 
+    // automatically by monitoring)
     if (fifo_enabled && (addr == 0x30000000)) {
 
       int fifo_ctrl = (int)*data;
@@ -552,7 +554,8 @@ AtomicSimpleCPU::tick()
                 if (fifo_enabled && monitoring_enabled && curStaticInst->isLoad()) {
 //                  schedule(fifoEvent, curTick());
 
-                  DPRINTF(Fifo, "Monitoring event at %d\n", curTick());
+                  DPRINTF(Fifo, "Monitoring event at %d, data: %x\n", 
+                      curTick(), tc->pcState().instAddr());
                   // Store instruction address that generated this event
                   fed.instAddr = tc->pcState().instAddr();
 
@@ -663,6 +666,7 @@ void AtomicSimpleCPU::handleFifoEvent() {
     // Successful
     // Schedule tick event to resume CPU
     DPRINTF(Fifo, "Success!\n");
+    fifoStall = false;
     schedule(tickEvent, curTick() + ticks(1));
   } else {
     // Failed

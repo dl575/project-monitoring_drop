@@ -7,12 +7,12 @@ int main(int argc, char *argv[]) {
   volatile int *fifo;
   fifo = (int *)0x30000000;
 
-  for(i = 0; ; i++) {
+  for(i = 0; i < 50; i++) {
     //printf("%x points to %d\n", (unsigned int)fifo, *fifo);
     data = *fifo;
-    if (i % 100 == 0 ) {
+//    if (i % 100 == 0 ) {
       printf("%x\n", data);
-    }
+//    }
   }
 
   return 0;

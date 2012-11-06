@@ -81,7 +81,7 @@ numThreads = 1
 MainCPUClass.clock = '2GHz'
 MainCPUClass.numThreads = numThreads;
 MainCPUClass.fifo_enabled = True
-MainCPUClass.monitoring_enabled = True
+MainCPUClass.monitoring_enabled = False
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 MonCPUClass.clock = '2GHz'
