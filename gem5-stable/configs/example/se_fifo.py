@@ -101,7 +101,6 @@ else:
     print >> sys.stderr, "No workload specified. Exiting!\n"
     sys.exit(1)
 
-
 if options.input != "":
     process.input = options.input
 if options.output != "":
@@ -143,17 +142,27 @@ if options.cpu_type == "detailed" or options.cpu_type == "inorder":
                 smt_process.errout = errouts[smt_idx]
             process += [smt_process, ]
             smt_idx += 1
+
     numThreads = len(workloads)
 
 (CPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 CPUClass.clock = '2GHz'
 CPUClass.numThreads = numThreads;
+CPUClass.fifo_enabled = True
+CPUClass.monitoring_enabled = False
 
 np = options.num_cpus
 
 system = System(cpu = [CPUClass(cpu_id=i) for i in xrange(np)],
                 physmem = SimpleMemory(range=AddrRange("512MB")),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
+
+if options.cpu_type == "atomic" or options.cpu_type == "timing":
+  # Create a "fifo" memory
+  fifo = Fifo(range=AddrRange(start=0x30000000,size="1MB")) 
+  system.fifo = fifo
+  # Connect CPU to fifo
+  system.cpu[0].fifo_port = system.fifo.port
 
 # Sanity check
 if options.fastmem and (options.caches or options.l2cache):
