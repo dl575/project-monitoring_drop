@@ -354,6 +354,25 @@ Fault
 AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
                           Addr addr, unsigned flags, uint64_t *res)
 {
+    // Read from fifo
+    if (fifo_enabled && (addr == 0x30000000)) {
+
+      int fifo_ctrl = (int)*data;
+      DPRINTF(Fifo, "Write to fifo control: %d\n", fifo_ctrl);
+
+      if (fifo_ctrl == 1) {
+        // Enable monitoring
+        monitoring_enabled = true;
+      } else if (fifo_ctrl == 0) {
+        // Disable monitoring
+        monitoring_enabled = false;
+      } else {
+        warn("Unrecognized fifo control: %d\n", fifo_ctrl);
+      }
+
+      return NoFault;
+    }
+
     // use the CPU's statically allocated write request and packet objects
     Request *req = &data_write_req;
 
