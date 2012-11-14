@@ -539,6 +539,19 @@ AtomicSimpleCPU::tick()
             if (curStaticInst) {
                 fault = curStaticInst->execute(this, traceData);
 
+                // Store memory address and data for monitoring
+                if (traceData) {
+                  if (traceData->getAddrValid()) {
+                    fed.memAddr = traceData->getAddr();
+                  }
+                  if (traceData->getDataStatus()) {
+                    fed.data = traceData->getIntData();
+                  }
+                } else {
+                  fed.memAddr = 0;
+                  fed.data = 0;
+                }
+
                 // keep an instruction count
                 if (fault == NoFault)
                     countInst();
@@ -556,12 +569,18 @@ AtomicSimpleCPU::tick()
 
                   DPRINTF(Fifo, "Monitoring event at %d, data: %x\n", 
                       curTick(), tc->pcState().instAddr());
+                  // disassemble takes a pc and symbol table, not even sure what the pc is used for
+                  /*
+                  DPRINTF(Fifo, "dis: %s\n", curStaticInst->disassemble(0, NULL));
+                  DPRINTF(Fifo, "numsrc: %d, numdest: %d\n", curStaticInst->numSrcRegs(), curStaticInst->numDestRegs());
+                  DPRINTF(Fifo, "src: %d, dest: %d\n", curStaticInst->srcRegIdx(0), curStaticInst->destRegIdx(0));
+                  */
                   // Store instruction address that generated this event
                   fed.instAddr = tc->pcState().instAddr();
 
                   // Create request
                   Request *req = &fed.req;
-                  unsigned size = sizeof(fed.instAddr);
+                  unsigned size = sizeof(fed.memAddr);
                   unsigned flags = ArmISA::TLB::AllowUnaligned;
                   // set physical address
                   req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
@@ -570,7 +589,10 @@ AtomicSimpleCPU::tick()
                   MemCmd cmd = MemCmd::WriteReq;
                   PacketPtr fifopkt = new Packet(req, cmd);
                   // Set data
-                  fifopkt->dataStatic(&fed.instAddr);
+                  //fifopkt->dataStatic(&fed.instAddr);
+                  //fifopkt->dataStatic(&fed.memAddr);
+                  DPRINTF(Fifo, "Tralala: %x, %x, %x\n", fed.instAddr, fed.memAddr, fed.data);
+                  fifopkt->dataStatic(&fed.memAddr);
 
                   // Send packet on fifo port
                   //fifoPort.sendFunctional(pkt);
@@ -650,7 +672,7 @@ void AtomicSimpleCPU::handleFifoEvent() {
 
   // Create request
   Request *req = &fed.req;
-  unsigned size = sizeof(fed.instAddr);
+  unsigned size = sizeof(fed.memAddr);
   unsigned flags = ArmISA::TLB::AllowUnaligned;
   // set physical address
   req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
@@ -659,7 +681,7 @@ void AtomicSimpleCPU::handleFifoEvent() {
   MemCmd cmd = MemCmd::WriteReq;
   PacketPtr fifopkt = new Packet(req, cmd);
   // Set data
-  fifopkt->dataStatic(&fed.instAddr);
+  fifopkt->dataStatic(&fed.memAddr);
 
   // Try again
   if (fifoPort.sendTimingReq(fifopkt)) {

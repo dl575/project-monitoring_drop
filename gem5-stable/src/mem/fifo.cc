@@ -243,7 +243,11 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
             // Update head_pointer
             head_pointer++;
             head_pointer %= FIFO_SIZE;
-            DPRINTF(Fifo, "Write at head %d, tail is at %d\n", head_pointer, tail_pointer);
+
+            int data;
+            uint8_t *data_ptr = (uint8_t *) &data;
+            pkt->writeData(data_ptr);
+            DPRINTF(Fifo, "Write %d at head %d, tail is at %d\n", data, head_pointer, tail_pointer);
         } else
             DPRINTF(Fifo, "Full at head %d, tail is at %d\n", head_pointer, tail_pointer);
         pkt->makeResponse();

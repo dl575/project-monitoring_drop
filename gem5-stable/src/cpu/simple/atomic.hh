@@ -154,6 +154,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     class fifoEventDetails {
       public:
         Addr instAddr;
+        Addr memAddr;
+        uint64_t data;
         Packet *pkt;
         Request req;
     };
