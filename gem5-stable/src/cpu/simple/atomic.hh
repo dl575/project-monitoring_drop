@@ -160,6 +160,17 @@ class AtomicSimpleCPU : public BaseSimpleCPU
         Request req;
     };
     fifoEventDetails fed;
+    class monitoringPacket {
+      public:
+        Addr instAddr;
+        Addr memAddr;
+        uint64_t data;
+        bool store; // true if store instruction, false if load
+    };
+    monitoringPacket mp;
+    // Buffer for reading from Fifo
+    // Since reading form Fifo is destructive, need to buffer if multiple bytes
+    monitoringPacket read_mp;
 
 };
 

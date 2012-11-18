@@ -247,23 +247,43 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags)
 {
     // Read from fifo
-    if (fifo_enabled && (addr == 0x30000000)) {
-      DPRINTF(Fifo, "Read from fifo\n");
+    if (fifo_enabled) {
+      if (addr == 0x30000000) {
+        DPRINTF(Fifo, "Read from fifo\n");
 
-      // Create request at fifo location
-      Request *req = &data_read_req;
-      req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
-      // Read command
-      MemCmd cmd = MemCmd::ReadReq;
-      // Create packet
-      PacketPtr pkt = new Packet(req, cmd);
-      // Point packet to data pointer
-      pkt->dataStatic(data);
+        // Create request at fifo location
+        Request *req = &data_read_req;
+        //FIXME
+        size = sizeof(read_mp);
+        req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
+        // Read command
+        MemCmd cmd = MemCmd::ReadReq;
+        // Create packet
+        PacketPtr pkt = new Packet(req, cmd);
+        // Point packet to data pointer
+        pkt->dataStatic(data);
 
-      // Send read request
-      fifoPort.sendFunctional(pkt);
+        // Send read request
+        fifoPort.sendFunctional(pkt);
 
-      return NoFault;
+        // Copy to Fifo buffer
+        memcpy(&read_mp, data, sizeof(read_mp));
+        DPRINTF(Fifo, "read_mp: %x, %x, %x\n", read_mp.instAddr, read_mp.memAddr, read_mp.data);
+
+        return NoFault;
+      } else if (addr == 0x30000004) {
+        memcpy(data, (void *)&read_mp.memAddr, sizeof(read_mp.memAddr));
+
+        return NoFault;
+      } else if (addr == 0x30000008) {
+        memcpy(data, (void *)&read_mp.data, sizeof(read_mp.data));
+
+        return NoFault;
+      } else if (addr == 0x3000000c) {
+        memcpy(data, (void *)&read_mp.store, sizeof(read_mp.store));
+
+        return NoFault;
+      }
     }
 
     // use the CPU's statically allocated read request and packet objects
@@ -564,8 +584,8 @@ AtomicSimpleCPU::tick()
 
                 /* Monitoring */
                 // Currently on loads, generate fifo event
-                if (fifo_enabled && monitoring_enabled && curStaticInst->isLoad()) {
-//                  schedule(fifoEvent, curTick());
+                if (fifo_enabled && monitoring_enabled && 
+                  (curStaticInst->isLoad() || curStaticInst->isStore())) {
 
                   DPRINTF(Fifo, "Monitoring event at %d, data: %x\n", 
                       curTick(), tc->pcState().instAddr());
@@ -578,9 +598,21 @@ AtomicSimpleCPU::tick()
                   // Store instruction address that generated this event
                   fed.instAddr = tc->pcState().instAddr();
 
+                  // Monitoring packet to be sent
+                  mp.instAddr = fed.instAddr;
+                  mp.memAddr = fed.memAddr;
+                  mp.data = fed.data;
+                  if (curStaticInst->isStore()) {
+                    mp.store = true;
+                  } else if (curStaticInst->isLoad()) {
+                    mp.store = false;
+                  } else {
+                    panic("Neither store nor load instruction for monitoring\n");
+                  }
                   // Create request
                   Request *req = &fed.req;
-                  unsigned size = sizeof(fed.memAddr);
+//                  unsigned size = sizeof(fed.memAddr);
+                  unsigned size = sizeof(mp);
                   unsigned flags = ArmISA::TLB::AllowUnaligned;
                   // set physical address
                   req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
@@ -591,8 +623,9 @@ AtomicSimpleCPU::tick()
                   // Set data
                   //fifopkt->dataStatic(&fed.instAddr);
                   //fifopkt->dataStatic(&fed.memAddr);
-                  DPRINTF(Fifo, "Tralala: %x, %x, %x\n", fed.instAddr, fed.memAddr, fed.data);
-                  fifopkt->dataStatic(&fed.memAddr);
+                  //DPRINTF(Fifo, "Tralala: %x, %x, %x\n", fed.instAddr, fed.memAddr, fed.data);
+//                  fifopkt->dataStatic(&fed.memAddr);
+                  fifopkt->dataStatic(&mp);
 
                   // Send packet on fifo port
                   //fifoPort.sendFunctional(pkt);
@@ -672,7 +705,8 @@ void AtomicSimpleCPU::handleFifoEvent() {
 
   // Create request
   Request *req = &fed.req;
-  unsigned size = sizeof(fed.memAddr);
+  unsigned size = sizeof(mp);
+//  unsigned size = sizeof(fed.memAddr);
   unsigned flags = ArmISA::TLB::AllowUnaligned;
   // set physical address
   req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
@@ -681,7 +715,8 @@ void AtomicSimpleCPU::handleFifoEvent() {
   MemCmd cmd = MemCmd::WriteReq;
   PacketPtr fifopkt = new Packet(req, cmd);
   // Set data
-  fifopkt->dataStatic(&fed.memAddr);
+//  fifopkt->dataStatic(&fed.memAddr);
+  fifopkt->dataStatic(&mp);
 
   // Try again
   if (fifoPort.sendTimingReq(fifopkt)) {

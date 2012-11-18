@@ -54,6 +54,8 @@
 #include "params/Fifo.hh"
 
 #define FIFO_SIZE 8
+// Space between fifo entries
+#define FIFO_ENTRY_SIZE 0x100
 
 /**
  * The simple memory is a basic multi-ported memory with an infinite

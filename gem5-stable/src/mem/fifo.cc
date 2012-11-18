@@ -158,7 +158,7 @@ void Fifo::access(PacketPtr pkt)
         if (!empty()) {
             // Copy from memory to packet
             if (pmemAddr)
-                memcpy(pkt->getPtr<uint8_t>(), hostAddr + 0x10*tail_pointer, pkt->getSize());
+                memcpy(pkt->getPtr<uint8_t>(), hostAddr + FIFO_ENTRY_SIZE*tail_pointer, pkt->getSize());
 
             // Update tail pointer
             tail_pointer++;
@@ -176,7 +176,7 @@ void Fifo::access(PacketPtr pkt)
             if(!full()) {
                 if (pmemAddr)
                     // Copy from packet to memory
-                    memcpy(hostAddr + 0x10*head_pointer, pkt->getPtr<uint8_t>(), pkt->getSize());
+                    memcpy(hostAddr + FIFO_ENTRY_SIZE*head_pointer, pkt->getPtr<uint8_t>(), pkt->getSize());
                 // Update head_pointer
                 head_pointer++;
                 head_pointer %= FIFO_SIZE;
@@ -224,7 +224,7 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
         if (!empty()) {
             // Copy from memory to packet
             if (pmemAddr)
-                memcpy(pkt->getPtr<uint8_t>(), hostAddr + 0x10*tail_pointer, pkt->getSize());
+                memcpy(pkt->getPtr<uint8_t>(), hostAddr + FIFO_ENTRY_SIZE*tail_pointer, pkt->getSize());
             // Update tail pointer
             tail_pointer++;
             tail_pointer %= FIFO_SIZE;
@@ -239,7 +239,7 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
         if (!full()) {
             // Copy from packet to memory
             if (pmemAddr)
-                memcpy(hostAddr + 0x10*head_pointer, pkt->getPtr<uint8_t>(), pkt->getSize());
+                memcpy(hostAddr + FIFO_ENTRY_SIZE*head_pointer, pkt->getPtr<uint8_t>(), pkt->getSize());
             // Update head_pointer
             head_pointer++;
             head_pointer %= FIFO_SIZE;
