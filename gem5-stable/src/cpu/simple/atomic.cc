@@ -292,6 +292,8 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
     if (traceData) {
         traceData->setAddr(addr);
     }
+    // Save address for monitoring
+    fed.memAddr = addr;
 
     //The block size of our peer.
     unsigned blockSize = dcachePort.peerBlockSize();
@@ -336,6 +338,9 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
                 TheISA::handleLockedRead(thread, req);
             }
         }
+
+    // Save data for monitoring
+    fed.data = (uint64_t)(*data);
 
         //If there's a fault, return it
         if (fault != NoFault) {
@@ -401,6 +406,10 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
     if (traceData) {
         traceData->setAddr(addr);
     }
+    // Save memory address for monitoring
+    fed.memAddr = addr;
+    // Save data being written
+    fed.data = (uint64_t)(*data);
 
     //The block size of our peer.
     unsigned blockSize = dcachePort.peerBlockSize();
@@ -558,19 +567,6 @@ AtomicSimpleCPU::tick()
 
             if (curStaticInst) {
                 fault = curStaticInst->execute(this, traceData);
-
-                // Store memory address and data for monitoring
-                if (traceData) {
-                  if (traceData->getAddrValid()) {
-                    fed.memAddr = traceData->getAddr();
-                  }
-                  if (traceData->getDataStatus()) {
-                    fed.data = traceData->getIntData();
-                  }
-                } else {
-                  fed.memAddr = 0;
-                  fed.data = 0;
-                }
 
                 // keep an instruction count
                 if (fault == NoFault)
