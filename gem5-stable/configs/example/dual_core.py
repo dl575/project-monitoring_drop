@@ -115,7 +115,7 @@ process0.cmd = ""
 system.cpu[0].workload = process0
 
 process1 = LiveProcess()
-process1.executable = "tests/monitoring/monitor.arm"
+process1.executable = "tests/monitoring/umc.arm"
 process1.cmd = ""
 system.cpu[1].workload = process1
 
