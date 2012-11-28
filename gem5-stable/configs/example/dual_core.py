@@ -110,7 +110,7 @@ if system.cpu[1].fifo_enabled:
 
 # Assign programs
 process0 = LiveProcess()
-process0.executable = "tests/monitoring/loop.arm"
+process0.executable = "tests/malarden/insertsort.arm"
 process0.cmd = ""
 system.cpu[0].workload = process0
 
