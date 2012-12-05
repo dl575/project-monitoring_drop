@@ -50,6 +50,7 @@
 #include "debug/ExecFaulting.hh"
 #include "debug/SimpleCPU.hh"
 #include "debug/Fifo.hh"
+#include "debug/SlackTimer.hh"
 #include "mem/packet.hh"
 #include "mem/packet_access.hh"
 #include "mem/physical.hh"
@@ -57,6 +58,9 @@
 #include "sim/faults.hh"
 #include "sim/system.hh"
 #include "sim/full_system.hh"
+
+#include "mem/fifo.hh"
+#include "mem/timer.hh"
 
 using namespace std;
 using namespace TheISA;
@@ -248,14 +252,14 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
 {
     // Read from fifo
     if (fifo_enabled) {
-      if (addr == 0x30000000) {
+      if (addr == FIFO_ADDR) {
         DPRINTF(Fifo, "Read from fifo\n");
 
         // Create request at fifo location
         Request *req = &data_read_req;
-        //FIXME
+        // Size of monitoring packet
         size = sizeof(read_mp);
-        req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
+        req->setPhys((Addr)FIFO_ADDR, size, flags, dataMasterId());
         // Read command
         MemCmd cmd = MemCmd::ReadReq;
         // Create packet
@@ -281,6 +285,33 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
         return NoFault;
       } else if (addr == 0x3000000c) {
         memcpy(data, (void *)&read_mp.store, sizeof(read_mp.store));
+
+        return NoFault;
+      }
+    }
+
+    // Read from timer
+    if (timer_enabled) {
+      if (addr == TIMER_ADDR) {
+        // Create request at timer location
+        Request *req = &data_read_req;
+        size = sizeof(int);
+        req->setPhys((Addr)TIMER_ADDR, size, flags, dataMasterId());
+        // Read command
+        MemCmd cmd = MemCmd::ReadReq;
+        // Create packet
+        PacketPtr pkt = new Packet(req, cmd);
+        // Point packet to data pointer
+        pkt->dataStatic(data);
+
+        // Send read request
+        timerPort.sendFunctional(pkt);
+#ifdef DEBUG
+        // Print out for debg
+        int timer_data;
+        memcpy((void *)&timer_data, data, sizeof(int));
+        DPRINTF(SlackTimer, "read from timer: %x\n", timer_data);
+#endif
 
         return NoFault;
       }
@@ -382,7 +413,7 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
     // Write to fifo
     // Used to handl fifo control (writing data to fifo is done 
     // automatically by monitoring)
-    if (fifo_enabled && (addr == 0x30000000)) {
+    if (fifo_enabled && (addr == FIFO_ADDR)) {
 
       int fifo_ctrl = (int)*data;
       DPRINTF(Fifo, "Write to fifo control: %d\n", fifo_ctrl);
@@ -396,6 +427,32 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
       } else {
         warn("Unrecognized fifo control: %d\n", fifo_ctrl);
       }
+
+      return NoFault;
+    }
+    // Timer
+    if (timer_enabled && (addr == TIMER_ADDR)) {
+
+      // Create request
+      Request *timer_write_req = &fed.req;
+      unsigned size = sizeof(data);
+      unsigned flags = ArmISA::TLB::AllowUnaligned;
+      // set physical address
+      timer_write_req->setPhys((Addr)TIMER_ADDR, size, flags, dataMasterId());
+      // Create write packet
+      MemCmd cmd = MemCmd::WriteReq;
+      PacketPtr timerpkt = new Packet(timer_write_req, cmd);
+      // Set data
+      timerpkt->dataStatic(data);
+
+      // Send read request packet on timer port
+      timerPort.sendFunctional(timerpkt);
+      // Print out data for debugging
+#ifdef DEBUG
+      int timer_data;
+      memcpy((void *)&timer_data, data, sizeof(int));
+      DPRINTF(SlackTimer, "Write to timer: %x\n", timer_data);
+#endif
 
       return NoFault;
     }
@@ -566,6 +623,25 @@ AtomicSimpleCPU::tick()
             preExecute();
 
             if (curStaticInst) {
+
+
+                if (curStaticInst->isInteger()) {
+                  DPRINTF(Fifo, "# src: %d, # dest: %d\n", curStaticInst->numSrcRegs(),
+                      curStaticInst->numDestRegs());
+                  int i;
+                  for (i = 0; i < curStaticInst->numSrcRegs(); i++) {
+                    DPRINTF(Fifo, "src[%d] = %x\n", i, curStaticInst->srcRegIdx(i));
+                  }
+                  for (i = 0; i < curStaticInst->numDestRegs(); i++) {
+                    DPRINTF(Fifo, "dest[%d] = %x\n", i, curStaticInst->destRegIdx(i));
+                  }
+                  // disassemble takes a pc and symbol table, not even sure what the pc is used for
+                  DPRINTF(Fifo, "dis: %s\n", curStaticInst->disassemble(0, NULL));
+                }
+
+
+
+
                 fault = curStaticInst->execute(this, traceData);
 
                 // keep an instruction count
@@ -585,9 +661,8 @@ AtomicSimpleCPU::tick()
 
                   DPRINTF(Fifo, "Monitoring event at %d, data: %x\n", 
                       curTick(), tc->pcState().instAddr());
-                  // disassemble takes a pc and symbol table, not even sure what the pc is used for
+
                   /*
-                  DPRINTF(Fifo, "dis: %s\n", curStaticInst->disassemble(0, NULL));
                   DPRINTF(Fifo, "numsrc: %d, numdest: %d\n", curStaticInst->numSrcRegs(), curStaticInst->numDestRegs());
                   DPRINTF(Fifo, "src: %d, dest: %d\n", curStaticInst->srcRegIdx(0), curStaticInst->destRegIdx(0));
                   */
@@ -611,7 +686,7 @@ AtomicSimpleCPU::tick()
                   unsigned size = sizeof(mp);
                   unsigned flags = ArmISA::TLB::AllowUnaligned;
                   // set physical address
-                  req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
+                  req->setPhys((Addr)FIFO_ADDR, size, flags, dataMasterId());
 
                   // Create write packet
                   MemCmd cmd = MemCmd::WriteReq;
@@ -681,23 +756,6 @@ AtomicSimpleCPU::tick()
 }
 
 void AtomicSimpleCPU::handleFifoEvent() {
-  /*
-  // Create request
-  Request *req = &fed.req;
-  unsigned size = sizeof(fed.instAddr);
-  unsigned flags = ArmISA::TLB::AllowUnaligned;
-  // set physical address
-  req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
-
-  // Create write packet
-  MemCmd cmd = MemCmd::WriteReq;
-  PacketPtr pkt = new Packet(req, cmd);
-  // Set data
-  pkt->dataStatic(&fed.instAddr);
-
-  // Send packet on fifo port
-  fifoPort.sendFunctional(pkt);
-  */
 
   // Create request
   Request *req = &fed.req;
@@ -705,7 +763,7 @@ void AtomicSimpleCPU::handleFifoEvent() {
 //  unsigned size = sizeof(fed.memAddr);
   unsigned flags = ArmISA::TLB::AllowUnaligned;
   // set physical address
-  req->setPhys((Addr)0x30000000, size, flags, dataMasterId());
+  req->setPhys((Addr)FIFO_ADDR, size, flags, dataMasterId());
 
   // Create write packet
   MemCmd cmd = MemCmd::WriteReq;
@@ -723,7 +781,7 @@ void AtomicSimpleCPU::handleFifoEvent() {
     schedule(tickEvent, curTick() + ticks(1));
   } else {
     // Failed
-    // Retry
+    // Retry on next cycle
     schedule(fifoEvent, curTick() + ticks(1));
   }
 }

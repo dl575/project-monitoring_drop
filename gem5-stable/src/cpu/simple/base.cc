@@ -87,11 +87,13 @@ using namespace TheISA;
 
 BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     : BaseCPU(p), traceData(NULL), thread(NULL),
-    fifoPort(name() + "-iport", this)
+    fifoPort(name() + "-iport", this),
+    timerPort(name() + "-iport", this)
 {
     // Store monitoring parameters
     fifo_enabled = p->fifo_enabled;
     monitoring_enabled = p->monitoring_enabled;
+    timer_enabled = p->timer_enabled;
 
     if (FullSystem)
         thread = new SimpleThread(this, 0, p->system, p->itb, p->dtb);
@@ -530,6 +532,8 @@ BaseSimpleCPU::getMasterPort(const std::string &if_name, int idx)
 {
   if (if_name == "fifo_port") {
     return fifoPort;
+  } else if (if_name == "timer_port") {
+    return timerPort;
   } else {
     return BaseCPU::getMasterPort(if_name, idx);
   }

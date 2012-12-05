@@ -432,6 +432,8 @@ class BaseSimpleCPU : public BaseCPU
     // If monitoring_enabled is false, this still allows a processor to read
     // from the fifo port without automatically monitoring
     bool fifo_enabled;
+    // Enable timer for slack tracking
+    bool timer_enabled;
 
   private:
     class FifoPort : public CpuPort
@@ -451,6 +453,8 @@ class BaseSimpleCPU : public BaseCPU
   protected:
     // Port for monitoring fifo
     FifoPort fifoPort;
+    // Port for accessing timer
+    CpuPort timerPort;
 
 };
 

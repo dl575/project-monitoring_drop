@@ -42,6 +42,12 @@
  *          Andreas Hansson
  */
 
+/*
+ * Based on simple_mem.cc
+ *
+ * Author: Daniel Lo
+ */
+
 #include "base/random.hh"
 #include "mem/fifo.hh"
 #include "debug/Fifo.hh"

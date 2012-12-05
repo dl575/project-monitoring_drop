@@ -1,4 +1,16 @@
-# Copyright (c) 2008 The Hewlett-Packard Development Company
+# Copyright (c) 2012 ARM Limited
+# All rights reserved.
+#
+# The license below extends only to copyright in the software and shall
+# not be construed as granting a license to any other intellectual
+# property including but not limited to intellectual property relating
+# to a hardware implementation of the functionality of the software
+# licensed hereunder.  You may use the software subject to the license
+# terms below provided that you ensure that this notice is replicated
+# unmodified and in its entirety in all distributions of the software,
+# modified or unmodified, in source code or in binary form.
+#
+# Copyright (c) 2005-2008 The Regents of The University of Michigan
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,34 +36,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Authors: Gabe Black
+# Authors: Nathan Binkert
+#          Andreas Hansson
 
-from m5.defines import buildEnv
 from m5.params import *
-from BaseCPU import BaseCPU
-from DummyChecker import DummyChecker
+from AbstractMemory import *
 
-class BaseSimpleCPU(BaseCPU):
-    type = 'BaseSimpleCPU'
-    abstract = True
-
-    fifo_enabled = Param.Bool(False, "monitoring fifo port enabled")
-    monitoring_enabled = Param.Bool(False, "monitoring enabled")
-    timer_enabled = Param.Bool(False, "timer enabled")
-
-    if fifo_enabled:
-      fifo_port = MasterPort("Fifo Port")
-
-    if timer_enabled:
-      timer_port = MasterPort("Timer Port")
-
-    def addCheckerCpu(self):
-        if buildEnv['TARGET_ISA'] in ['arm']:
-            from ArmTLB import ArmTLB
-
-            self.checker = DummyChecker(workload = self.workload)
-            self.checker.itb = ArmTLB(size = self.itb.size)
-            self.checker.dtb = ArmTLB(size = self.dtb.size)
-        else:
-            print "ERROR: Checker only supported under ARM ISA!"
-            exit(1)
+class Timer(AbstractMemory):
+    type = 'Timer'
+    port = VectorSlavePort("Slave ports")
+    latency = Param.Latency('30ns', "Request to response latency")
+    latency_var = Param.Latency('0ns', "Request to response latency variance")

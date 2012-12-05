@@ -43,47 +43,41 @@
 
 /**
  * @file
- * Fifo declaration
+ * SimpleMemory declaration
  */
 
-#ifndef __FIFO_HH__
-#define __FIFO_HH__
+#ifndef __TIMER_HH__
+#define __TIMER_HH__
 
 #include "mem/abstract_mem.hh"
 #include "mem/tport.hh"
-#include "params/Fifo.hh"
+#include "params/Timer.hh"
 
-// Number of entries in FIFO
-#define FIFO_SIZE 8
-// Space between fifo entries
-#define FIFO_ENTRY_SIZE 0x100
-// FIFO device address
-#define FIFO_ADDR 0x30000000
+#define TIMER_ADDR 0x31000000
 
 /**
  * The simple memory is a basic multi-ported memory with an infinite
  * throughput and a fixed latency, potentially with a variance added
  * to it. It uses a SimpleTimingPort to implement the timing accesses.
  */
-class Fifo : public AbstractMemory
+class Timer : public AbstractMemory
 {
 
   private:
 
     class MemoryPort : public SimpleTimingPort
     {
-        Fifo& memory;
+        Timer& memory;
 
       public:
 
-        MemoryPort(const std::string& _name, Fifo& _memory);
+        MemoryPort(const std::string& _name, Timer& _memory);
 
       protected:
 
         virtual Tick recvAtomic(PacketPtr pkt);
 
         virtual void recvFunctional(PacketPtr pkt);
-        virtual bool recvTimingReq(PacketPtr pkt);
 
         virtual AddrRangeList getAddrRanges();
 
@@ -96,9 +90,9 @@ class Fifo : public AbstractMemory
 
   public:
 
-    typedef FifoParams Params;
-    Fifo(const Params *p);
-    virtual ~Fifo() { }
+    typedef TimerParams Params;
+    Timer(const Params *p);
+    virtual ~Timer() { }
 
     unsigned int drain(Event* de);
 
@@ -117,22 +111,6 @@ class Fifo : public AbstractMemory
     void doFunctionalAccess(PacketPtr pkt);
     virtual Tick calculateLatency(PacketPtr pkt);
 
-    // Based on AbstractMemory::access
-    void access(PacketPtr pkt);
-
-  private:
-    // Fifo head/tail pointers
-    int head_pointer;
-    int tail_pointer;
-
-  public:
-    bool empty() {
-      return (head_pointer == tail_pointer);
-    }
-    bool full() {
-      return (((head_pointer + 1) % FIFO_SIZE) == tail_pointer);
-    }
-
 };
 
-#endif //__FIFO_HH__
+#endif //__TIMER_HH__
