@@ -55,6 +55,13 @@
 
 #define TIMER_ADDR 0x31000000
 
+// Packet that is written to timer
+class timerPacket {
+  public:
+    Tick subtaskStart;
+    int subtaskWCET;
+};
+
 /**
  * The simple memory is a basic multi-ported memory with an infinite
  * throughput and a fixed latency, potentially with a variance added
@@ -87,6 +94,8 @@ class Timer : public AbstractMemory
 
     Tick lat;
     Tick lat_var;
+
+    timerPacket stored_tp;
 
   public:
 

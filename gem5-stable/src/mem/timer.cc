@@ -97,7 +97,45 @@ Timer::doAtomicAccess(PacketPtr pkt)
 void
 Timer::doFunctionalAccess(PacketPtr pkt)
 {
-    functionalAccess(pkt);
+    //functionalAccess(pkt);
+
+    /* Based on AbstractMemory::functionalAccess */
+
+    assert(pkt->getAddr() >= range.start &&
+           (pkt->getAddr() + pkt->getSize() - 1) <= range.end);
+
+    uint8_t *hostAddr = pmemAddr + pkt->getAddr() - range.start;
+
+    if (pkt->isRead()) {
+        if (pmemAddr) {
+            int current_time = curTick();
+            int difference_time = current_time - stored_tp.subtaskStart;
+            int slack = stored_tp.subtaskWCET - difference_time;
+            //memcpy(pkt->getPtr<uint8_t>(), hostAddr, pkt->getSize());
+            //memcpy(pkt->getPtr<uint8_t>(), &stored_tp, pkt->getSize());
+            memcpy(pkt->getPtr<uint8_t>(), &slack, pkt->getSize());
+        }
+        //TRACE_PACKET("Read");
+        pkt->makeResponse();
+    } else if (pkt->isWrite()) {
+        if (pmemAddr)
+            //memcpy(hostAddr, pkt->getPtr<uint8_t>(), pkt->getSize());
+            memcpy(&stored_tp, pkt->getPtr<uint8_t>(), pkt->getSize());
+        //TRACE_PACKET("Write");
+        pkt->makeResponse();
+    } else if (pkt->isPrint()) {
+        Packet::PrintReqState *prs =
+            dynamic_cast<Packet::PrintReqState*>(pkt->senderState);
+        assert(prs);
+        // Need to call printLabels() explicitly since we're not going
+        // through printObj().
+        prs->printLabels();
+        // Right now we just print the single byte at the specified address.
+        ccprintf(prs->os, "%s%#x\n", prs->curPrefix(), *hostAddr);
+    } else {
+        panic("AbstractMemory: unimplemented functional command %s",
+              pkt->cmdString());
+    }
 }
 
 SlavePort &

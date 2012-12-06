@@ -9,9 +9,10 @@ int main(int argc, char *argv[]) {
   timer = (int *)0x31000000;
 
   printf("write\n");
-  *timer = 0x1337;
-  printf("read\n");
-  printf("%x\n", *timer);
+  *timer = 5000;
+  //printf("read\n");
+  int read_timer = *timer;
+  printf("%d\n", read_timer);
 
 
   /*

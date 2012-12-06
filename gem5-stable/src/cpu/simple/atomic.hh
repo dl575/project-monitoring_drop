@@ -46,6 +46,8 @@
 #include "cpu/simple/base.hh"
 #include "params/AtomicSimpleCPU.hh"
 
+#include "mem/timer.hh"
+
 class AtomicSimpleCPU : public BaseSimpleCPU
 {
   public:
@@ -178,6 +180,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     // Since reading form Fifo is destructive, need to buffer if multiple bytes
     monitoringPacket read_mp;
 
+    // Packet that is written to timer
+    timerPacket write_tp;
 };
 
 #endif // __CPU_SIMPLE_ATOMIC_HH__

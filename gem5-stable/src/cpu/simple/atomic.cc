@@ -293,9 +293,10 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
     // Read from timer
     if (timer_enabled) {
       if (addr == TIMER_ADDR) {
+        int read_tp;
         // Create request at timer location
         Request *req = &data_read_req;
-        size = sizeof(int);
+        size = sizeof(read_tp);
         req->setPhys((Addr)TIMER_ADDR, size, flags, dataMasterId());
         // Read command
         MemCmd cmd = MemCmd::ReadReq;
@@ -306,12 +307,12 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
 
         // Send read request
         timerPort.sendFunctional(pkt);
-#ifdef DEBUG
-        // Print out for debg
-        int timer_data;
-        memcpy((void *)&timer_data, data, sizeof(int));
-        DPRINTF(SlackTimer, "read from timer: %x\n", timer_data);
-#endif
+
+        // Copy data out into packet object
+        memcpy(&read_tp, data, sizeof(read_mp));
+        // Print out for debug
+        //DPRINTF(SlackTimer, "read from timer: %d, %d\n", read_tp.subtaskStart, read_tp.subtaskWCET);
+        DPRINTF(SlackTimer, "read from timer: %d\n", read_tp);
 
         return NoFault;
       }
@@ -435,7 +436,7 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
 
       // Create request
       Request *timer_write_req = &fed.req;
-      unsigned size = sizeof(data);
+      unsigned size = sizeof(write_tp);
       unsigned flags = ArmISA::TLB::AllowUnaligned;
       // set physical address
       timer_write_req->setPhys((Addr)TIMER_ADDR, size, flags, dataMasterId());
@@ -443,16 +444,14 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
       MemCmd cmd = MemCmd::WriteReq;
       PacketPtr timerpkt = new Packet(timer_write_req, cmd);
       // Set data
-      timerpkt->dataStatic(data);
+      write_tp.subtaskStart = curTick();
+      memcpy((void *)&write_tp.subtaskWCET, data, sizeof(write_tp.subtaskWCET));
+      timerpkt->dataStatic(&write_tp);
 
       // Send read request packet on timer port
       timerPort.sendFunctional(timerpkt);
       // Print out data for debugging
-#ifdef DEBUG
-      int timer_data;
-      memcpy((void *)&timer_data, data, sizeof(int));
-      DPRINTF(SlackTimer, "Write to timer: %x\n", timer_data);
-#endif
+      DPRINTF(SlackTimer, "Write to timer: %d, %d\n", write_tp.subtaskStart, write_tp.subtaskWCET);
 
       return NoFault;
     }
