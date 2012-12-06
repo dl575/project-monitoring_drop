@@ -92,8 +92,8 @@ system = System(cpu = [MainCPUClass(cpu_id=0)],
                 physmem = SimpleMemory(range=AddrRange("512MB")),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
-print system.physmem
-print system.physmem.range
+# print system.physmem
+# print system.physmem.range
 
 # Create a "fifo" memory
 fifo = Fifo(range=AddrRange(start=0x30000000, size="1MB")) 
