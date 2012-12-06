@@ -49,6 +49,8 @@
 #include "base/random.hh"
 #include "mem/timer.hh"
 
+#include "debug/SlackTimer.hh"
+
 using namespace std;
 
 Timer::Timer(const Params* p) :
@@ -72,6 +74,9 @@ Timer::init()
             (*p)->sendRangeChange();
         }
     }
+
+    // Initialize stored_tp
+    stored_tp.init();
 }
 
 Tick
@@ -108,19 +113,43 @@ Timer::doFunctionalAccess(PacketPtr pkt)
 
     if (pkt->isRead()) {
         if (pmemAddr) {
+          /*
             int current_time = curTick();
             int difference_time = current_time - stored_tp.subtaskStart;
             int slack = stored_tp.subtaskWCET - difference_time;
             //memcpy(pkt->getPtr<uint8_t>(), hostAddr, pkt->getSize());
             //memcpy(pkt->getPtr<uint8_t>(), &stored_tp, pkt->getSize());
-            memcpy(pkt->getPtr<uint8_t>(), &slack, pkt->getSize());
+            */
+            memcpy(pkt->getPtr<uint8_t>(), &stored_tp.slack, pkt->getSize());
         }
         //TRACE_PACKET("Read");
         pkt->makeResponse();
     } else if (pkt->isWrite()) {
-        if (pmemAddr)
+        if (pmemAddr) {
             //memcpy(hostAddr, pkt->getPtr<uint8_t>(), pkt->getSize());
-            memcpy(&stored_tp, pkt->getPtr<uint8_t>(), pkt->getSize());
+
+            int write_addr = pkt->getAddr();
+            // Start subtask
+            if (write_addr == TIMER_START_SUBTASK) {
+              // Save WCET that was written by CPU
+              memcpy(&stored_tp.subtaskWCET, pkt->getPtr<uint8_t>(), pkt->getSize());
+              // Save current time
+              stored_tp.subtaskStart = curTick();
+              DPRINTF(SlackTimer, "Written to timer: start = %d, WCET = %d\n", stored_tp.subtaskStart, stored_tp.subtaskWCET);
+            // End subtask
+            } else if (write_addr == TIMER_END_SUBTASK) {
+              // Accumulate remaining subtask slack into total task slack 
+              stored_tp.slack += stored_tp.subtaskWCET - (curTick() - stored_tp.subtaskStart);
+              DPRINTF(SlackTimer, "Written to timer: end, slack = %d\n", stored_tp.slack);
+            } else if (write_addr == TIMER_START_TASK) {
+              // Reset all variables
+              stored_tp.init();
+            } else if (write_addr == TIMER_END_TASK) {
+              // Do nothing for now, may need to do something later
+            } else {
+              warn("Unknown address written to for timer.");
+            }
+        }
         //TRACE_PACKET("Write");
         pkt->makeResponse();
     } else if (pkt->isPrint()) {

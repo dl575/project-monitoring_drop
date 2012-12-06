@@ -293,11 +293,11 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
     // Read from timer
     if (timer_enabled) {
       if (addr == TIMER_ADDR) {
-        int read_tp;
+        //int read_tp;
         // Create request at timer location
         Request *req = &data_read_req;
-        size = sizeof(read_tp);
-        req->setPhys((Addr)TIMER_ADDR, size, flags, dataMasterId());
+        //size = sizeof(read_tp);
+        req->setPhys(addr, size, flags, dataMasterId());
         // Read command
         MemCmd cmd = MemCmd::ReadReq;
         // Create packet
@@ -309,10 +309,14 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
         timerPort.sendFunctional(pkt);
 
         // Copy data out into packet object
-        memcpy(&read_tp, data, sizeof(read_mp));
+        //memcpy(&read_tp, data, sizeof(read_mp));
         // Print out for debug
         //DPRINTF(SlackTimer, "read from timer: %d, %d\n", read_tp.subtaskStart, read_tp.subtaskWCET);
-        DPRINTF(SlackTimer, "read from timer: %d\n", read_tp);
+#ifdef DEBUG
+        int read_timer;
+        memcpy(&read_timer, data, size);
+        DPRINTF(SlackTimer, "read from timer: %d\n", read_timer);
+#endif
 
         return NoFault;
       }
@@ -432,28 +436,40 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
       return NoFault;
     }
     // Timer
-    if (timer_enabled && (addr == TIMER_ADDR)) {
+    if (timer_enabled) { 
+      if (addr >= TIMER_ADDR_START && addr <= TIMER_ADDR_END) {
 
-      // Create request
-      Request *timer_write_req = &fed.req;
-      unsigned size = sizeof(write_tp);
-      unsigned flags = ArmISA::TLB::AllowUnaligned;
-      // set physical address
-      timer_write_req->setPhys((Addr)TIMER_ADDR, size, flags, dataMasterId());
-      // Create write packet
-      MemCmd cmd = MemCmd::WriteReq;
-      PacketPtr timerpkt = new Packet(timer_write_req, cmd);
-      // Set data
-      write_tp.subtaskStart = curTick();
-      memcpy((void *)&write_tp.subtaskWCET, data, sizeof(write_tp.subtaskWCET));
-      timerpkt->dataStatic(&write_tp);
+        // Create request
+        Request *timer_write_req = &fed.req;
+        //unsigned size = sizeof(write_tp);
+        unsigned size = sizeof(data);
+        unsigned flags = ArmISA::TLB::AllowUnaligned;
+        // set physical address
+        timer_write_req->setPhys(addr, size, flags, dataMasterId());
+        // Create write packet
+        MemCmd cmd = MemCmd::WriteReq;
+        PacketPtr timerpkt = new Packet(timer_write_req, cmd);
+        // Set data
+        write_tp.subtaskStart = curTick();
+        /*
+        memcpy((void *)&write_tp.subtaskWCET, data, sizeof(write_tp.subtaskWCET));
+        timerpkt->dataStatic(&write_tp);
+        */
+        timerpkt->dataStatic(data);
 
-      // Send read request packet on timer port
-      timerPort.sendFunctional(timerpkt);
-      // Print out data for debugging
-      DPRINTF(SlackTimer, "Write to timer: %d, %d\n", write_tp.subtaskStart, write_tp.subtaskWCET);
+        // Send read request packet on timer port
+        timerPort.sendFunctional(timerpkt);
+        // Print out data for debugging
+        //DPRINTF(SlackTimer, "Write to timer: %d, %d\n", write_tp.subtaskStart, write_tp.subtaskWCET);
+#ifdef DEBUG
+        int timer_write_data;
+        memcpy((void *)&timer_write_data, data, sizeof(data));
+//        DPRINTF(SlackTimer, "Write to timer: %d, %d\n", write_tp.subtaskStart, write_tp.subtaskWCET);
+        DPRINTF(SlackTimer, "Write to timer [%x]: %d\n", addr, timer_write_data);
+#endif // DEBUG
 
-      return NoFault;
+        return NoFault;
+      }
     }
 
     // use the CPU's statically allocated write request and packet objects

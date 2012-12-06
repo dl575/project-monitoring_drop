@@ -54,12 +54,31 @@
 #include "params/Timer.hh"
 
 #define TIMER_ADDR 0x31000000
+#define TIMER_ADDR_START TIMER_ADDR
+#define TIMER_ADDR_END   TIMER_ADDR + 0x00ffffff
+
+// write registers
+#define TIMER_START_SUBTASK (TIMER_ADDR + 0x0)
+#define TIMER_END_SUBTASK   (TIMER_ADDR + 0x1)
+#define TIMER_START_TASK    (TIMER_ADDR + 0x2)
+#define TIMER_END_TASK      (TIMER_ADDR + 0x3)
 
 // Packet that is written to timer
 class timerPacket {
   public:
+    // Start time of subtask
     Tick subtaskStart;
+    // WCET of current subtask
     int subtaskWCET;
+    // Accumulated slack
+    int slack;
+
+    // Reset all variables
+    void init() {
+      subtaskStart = 0;
+      subtaskWCET = 0;
+      slack = 0;
+    }
 };
 
 /**
