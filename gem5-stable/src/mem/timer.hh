@@ -53,9 +53,9 @@
 #include "mem/tport.hh"
 #include "params/Timer.hh"
 
-#define TIMER_ADDR 0x31000000
+#define TIMER_ADDR 0x30010000
 #define TIMER_ADDR_START TIMER_ADDR
-#define TIMER_ADDR_END   TIMER_ADDR + 0x00ffffff
+#define TIMER_ADDR_END   TIMER_ADDR + 0x0000ffff
 
 // write registers
 #define TIMER_START_SUBTASK (TIMER_ADDR + 0x0)

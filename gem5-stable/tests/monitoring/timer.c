@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 // Timer base address
-#define TIMER_ADDR 0x31000000
+#define TIMER_ADDR 0x30010000
 
 // Initialization
 #define INIT_TIMER_SUBTASK_START int *timer_start_subtask = (int *)TIMER_ADDR;
