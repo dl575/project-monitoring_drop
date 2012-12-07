@@ -95,20 +95,24 @@ system = System(cpu = [MainCPUClass(cpu_id=0)],
 # print system.physmem
 # print system.physmem.range
 
-# Create a "fifo" memory
-fifo = Fifo(range=AddrRange(start=0x30000000, size="1MB")) 
+# Create a "fifo" memory, memory map [0x30000000, 0x3000ffff]
+fifo = Fifo(range=AddrRange(start=0x30000000, size="64kB")) 
 system.fifo = fifo
 # Connect CPU to fifo
 if system.cpu[0].fifo_enabled:
   system.cpu[0].fifo_port = system.fifo.port
 
-print system.fifo.range
-
-# Create timer
-timer = Timer(range=AddrRange(start=0x31000000, size="1MB"))
+# Create timer, memory map [0x30010000, 0x3001ffff]
+timer = Timer(range=AddrRange(start=0x30010000, size="64kB"))
 system.timer = timer
 if system.cpu[0].timer_enabled:
   system.cpu[0].timer_port = system.timer.port
+
+# Verify ranges
+# fifo_range  = fifo.range.__str__().split(':')
+# print "%x, %x" % (int(fifo_range[0]), int(fifo_range[1]))
+# timer_range  = timer.range.__str__().split(':')
+# print "%x, %x" % (int(timer_range[0]), int(timer_range[1]))
 
 # Assign programs
 process0 = LiveProcess()

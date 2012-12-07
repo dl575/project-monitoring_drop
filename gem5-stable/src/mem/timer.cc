@@ -109,7 +109,7 @@ Timer::doFunctionalAccess(PacketPtr pkt)
     assert(pkt->getAddr() >= range.start &&
            (pkt->getAddr() + pkt->getSize() - 1) <= range.end);
 
-    uint8_t *hostAddr = pmemAddr + pkt->getAddr() - range.start;
+//    uint8_t *hostAddr = pmemAddr + pkt->getAddr() - range.start;
 
     if (pkt->isRead()) {
         if (pmemAddr) {
@@ -152,6 +152,8 @@ Timer::doFunctionalAccess(PacketPtr pkt)
         }
         //TRACE_PACKET("Write");
         pkt->makeResponse();
+    // Not supporting for slack timer
+    /*
     } else if (pkt->isPrint()) {
         Packet::PrintReqState *prs =
             dynamic_cast<Packet::PrintReqState*>(pkt->senderState);
@@ -161,6 +163,7 @@ Timer::doFunctionalAccess(PacketPtr pkt)
         prs->printLabels();
         // Right now we just print the single byte at the specified address.
         ccprintf(prs->os, "%s%#x\n", prs->curPrefix(), *hostAddr);
+    */
     } else {
         panic("AbstractMemory: unimplemented functional command %s",
               pkt->cmdString());
