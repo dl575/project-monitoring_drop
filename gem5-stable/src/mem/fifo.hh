@@ -117,9 +117,6 @@ class Fifo : public AbstractMemory
     void doFunctionalAccess(PacketPtr pkt);
     virtual Tick calculateLatency(PacketPtr pkt);
 
-    // Based on AbstractMemory::access
-    void access(PacketPtr pkt);
-
   private:
     // Fifo head/tail pointers
     int head_pointer;
