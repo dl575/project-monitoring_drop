@@ -44,6 +44,7 @@
 
 import optparse
 import sys
+import os
 
 import m5
 from m5.defines import buildEnv
@@ -99,7 +100,7 @@ system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
 # Create a "fifo" memory
-fifo = Fifo(range=AddrRange(start=0x30000000,size="1MB")) 
+fifo = Fifo(range=AddrRange(start=0x30000000, size="1MB")) 
 system.fifo = fifo
 # Connect CPU to fifo
 if system.cpu[0].fifo_enabled:
@@ -108,14 +109,20 @@ if system.cpu[0].fifo_enabled:
 if system.cpu[1].fifo_enabled:
   system.cpu[1].fifo_port = system.fifo.port
 
+# Create timer
+timer = Timer(range=AddrRange(start=0x40000000, size="1MB"))
+system.timer = timer
+if system.cpu[0].timer_enabled:
+  system.cpu[0].timer_port = system.timer.port
+
 # Assign programs
 process0 = LiveProcess()
-process0.executable = "tests/malarden/insertsort.arm"
+process0.executable = os.environ["GEM5"] + "/tests/malarden/fac.arm"
 process0.cmd = ""
 system.cpu[0].workload = process0
 
 process1 = LiveProcess()
-process1.executable = "tests/monitoring/umc.arm"
+process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc.arm"
 process1.cmd = ""
 system.cpu[1].workload = process1
 

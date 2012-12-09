@@ -44,6 +44,7 @@
 
 import optparse
 import sys
+import os
 
 import m5
 from m5.defines import buildEnv
@@ -116,7 +117,7 @@ if system.cpu[0].timer_enabled:
 
 # Assign programs
 process0 = LiveProcess()
-process0.executable = "tests/monitoring/timer.arm"
+process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer.arm"
 process0.cmd = ""
 system.cpu[0].workload = process0
 
