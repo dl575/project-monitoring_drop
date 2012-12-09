@@ -274,6 +274,9 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
         memcpy(&read_mp, data, sizeof(read_mp));
         DPRINTF(Fifo, "read_mp: %x, %x, %x\n", read_mp.instAddr, read_mp.memAddr, read_mp.data);
 
+        // Clean up
+        delete pkt;
+
         return NoFault;
       } else if (addr == 0x30000004) {
         memcpy(data, (void *)&read_mp.memAddr, sizeof(read_mp.memAddr));
@@ -308,15 +311,15 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
         // Send read request
         timerPort.sendFunctional(pkt);
 
-        // Copy data out into packet object
-        //memcpy(&read_tp, data, sizeof(read_mp));
         // Print out for debug
-        //DPRINTF(SlackTimer, "read from timer: %d, %d\n", read_tp.subtaskStart, read_tp.subtaskWCET);
 #ifdef DEBUG
         int read_timer;
         memcpy(&read_timer, data, size);
         DPRINTF(SlackTimer, "read from timer: %d\n", read_timer);
 #endif
+
+        // Clean up
+        delete pkt;
 
         return NoFault;
       }
@@ -451,22 +454,19 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
         PacketPtr timerpkt = new Packet(timer_write_req, cmd);
         // Set data
         write_tp.subtaskStart = curTick();
-        /*
-        memcpy((void *)&write_tp.subtaskWCET, data, sizeof(write_tp.subtaskWCET));
-        timerpkt->dataStatic(&write_tp);
-        */
         timerpkt->dataStatic(data);
 
         // Send read request packet on timer port
         timerPort.sendFunctional(timerpkt);
         // Print out data for debugging
-        //DPRINTF(SlackTimer, "Write to timer: %d, %d\n", write_tp.subtaskStart, write_tp.subtaskWCET);
 #ifdef DEBUG
         int timer_write_data;
         memcpy((void *)&timer_write_data, data, sizeof(data));
-//        DPRINTF(SlackTimer, "Write to timer: %d, %d\n", write_tp.subtaskStart, write_tp.subtaskWCET);
         DPRINTF(SlackTimer, "Write to timer [%x]: %d\n", addr, timer_write_data);
 #endif // DEBUG
+
+        // Clean up
+        delete timerpkt;
 
         return NoFault;
       }
@@ -697,7 +697,6 @@ AtomicSimpleCPU::tick()
                   }
                   // Create request
                   Request *req = &fed.req;
-//                  unsigned size = sizeof(fed.memAddr);
                   unsigned size = sizeof(mp);
                   unsigned flags = ArmISA::TLB::AllowUnaligned;
                   // set physical address
@@ -707,15 +706,9 @@ AtomicSimpleCPU::tick()
                   MemCmd cmd = MemCmd::WriteReq;
                   PacketPtr fifopkt = new Packet(req, cmd);
                   // Set data
-                  //fifopkt->dataStatic(&fed.instAddr);
-                  //fifopkt->dataStatic(&fed.memAddr);
-                  //DPRINTF(Fifo, "Tralala: %x, %x, %x\n", fed.instAddr, fed.memAddr, fed.data);
-//                  fifopkt->dataStatic(&fed.memAddr);
                   fifopkt->dataStatic(&mp);
 
                   // Send packet on fifo port
-                  //fifoPort.sendFunctional(pkt);
-                  //fifo_latency = fifoPort.sendAtomic(pkt);
                   if(fifoPort.sendTimingReq(fifopkt)) {
                     // Successful, no need to stall
                     fifoStall = false;
@@ -723,6 +716,9 @@ AtomicSimpleCPU::tick()
                     // Unsuccessful, stall fifo
                     fifoStall = true;
                   }
+
+                  // Clean up
+                  delete fifopkt;
                 }
             }
 
@@ -784,7 +780,6 @@ void AtomicSimpleCPU::handleFifoEvent() {
   MemCmd cmd = MemCmd::WriteReq;
   PacketPtr fifopkt = new Packet(req, cmd);
   // Set data
-//  fifopkt->dataStatic(&fed.memAddr);
   fifopkt->dataStatic(&mp);
 
   // Try again
@@ -799,6 +794,9 @@ void AtomicSimpleCPU::handleFifoEvent() {
     // Retry on next cycle
     schedule(fifoEvent, curTick() + ticks(1));
   }
+
+  // Clean up
+  delete fifopkt;
 }
 
 void
