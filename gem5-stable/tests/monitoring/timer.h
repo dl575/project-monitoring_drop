@@ -22,7 +22,7 @@
 #define START_SUBTASK(WCET) *timer_start_subtask = WCET;
 #define END_SUBTASK         *timer_end_subtask = 1;
 // start/end task
-#define START_TASK *timer_start_task = 1;
+#define START_TASK(x) *timer_start_task = x;
 #define END_TASK   *timer_end_task = 1;
 // read from slack timer
 #define READ_SLACK *timer

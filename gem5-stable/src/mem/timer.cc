@@ -144,6 +144,8 @@ Timer::doFunctionalAccess(PacketPtr pkt)
             } else if (write_addr == TIMER_START_TASK) {
               // Reset all variables
               stored_tp.init();
+              // Use optionally passed value as initial slack
+              memcpy(&stored_tp.slack, pkt->getPtr<uint8_t>(), pkt->getSize());
             } else if (write_addr == TIMER_END_TASK) {
               // Do nothing for now, may need to do something later
             } else {
