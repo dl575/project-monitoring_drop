@@ -640,6 +640,7 @@ AtomicSimpleCPU::tick()
             if (curStaticInst) {
 
 
+              /*
                 if (curStaticInst->isInteger()) {
                   DPRINTF(Fifo, "# src: %d, # dest: %d\n", curStaticInst->numSrcRegs(),
                       curStaticInst->numDestRegs());
@@ -653,6 +654,7 @@ AtomicSimpleCPU::tick()
                   // disassemble takes a pc and symbol table, not even sure what the pc is used for
                   DPRINTF(Fifo, "dis: %s\n", curStaticInst->disassemble(0, NULL));
                 }
+                */
 
 
 

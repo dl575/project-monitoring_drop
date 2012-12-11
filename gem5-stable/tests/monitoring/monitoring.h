@@ -7,8 +7,17 @@
 #ifndef __MONITORING_H_
 #define MONITORING_H
 
+#include <stdbool.h>
+
 // Address of monitoring fifo (for read)
 #define MONITOR_ADDR 0x30000000
+
+// initialize fifo so it can be enabled/disabled
+#define INIT_MONITOR int *fifo; fifo = (int *)MONITOR_ADDR; 
+// enable monitoring
+#define ENABLE_MONITOR *fifo = 1;
+// disable monitoring
+#define DISABLE_MONITOR *fifo = 0;
 
 // Structure for storing monitoring packet data
 struct monitoring_packet {

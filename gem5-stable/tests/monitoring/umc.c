@@ -3,10 +3,15 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "timer.h"
 #include "monitoring.h"
 
 int main(int argc, char *argv[]) {
   register int i;
+
+  // set up timer interface for reading
+  INIT_TIMER_READ
+  int slack;
 
   // Data structure for holding monitoring data
   struct monitoring_packet fifo_data;

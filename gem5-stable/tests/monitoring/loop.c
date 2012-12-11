@@ -1,15 +1,16 @@
 
 #include <stdio.h>
 
+#include "monitoring.h"
+
 int main(int argc, char *argv[]) {
-  int *fifo;
-  fifo = (int *)0x30000000;
+  INIT_MONITOR
 
   register int i;
   int sum;
   int array[10];
 
-  *fifo = 1;
+  ENABLE_MONITOR
 
   // Initialize array
   for (i = 0; i < 10; i++)
@@ -20,7 +21,7 @@ int main(int argc, char *argv[]) {
   for (i = 0; i < 10; i++)
     sum += array[i];
 
-  *fifo = 0;
+  DISABLE_MONITOR;
 
   while(1);
 

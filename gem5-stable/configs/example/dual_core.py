@@ -83,6 +83,8 @@ MainCPUClass.clock = '2GHz'
 MainCPUClass.numThreads = numThreads;
 MainCPUClass.fifo_enabled = True
 MainCPUClass.monitoring_enabled = False
+# Enable slack timer so it can write to it
+MainCPUClass.timer_enabled = True
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 MonCPUClass.clock = '2GHz'
@@ -90,6 +92,8 @@ MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True
 MonCPUClass.monitoring_enabled = False
+# Enable slack timer so it can read from it
+MonCPUClass.timer_enabled = True
 
 # Number of CPUs
 np = 2
@@ -100,7 +104,7 @@ system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
 # Create a "fifo" memory
-fifo = Fifo(range=AddrRange(start=0x30000000, size="1MB")) 
+fifo = Fifo(range=AddrRange(start=0x30000000, size="64kB")) 
 system.fifo = fifo
 # Connect CPU to fifo
 if system.cpu[0].fifo_enabled:
@@ -110,14 +114,18 @@ if system.cpu[1].fifo_enabled:
   system.cpu[1].fifo_port = system.fifo.port
 
 # Create timer
-timer = Timer(range=AddrRange(start=0x40000000, size="1MB"))
+timer = Timer(range=AddrRange(start=0x30010000, size="64kB"))
 system.timer = timer
+# Connect cpu 0
 if system.cpu[0].timer_enabled:
   system.cpu[0].timer_port = system.timer.port
+# Connect cpu 1
+if system.cpu[1].timer_enabled:
+  system.cpu[1].timer_port = system.timer.port
 
 # Assign programs
 process0 = LiveProcess()
-process0.executable = os.environ["GEM5"] + "/tests/malarden/fac.arm"
+process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer_monitor.arm"
 process0.cmd = ""
 system.cpu[0].workload = process0
 
