@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
   // Initalize sum
   sum = 0;
 
-  START_TASK
+  START_TASK(0)
 
   for (i = 0; i < 10; i++) {
     START_SUBTASK(20*TICKS_PER_CYCLE);

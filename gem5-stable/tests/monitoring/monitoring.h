@@ -29,5 +29,7 @@ struct monitoring_packet {
 
 // Read from fifo into x (which should be struct monitoring_packet)
 #define READ_FIFO(x) memcpy(&x, (void *)(MONITOR_ADDR), sizeof(x))
+// Only reads PC, does not perform full memcpy (faster but information lost)
+#define READ_PC *fifo
 
 #endif // MONITORING_H
