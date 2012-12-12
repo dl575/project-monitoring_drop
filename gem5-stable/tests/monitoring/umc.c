@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
   bool metadata[1024];
 
   while(1) {
-    if ((slack = READ_SLACK) <= 0) {
+    if ((slack = READ_SLACK) < 0) {
       //DROP_FIFO
       int instAddr = READ_PC;
       // If no more monitoring packets, exit
@@ -29,6 +29,8 @@ int main(int argc, char *argv[]) {
         printf("Finished monitoring\n");
         return 0;
       }
+      printf("Negative slack\n");
+      return;
  
       continue;
     }
@@ -41,15 +43,15 @@ int main(int argc, char *argv[]) {
       return 0;
     }
 
-    printf("%x : m[%08x] = %x ", fifo_data.instAddr, fifo_data.memAddr, fifo_data.data);
+    //printf("%x : m[%08x] = %x ", fifo_data.instAddr, fifo_data.memAddr, fifo_data.data);
     // Store
     if (fifo_data.store) {
-      printf("store\n");
+      //printf("store\n");
       // Write metadata
       metadata[(fifo_data.memAddr >> 2) % 1024] = 1;
     // Load
     } else {
-      printf("load\n");
+      //printf("load\n");
       if (metadata[(fifo_data.memAddr >> 2) % 1024] == 0) {
         printf("UMC error\n");
         // Exit if UMC error

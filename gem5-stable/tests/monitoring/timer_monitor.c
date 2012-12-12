@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
   START_TASK(0)
 
   for (i = 0; i < 10; i++) {
-    START_SUBTASK(20*TICKS_PER_CYCLE);
+    START_SUBTASK(96500 + 20*TICKS_PER_CYCLE);
     sum += array[i];
     END_SUBTASK;
 

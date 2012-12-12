@@ -59,6 +59,8 @@
 #define FIFO_ENTRY_SIZE 0x100
 // FIFO device address
 #define FIFO_ADDR 0x30000000
+#define FIFO_ADDR_START FIFO_ADDR
+#define FIFO_ADDR_END   FIFO_ADDR + 0x0000ffff
 
 /**
  * The simple memory is a basic multi-ported memory with an infinite

@@ -253,8 +253,6 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
     // Read from fifo
     if (fifo_enabled) {
       if (addr == FIFO_ADDR) {
-        DPRINTF(Fifo, "Read from fifo\n");
-
         // Create request at fifo location
         Request *req = &data_read_req;
         // Size of monitoring packet
@@ -673,8 +671,11 @@ AtomicSimpleCPU::tick()
 
                 /* Monitoring */
                 // Currently on loads, generate fifo event
+                // Fifo and monitoring must be enabled
+                // Address cannot be for fifo or timer
                 if (fifo_enabled && monitoring_enabled && 
-                  (curStaticInst->isLoad() || curStaticInst->isStore())) {
+                  (curStaticInst->isLoad() || curStaticInst->isStore()) &&
+                  ((fed.memAddr < FIFO_ADDR_START) || (fed.memAddr > TIMER_ADDR_END))) {
 
                   DPRINTF(Fifo, "Monitoring event at %d, data: %x\n", 
                       curTick(), tc->pcState().instAddr());
