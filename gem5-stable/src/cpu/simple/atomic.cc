@@ -762,6 +762,8 @@ AtomicSimpleCPU::tick()
         if (fifoStall) {
             DPRINTF(Fifo, "Rescheduling...\n");
             schedule(fifoEvent, curTick() + latency);
+            // Store start of stall time
+            fifoStallTicks = curTick();
         } else {
             schedule(tickEvent, curTick() + latency);
         }
@@ -788,7 +790,7 @@ void AtomicSimpleCPU::handleFifoEvent() {
   if (fifoPort.sendTimingReq(fifopkt)) {
     // Successful
     // Schedule tick event to resume CPU
-    DPRINTF(Fifo, "Success!\n");
+    DPRINTF(Fifo, "Success, stalled for %d\n", curTick() - fifoStallTicks);
     fifoStall = false;
     schedule(tickEvent, curTick() + ticks(1));
   } else {

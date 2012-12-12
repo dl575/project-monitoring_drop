@@ -151,6 +151,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 
     // Stall because need to write to fifo but fifo is full
     bool fifoStall;
+    // Amount of time spent stalled
+    int fifoStallTicks;
 
     // Data structure for handling fifo event
     class fifoEventDetails {
