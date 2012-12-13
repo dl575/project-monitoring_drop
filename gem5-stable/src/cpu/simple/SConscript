@@ -51,6 +51,7 @@ if need_simple_base:
 
 
 DebugFlag('Fifo')
+DebugFlag('FifoStall')
 DebugFlag('SlackTimer')
 DebugFlag('Monitoring')
 

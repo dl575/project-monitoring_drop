@@ -50,6 +50,7 @@
 #include "debug/ExecFaulting.hh"
 #include "debug/SimpleCPU.hh"
 #include "debug/Fifo.hh"
+#include "debug/FifoStall.hh"
 #include "debug/SlackTimer.hh"
 #include "mem/packet.hh"
 #include "mem/packet_access.hh"
@@ -791,9 +792,10 @@ void AtomicSimpleCPU::handleFifoEvent() {
   if (fifoPort.sendTimingReq(fifopkt)) {
     // Successful
     // Schedule tick event to resume CPU
-    DPRINTF(Fifo, "Success, stalled for %d\n", curTick() - fifoStallTicks);
     fifoStall = false;
     schedule(tickEvent, curTick() + ticks(1));
+    DPRINTF(Fifo, "Success, stalled for %d\n", curTick() - fifoStallTicks);
+    DPRINTF(FifoStall, "Fifo caused stall for %d ticks\n", curTick() - fifoStallTicks);
   } else {
     // Failed
     // Retry on next cycle
