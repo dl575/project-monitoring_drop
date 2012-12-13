@@ -26,9 +26,9 @@ int main(int argc, char *argv[]) {
     // Not enough slack
     if (READ_SLACK < 40*TICKS_PER_CYCLE) {
       // Read just the PC from Fifo (reads off an entry)
-      int instAddr = READ_PC;
+      READ_FIFO(fifo_data);
       // If no more monitoring packets, exit
-      if (instAddr == 0) {
+      if (!fifo_data.valid) {
         printf("Finished monitoring\n");
         return 0;
       } else {
@@ -42,20 +42,20 @@ int main(int argc, char *argv[]) {
     READ_FIFO(fifo_data);
 
     // If no more monitoring packets, exit
-    if (fifo_data.instAddr == 0) {
+    if (!fifo_data.valid) {
       printf("Finished monitoring\n");
       return 0;
     }
 
-    //printf("%x : m[%08x] = %x ", fifo_data.instAddr, fifo_data.memAddr, fifo_data.data);
+    printf("%x : m[%08x] = %x ", fifo_data.instAddr, fifo_data.memAddr, fifo_data.data);
     // Store
     if (fifo_data.store) {
-      //printf("store\n");
+      printf("store\n");
       // Write metadata
       metadata[(fifo_data.memAddr >> 2) % 1024] = 1;
     // Load
     } else {
-      //printf("load\n");
+      printf("load\n");
       if (metadata[(fifo_data.memAddr >> 2) % 1024] == 0) {
         printf("UMC error\n");
         // Exit if UMC error

@@ -278,14 +278,18 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
 
         return NoFault;
       } else if (addr == 0x30000004) {
-        memcpy(data, (void *)&read_mp.memAddr, sizeof(read_mp.memAddr));
+        memcpy(data, (void *)&read_mp.instAddr, sizeof(read_mp.instAddr));
 
         return NoFault;
       } else if (addr == 0x30000008) {
-        memcpy(data, (void *)&read_mp.data, sizeof(read_mp.data));
+        memcpy(data, (void *)&read_mp.memAddr, sizeof(read_mp.memAddr));
 
         return NoFault;
       } else if (addr == 0x3000000c) {
+        memcpy(data, (void *)&read_mp.data, sizeof(read_mp.data));
+
+        return NoFault;
+      } else if (addr == 0x30000010) {
         memcpy(data, (void *)&read_mp.store, sizeof(read_mp.store));
 
         return NoFault;
@@ -689,6 +693,7 @@ AtomicSimpleCPU::tick()
                   fed.instAddr = tc->pcState().instAddr();
 
                   // Monitoring packet to be sent
+                  mp.valid = true;
                   mp.instAddr = fed.instAddr;
                   mp.memAddr = fed.memAddr;
                   mp.data = fed.data;

@@ -8,6 +8,7 @@
 #define MONITORING_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 // Address of monitoring fifo (for read)
 #define MONITOR_ADDR 0x30000000
@@ -21,6 +22,7 @@
 
 // Structure for storing monitoring packet data
 struct monitoring_packet {
+  bool valid;
   int instAddr;
   int memAddr;
   int data;
@@ -29,7 +31,5 @@ struct monitoring_packet {
 
 // Read from fifo into x (which should be struct monitoring_packet)
 #define READ_FIFO(x) memcpy(&x, (void *)(MONITOR_ADDR), sizeof(x))
-// Only reads PC, does not perform full memcpy (faster but information lost)
-#define READ_PC *fifo
 
 #endif // MONITORING_H

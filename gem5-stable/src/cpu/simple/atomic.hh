@@ -46,6 +46,7 @@
 #include "cpu/simple/base.hh"
 #include "params/AtomicSimpleCPU.hh"
 
+#include "mem/fifo.hh"
 #include "mem/timer.hh"
 
 class AtomicSimpleCPU : public BaseSimpleCPU
@@ -170,13 +171,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
         }
     };
     fifoEventDetails fed;
-    class monitoringPacket {
-      public:
-        Addr instAddr;
-        Addr memAddr;
-        uint64_t data;
-        bool store; // true if store instruction, false if load
-    };
+
+    // Monitoring packet that is written to fifo
     monitoringPacket mp;
     // Buffer for reading from Fifo
     // Since reading form Fifo is destructive, need to buffer if multiple bytes

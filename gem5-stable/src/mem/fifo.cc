@@ -67,6 +67,8 @@ Fifo::Fifo(const Params* p) :
         ports.push_back(new MemoryPort(csprintf("%s-port-%d", name(), i),
                                        *this));
     }
+
+    invalidPacket.init();
 }
 
 void
@@ -132,8 +134,10 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
             tail_pointer %= FIFO_SIZE;
             //TRACE_PACKET("Read");
             DPRINTF(Fifo, "Read from tail %d, head at %d\n", tail_pointer, head_pointer);
-        } else
+        } else {
+            memcpy(pkt->getPtr<uint8_t>(), &invalidPacket, pkt->getSize());
             DPRINTF(Fifo, "Empty from tail %d, head at %d\n", tail_pointer, head_pointer);
+        }
         pkt->makeResponse();
     // Write request
     } else if (pkt->isWrite()) {
@@ -239,8 +243,8 @@ Fifo::MemoryPort::recvFunctional(PacketPtr pkt)
 bool
 Fifo::MemoryPort::recvTimingReq(PacketPtr pkt)
 {
-  // If full
-  if (memory.full()) {
+  // If full and writing
+  if (memory.full() && (pkt->cmd == MemCmd::WriteReq)) {
     // Indicate unsuccessful send
     return false;
   // Otherwise, there's space

@@ -62,6 +62,24 @@
 #define FIFO_ADDR_START FIFO_ADDR
 #define FIFO_ADDR_END   FIFO_ADDR + 0x0000ffff
 
+// Monitoring packet that is stored as each fifo entry
+class monitoringPacket {
+  public:
+    bool valid; // Valid packet, 0 if fifo is empty
+    Addr instAddr;
+    Addr memAddr;
+    uint64_t data;
+    bool store; // true if store instruction, false if load
+
+    void init() {
+      valid = false;
+      instAddr = 0;
+      memAddr = 0;
+      data = 0;
+      store = false;
+    }
+};
+
 /**
  * The simple memory is a basic multi-ported memory with an infinite
  * throughput and a fixed latency, potentially with a variance added
@@ -123,6 +141,9 @@ class Fifo : public AbstractMemory
     // Fifo head/tail pointers
     int head_pointer;
     int tail_pointer;
+    
+    // Invalid packet that is sent on read from empty fifo
+    monitoringPacket invalidPacket;
 
   public:
     bool empty() {
