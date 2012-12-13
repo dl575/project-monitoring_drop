@@ -21,16 +21,19 @@ int main(int argc, char *argv[]) {
   int sum;
   int array[10];
 
+  START_TASK(0*TICKS_PER_CYCLE);
+
+  START_SUBTASK(173*TICKS_PER_CYCLE);
   // Initialize array
   for (i = 0; i < 10; i++)
-    array[i] = 0x10;
+    array[i] = i;
   // Initalize sum
   sum = 0;
-
-  START_TASK(0)
+  END_SUBTASK;
 
   for (i = 0; i < 10; i++) {
-    START_SUBTASK(96500 + 20*TICKS_PER_CYCLE);
+    //START_SUBTASK(96500 + 20*TICKS_PER_CYCLE);
+    START_SUBTASK(150*TICKS_PER_CYCLE);
     sum += array[i];
     END_SUBTASK;
 

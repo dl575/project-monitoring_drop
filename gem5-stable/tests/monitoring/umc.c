@@ -6,6 +6,8 @@
 #include "timer.h"
 #include "monitoring.h"
 
+#define TICKS_PER_CYCLE 500
+
 int main(int argc, char *argv[]) {
   register int i;
 
@@ -21,17 +23,19 @@ int main(int argc, char *argv[]) {
   bool metadata[1024];
 
   while(1) {
-    if ((slack = READ_SLACK) < 0) {
-      //DROP_FIFO
+    // Not enough slack
+    if (READ_SLACK < 40*TICKS_PER_CYCLE) {
+      // Read just the PC from Fifo (reads off an entry)
       int instAddr = READ_PC;
       // If no more monitoring packets, exit
       if (instAddr == 0) {
         printf("Finished monitoring\n");
         return 0;
+      } else {
+        // Write to prevent false positives
+        metadata[(fifo_data.memAddr >> 2) % 1024] = 1;
       }
-      printf("Negative slack\n");
-      return;
- 
+      // No other operation, next loop iteration 
       continue;
     }
     // Read FIFO data
@@ -55,7 +59,7 @@ int main(int argc, char *argv[]) {
       if (metadata[(fifo_data.memAddr >> 2) % 1024] == 0) {
         printf("UMC error\n");
         // Exit if UMC error
-        //return 1;
+        return 1;
       }
     }
   }
