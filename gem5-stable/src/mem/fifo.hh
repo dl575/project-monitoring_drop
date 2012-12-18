@@ -65,18 +65,21 @@
 // Monitoring packet that is stored as each fifo entry
 class monitoringPacket {
   public:
-    bool valid; // Valid packet, 0 if fifo is empty
-    Addr instAddr;
-    Addr memAddr;
-    uint64_t data;
-    bool store; // true if store instruction, false if load
+    bool valid;    // Valid packet, 0 if fifo is empty
+    Addr instAddr; // program counter
+    Addr memAddr;  // address of memory access
+    uint64_t data; // data for memory access
+    bool store;    // true if store instruction, false if load
+    bool done;     // indicates that the main core program has finished
 
+    // Clear all variables
     void init() {
       valid = false;
       instAddr = 0;
       memAddr = 0;
       data = 0;
       store = false;
+      done = false;
     }
 };
 

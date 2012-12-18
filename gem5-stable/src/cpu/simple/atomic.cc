@@ -106,6 +106,8 @@ AtomicSimpleCPU::init()
     data_read_req.setThreadContext(_cpuId, 0); // Add thread ID here too
     data_write_req.setThreadContext(_cpuId, 0); // Add thread ID here too
 
+    // Initialize monitoring variables
+    mp.init();
     fifoStall = false;
 }
 
@@ -293,6 +295,10 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
         memcpy(data, (void *)&read_mp.store, sizeof(read_mp.store));
 
         return NoFault;
+      } else if (addr == 0x30000014) {
+        memcpy(data, (void *)&read_mp.done, sizeof(read_mp.done));
+
+        return NoFault;
       }
     }
 
@@ -435,6 +441,10 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
       } else if (fifo_ctrl == 0) {
         // Disable monitoring
         monitoring_enabled = false;
+      } else if (fifo_ctrl == 2) {
+        // Finished main core, set packet to indicate this
+        mp.done = true; 
+        DPRINTF(Fifo, "Main core done \n");
       } else {
         warn("Unrecognized fifo control: %d\n", fifo_ctrl);
       }
@@ -677,10 +687,13 @@ AtomicSimpleCPU::tick()
                 /* Monitoring */
                 // Currently on loads, generate fifo event
                 // Fifo and monitoring must be enabled
-                // Address cannot be for fifo or timer
+                // Address cannot be for fifo or timer unless it is a fifo
+                // write to indicate that the main core is done.
                 if (fifo_enabled && monitoring_enabled && 
                   (curStaticInst->isLoad() || curStaticInst->isStore()) &&
-                  ((fed.memAddr < FIFO_ADDR_START) || (fed.memAddr > TIMER_ADDR_END))) {
+                  ((fed.memAddr < FIFO_ADDR_START) || (fed.memAddr > TIMER_ADDR_END) || 
+                   mp.done)
+                  ) {
 
                   DPRINTF(Fifo, "Monitoring event at %d, data: %x\n", 
                       curTick(), tc->pcState().instAddr());
@@ -782,7 +795,6 @@ void AtomicSimpleCPU::handleFifoEvent() {
   // Create request
   Request *req = &fed.req;
   unsigned size = sizeof(mp);
-//  unsigned size = sizeof(fed.memAddr);
   unsigned flags = ArmISA::TLB::AllowUnaligned;
   // set physical address
   req->setPhys((Addr)FIFO_ADDR, size, flags, dataMasterId());

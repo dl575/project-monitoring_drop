@@ -19,14 +19,17 @@
 #define ENABLE_MONITOR *fifo = 1;
 // disable monitoring
 #define DISABLE_MONITOR *fifo = 0;
+// main core has finished
+#define MAIN_DONE *fifo = 2;
 
 // Structure for storing monitoring packet data
 struct monitoring_packet {
-  bool valid;
+  int valid;
   int instAddr;
   int memAddr;
   int data;
-  bool store;
+  int store;
+  int done;
 };
 
 // Read from fifo into x (which should be struct monitoring_packet)
