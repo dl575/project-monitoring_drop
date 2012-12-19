@@ -33,6 +33,13 @@ struct monitoring_packet {
 };
 
 // Read from fifo into x (which should be struct monitoring_packet)
-#define READ_FIFO(x) memcpy(&x, (void *)(MONITOR_ADDR), sizeof(x))
+#define READ_FIFO_ALL(x) memcpy(&x, (void *)(MONITOR_ADDR), sizeof(x))
+// Read individual data from fifo (note: either READ_FIFO or READ_VALID should occur first to read new fifo packet into buffer)
+#define READ_FIFO_VALID   *fifo
+#define READ_FIFO_PC      *(fifo + 1)
+#define READ_FIFO_MEMADDR *(fifo + 2)
+#define READ_FIFO_DATA    *(fifo + 3)
+#define READ_FIFO_STORE   *(fifo + 4)
+#define READ_FIFO_DONE    *(fifo + 5)
 
 #endif // MONITORING_H

@@ -16,38 +16,35 @@
 #include "timer.h"
 #include "monitoring.h"
 
-#define METADATA_ADDRESSES 1024
+#define METADATA_ADDRESSES 65536
 
 int main(int argc, char *argv[]) {
-  register int i;
+  register int temp;
+  // flags for whether memory was initialized
+  bool metadata[METADATA_ADDRESSES];
 
   // Set up monitoring
   INIT_MONITOR
 
-  // Data structure for holding monitoring data
-  struct monitoring_packet fifo_data;
-  // flags for whether memory was initialized
-  bool metadata[METADATA_ADDRESSES];
-
+  // Main loop, loop until main core signals done
   while(1) {
-    // Read FIFO data
-    READ_FIFO(fifo_data);
+    // Skip if fifo is empty
+    if ((temp = READ_FIFO_VALID) == 0)
+      continue;
 
-    // If no more monitoring packets, exit
-    if (fifo_data.done) {
-      //printf("%d, %d, : %x : m[%08x] = %x \n", fifo_data.valid, fifo_data.done, fifo_data.instAddr, fifo_data.memAddr, fifo_data.data);
+    // If main core has finished, exit
+    if (temp = READ_FIFO_DONE) {
       printf("Finished monitoring\n");
       return 0;
     }
-
-    printf("%x : m[%08x] = %x %s \n", fifo_data.instAddr, fifo_data.memAddr, fifo_data.data, (fifo_data.store ? "store" : "load"));
+    
     // Store
-    if (fifo_data.store) {
+    if (temp = READ_FIFO_STORE) {
       // Write metadata
-      metadata[(fifo_data.memAddr >> 2) % METADATA_ADDRESSES] = 1;
+      metadata[(READ_FIFO_STORE >> 2) % METADATA_ADDRESSES] = 1;
     // Load
     } else {
-      if (metadata[(fifo_data.memAddr >> 2) % METADATA_ADDRESSES] == 0) {
+      if (metadata[(READ_FIFO_STORE >> 2) % METADATA_ADDRESSES] == 0) {
         printf("UMC error\n");
         // Exit if UMC error
         return 1;

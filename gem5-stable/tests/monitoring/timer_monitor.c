@@ -9,11 +9,11 @@
 int main(int argc, char *argv[]) {
 
   // initialize monitoring
-  INIT_MONITOR
+  INIT_MONITOR;
   // Start monitoring
-  ENABLE_MONITOR
+  ENABLE_MONITOR;
   // initialize objects for timer
-  INIT_TIMER
+  INIT_TIMER;
   int read_timer;
 
   // Initialize program variables
@@ -21,9 +21,9 @@ int main(int argc, char *argv[]) {
   int sum;
   int array[10];
 
-  START_TASK(0*TICKS_PER_CYCLE);
+  START_TASK(200*TICKS_PER_CYCLE);
 
-  START_SUBTASK(173*TICKS_PER_CYCLE);
+  START_SUBTASK(350*TICKS_PER_CYCLE);
   // Initialize array
   for (i = 0; i < 10; i++)
     array[i] = i;
@@ -32,8 +32,7 @@ int main(int argc, char *argv[]) {
   END_SUBTASK;
 
   for (i = 0; i < 10; i++) {
-    //START_SUBTASK(96500 + 20*TICKS_PER_CYCLE);
-    START_SUBTASK(150*TICKS_PER_CYCLE);
+    START_SUBTASK(300*TICKS_PER_CYCLE);
     sum += array[i];
     END_SUBTASK;
 
@@ -42,10 +41,12 @@ int main(int argc, char *argv[]) {
 //    printf("slack = %d\n", read_timer);
   }
 
-  END_TASK
+  END_TASK;
 
+  // main core odne
+  MAIN_DONE;
   // Stop monitoring
-  DISABLE_MONITOR
+  DISABLE_MONITOR;
 
   // Print result
   printf("%d\n", sum);

@@ -7,9 +7,14 @@
 #include "monitoring.h"
 
 #define TICKS_PER_CYCLE 500
+// cycles needed to perform full monitoring
+#define MON_WCET 58*TICKS_PER_CYCLE 
+#define METADATA_ADDRESSES 65536
 
 int main(int argc, char *argv[]) {
-  register int i;
+  register int temp;
+  // flags for whether memory was initialized
+  bool metadata[METADATA_ADDRESSES];
 
   // Set up monitoring
   INIT_MONITOR
@@ -17,51 +22,38 @@ int main(int argc, char *argv[]) {
   INIT_TIMER_READ
   int slack;
 
-  // Data structure for holding monitoring data
-  struct monitoring_packet fifo_data;
-  // flags for whether memory was initialized
-  bool metadata[1024];
-
   while(1) {
-    // Not enough slack
-    if (READ_SLACK < 40*TICKS_PER_CYCLE) {
-      // Read just the PC from Fifo (reads off an entry)
-      READ_FIFO(fifo_data);
-      // If no more monitoring packets, exit
-      if (!fifo_data.valid) {
-        printf("Finished monitoring\n");
-        return 0;
-      } else {
-        // Write to prevent false positives
-        metadata[(fifo_data.memAddr >> 2) % 1024] = 1;
-      }
-      // No other operation, next loop iteration 
+    // Skip if fifo is empty
+    if ((temp = READ_FIFO_VALID) == 0)
       continue;
-    }
-    // Read FIFO data
-    READ_FIFO(fifo_data);
 
-    // If no more monitoring packets, exit
-    if (!fifo_data.valid) {
+    // If main core has finished, exit
+    if (temp = READ_FIFO_DONE) {
       printf("Finished monitoring\n");
       return 0;
     }
 
-    //printf("%x : m[%08x] = %x ", fifo_data.instAddr, fifo_data.memAddr, fifo_data.data);
+    // Not enough slack
+    if (READ_SLACK < MON_WCET) {
+      // Write to prevent false positives
+      metadata[(READ_FIFO_STORE >> 2) % METADATA_ADDRESSES] = 1;
+      // Finish here, next loop iteration
+      continue;
+    }
+
     // Store
-    if (fifo_data.store) {
-      //printf("store\n");
+    if (temp = READ_FIFO_STORE) {
       // Write metadata
-      metadata[(fifo_data.memAddr >> 2) % 1024] = 1;
+      metadata[(READ_FIFO_STORE >> 2) % METADATA_ADDRESSES] = 1;
     // Load
     } else {
-      //printf("load\n");
-      if (metadata[(fifo_data.memAddr >> 2) % 1024] == 0) {
+      if (metadata[(READ_FIFO_STORE >> 2) % METADATA_ADDRESSES] == 0) {
         printf("UMC error\n");
         // Exit if UMC error
         return 1;
       }
     }
+
   }
 
   return 1;
