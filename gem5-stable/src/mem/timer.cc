@@ -141,6 +141,18 @@ Timer::doFunctionalAccess(PacketPtr pkt)
               // Accumulate remaining subtask slack into total task slack 
               stored_tp.slack += stored_tp.subtaskWCET - (curTick() - stored_tp.subtaskStart);
               DPRINTF(SlackTimer, "Written to timer: end, slack = %d\n", stored_tp.slack);
+            } else if (write_addr == TIMER_ENDSTART_SUBTASK) {
+              // End the current subtask and also start a new one
+
+              // Accumulate remaining subtask slack into total task slack
+              stored_tp.slack += stored_tp.subtaskWCET - (curTick() - stored_tp.subtaskStart);
+              DPRINTF(SlackTimer, "Written to timer: end, slack = %d\n", stored_tp.slack);
+
+              // Save WCET that was written by CPU
+              memcpy(&stored_tp.subtaskWCET, pkt->getPtr<uint8_t>(), pkt->getSize());
+              // Save current time
+              stored_tp.subtaskStart = curTick();
+              DPRINTF(SlackTimer, "Written to timer: start = %d, WCET = %d\n", stored_tp.subtaskStart, stored_tp.subtaskWCET);
             } else if (write_addr == TIMER_START_TASK) {
               // Reset all variables
               stored_tp.init();
