@@ -62,6 +62,18 @@
 #define FIFO_ADDR_START FIFO_ADDR
 #define FIFO_ADDR_END   FIFO_ADDR + 0x0000ffff
 
+// Addresses used for parts of monitoring packet
+#define FIFO_VALID        FIFO_ADDR          // valid packet
+#define FIFO_INSTADDR     (FIFO_ADDR + 0x04) // program counter
+#define FIFO_MEMADDR      (FIFO_ADDR + 0x08) // memory address
+#define FIFO_DATA         (FIFO_ADDR + 0x0c) // load/store data
+#define FIFO_STORE        (FIFO_ADDR + 0x10) // store flag
+#define FIFO_DONE         (FIFO_ADDR + 0x14) // main core done
+
+// Fifo registers
+#define FIFO_FULL     (FIFO_ADDR + 0x1000) // returns 1 if fifo full
+#define FIFO_EMPTY    (FIFO_ADDR + 0x1004) // returns 1 if fifo empty
+
 // Monitoring packet that is stored as each fifo entry
 class monitoringPacket {
   public:

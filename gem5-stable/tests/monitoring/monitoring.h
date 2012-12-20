@@ -42,4 +42,8 @@ struct monitoring_packet {
 #define READ_FIFO_STORE   *(fifo + 4)
 #define READ_FIFO_DONE    *(fifo + 5)
 
+// Fifo flags
+#define READ_FIFO_FULL    *(fifo + 0x400)
+#define READ_FIFO_EMPTY   *(fifo + 0x400 + 1)
+
 #endif // MONITORING_H

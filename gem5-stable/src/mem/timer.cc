@@ -159,7 +159,8 @@ Timer::doFunctionalAccess(PacketPtr pkt)
               // Use optionally passed value as initial slack
               memcpy(&stored_tp.slack, pkt->getPtr<uint8_t>(), pkt->getSize());
             } else if (write_addr == TIMER_END_TASK) {
-              // Do nothing for now, may need to do something later
+              // "Infinite" slack for monitoring to finish
+              stored_tp.slack = INT_MAX;
             } else {
               warn("Unknown address written to for timer.");
             }

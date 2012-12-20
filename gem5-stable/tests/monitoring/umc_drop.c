@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
   // Set up monitoring
   INIT_MONITOR
   // set up timer interface for reading
-  INIT_TIMER_READ
+  INIT_TIMER
   int slack;
 
   while(1) {
@@ -32,6 +32,10 @@ int main(int argc, char *argv[]) {
       printf("Finished monitoring\n");
       return 0;
     }
+
+    // If there's not enough slack and the fifo's not full,
+    // can just stall
+    while (READ_SLACK < MON_WCET && !READ_FIFO_FULL);
 
     // Not enough slack
     if (READ_SLACK < MON_WCET) {

@@ -279,27 +279,63 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
         delete pkt;
 
         return NoFault;
-      } else if (addr == 0x30000004) {
+      } else if (addr == FIFO_INSTADDR) {
         memcpy(data, (void *)&read_mp.instAddr, sizeof(read_mp.instAddr));
 
         return NoFault;
-      } else if (addr == 0x30000008) {
+      } else if (addr == FIFO_MEMADDR) {
         memcpy(data, (void *)&read_mp.memAddr, sizeof(read_mp.memAddr));
 
         return NoFault;
-      } else if (addr == 0x3000000c) {
+      } else if (addr == FIFO_DATA) {
         memcpy(data, (void *)&read_mp.data, sizeof(read_mp.data));
 
         return NoFault;
-      } else if (addr == 0x30000010) {
+      } else if (addr == FIFO_STORE) {
         memcpy(data, (void *)&read_mp.store, sizeof(read_mp.store));
 
         return NoFault;
-      } else if (addr == 0x30000014) {
+      } else if (addr == FIFO_DONE) {
         memcpy(data, (void *)&read_mp.done, sizeof(read_mp.done));
 
         return NoFault;
-      }
+      } else if (addr == FIFO_FULL) {
+        // Create request at fifo location
+        Request *req = &data_read_req;
+        // Size of monitoring packet
+        size = sizeof(int);
+        req->setPhys(addr, size, flags, dataMasterId());
+        // Read command
+        MemCmd cmd = MemCmd::ReadReq;
+        // Create packet
+        PacketPtr pkt = new Packet(req, cmd);
+        // Point packet to data pointer
+        pkt->dataStatic(data);
+
+        // Send read request
+        fifoPort.sendFunctional(pkt);
+
+        delete pkt;
+        return NoFault;
+      } else if (addr == FIFO_EMPTY) {
+        // Create request at fifo location
+        Request *req = &data_read_req;
+        // Size of monitoring packet
+        size = sizeof(int);
+        req->setPhys(addr, size, flags, dataMasterId());
+        // Read command
+        MemCmd cmd = MemCmd::ReadReq;
+        // Create packet
+        PacketPtr pkt = new Packet(req, cmd);
+        // Point packet to data pointer
+        pkt->dataStatic(data);
+
+        // Send read request
+        fifoPort.sendFunctional(pkt);
+
+        delete pkt;
+        return NoFault;
+      } 
     }
 
     // Read from timer
