@@ -41,10 +41,10 @@ int main(int argc, char *argv[]) {
     // Store
     if (temp = READ_FIFO_STORE) {
       // Write metadata
-      metadata[(READ_FIFO_STORE >> 2) % METADATA_ADDRESSES] = 1;
+      metadata[(READ_FIFO_MEMADDR >> 2) % METADATA_ADDRESSES] = 1;
     // Load
     } else {
-      if (metadata[(READ_FIFO_STORE >> 2) % METADATA_ADDRESSES] == 0) {
+      if (metadata[(READ_FIFO_MEMADDR >> 2) % METADATA_ADDRESSES] == 0) {
         printf("UMC error\n");
         // Exit if UMC error
         return 1;
