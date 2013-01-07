@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
   // Main loop, loop until main core signals done
   while(1) {
     // Skip if fifo is empty
-    if ((temp = READ_FIFO_VALID) == 0)
+    if (!(temp = READ_FIFO_VALID))
       continue;
 
     // If main core has finished, exit
@@ -41,13 +41,17 @@ int main(int argc, char *argv[]) {
     // Store
     if (temp = READ_FIFO_STORE) {
       // Write metadata
-      metadata[(READ_FIFO_MEMADDR >> 2) % METADATA_ADDRESSES] = 1;
+      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
+        metadata[temp % METADATA_ADDRESSES] = 1;
+      }
     // Load
     } else {
-      if (metadata[(READ_FIFO_MEMADDR >> 2) % METADATA_ADDRESSES] == 0) {
-        printf("UMC error\n");
-        // Exit if UMC error
-        return 1;
+      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
+        if (metadata[temp % METADATA_ADDRESSES] == 0) {
+            printf("UMC error\n");
+            // Exit if UMC error
+            return 1;
+        }
       }
     }
   }

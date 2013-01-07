@@ -14,19 +14,30 @@
 #define MONITOR_ADDR 0x30000000
 
 // initialize fifo so it can be enabled/disabled
-#define INIT_MONITOR int *fifo; fifo = (int *)MONITOR_ADDR; 
+#define INIT_MONITOR register unsigned int *fifo = (unsigned int *)MONITOR_ADDR; 
 // enable monitoring
 #define ENABLE_MONITOR *fifo = 1;
 // disable monitoring
 #define DISABLE_MONITOR *fifo = 0;
 // main core has finished
-#define MAIN_DONE *fifo = 2;
+#define MAIN_DONE *fifo = 2; while(1);
+
+// make custom FIFO packets
+#define WRITE_FIFO_START(x) *(fifo + 1) = x;
+#define WRITE_FIFO_END(x) *(fifo + 2) = x;
+#define WRITE_FIFO_RANGE(x1,x2) *(fifo + 1) = x1; *(fifo + 2) = x2;
+
+// bss initialization
+#define INIT_BSS extern void * __bss_start__; \
+  extern void * __bss_end__; \
+  WRITE_FIFO_RANGE((unsigned int)&__bss_start__, (unsigned int)&__bss_end__)
 
 // Structure for storing monitoring packet data
 struct monitoring_packet {
   int valid;
   int instAddr;
   int memAddr;
+  int memEnd;
   int data;
   int store;
   int done;
@@ -38,8 +49,9 @@ struct monitoring_packet {
 #define READ_FIFO_VALID   *fifo
 #define READ_FIFO_PC      *(fifo + 1)
 #define READ_FIFO_MEMADDR *(fifo + 2)
-#define READ_FIFO_DATA    *(fifo + 3)
-#define READ_FIFO_STORE   *(fifo + 4)
-#define READ_FIFO_DONE    *(fifo + 5)
+#define READ_FIFO_MEMEND  *(fifo + 3)
+#define READ_FIFO_DATA    *(fifo + 4)
+#define READ_FIFO_STORE   *(fifo + 5)
+#define READ_FIFO_DONE    *(fifo + 6)
 
 #endif // MONITORING_H

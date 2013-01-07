@@ -254,52 +254,44 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags)
 {
     // Read from fifo
-    if (fifo_enabled) {
+    if (fifo_enabled && addr >= FIFO_ADDR_START && addr <= FIFO_ADDR_END) {
+	  
+	  uint64_t send_data = 0;
+	  
       if (addr == FIFO_ADDR) {
         // Create request at fifo location
         Request *req = &data_read_req;
-        // Size of monitoring packet
-        size = sizeof(read_mp);
-        req->setPhys((Addr)FIFO_ADDR, size, flags, dataMasterId());
+        req->setPhys((Addr)FIFO_ADDR, sizeof(read_mp), flags, dataMasterId());
         // Read command
         MemCmd cmd = MemCmd::ReadReq;
         // Create packet
         PacketPtr pkt = new Packet(req, cmd);
-        // Point packet to data pointer
-        pkt->dataStatic(data);
+        // Point packet to monitoring packet
+        pkt->dataStatic(&read_mp);
 
         // Send read request
         fifoPort.sendFunctional(pkt);
 
         // Copy to Fifo buffer
-        memcpy(&read_mp, data, sizeof(read_mp));
-        DPRINTF(Fifo, "read_mp: %x, %x, %x\n", read_mp.instAddr, read_mp.memAddr, read_mp.data);
+        //memcpy(&read_mp, data, sizeof(read_mp));
+        DPRINTF(Fifo, "read_mp: %x, %x, %x, %x, %x, %x, %x\n", read_mp.valid, read_mp.instAddr, read_mp.memAddr, read_mp.memEnd, read_mp.data, read_mp.store, read_mp.done);
 
         // Clean up
         delete pkt;
-
-        return NoFault;
-      } else if (addr == 0x30000004) {
-        memcpy(data, (void *)&read_mp.instAddr, sizeof(read_mp.instAddr));
-
-        return NoFault;
-      } else if (addr == 0x30000008) {
-        memcpy(data, (void *)&read_mp.memAddr, sizeof(read_mp.memAddr));
-
-        return NoFault;
-      } else if (addr == 0x3000000c) {
-        memcpy(data, (void *)&read_mp.data, sizeof(read_mp.data));
-
-        return NoFault;
-      } else if (addr == 0x30000010) {
-        memcpy(data, (void *)&read_mp.store, sizeof(read_mp.store));
-
-        return NoFault;
-      } else if (addr == 0x30000014) {
-        memcpy(data, (void *)&read_mp.done, sizeof(read_mp.done));
-
-        return NoFault;
-      }
+		
+		send_data = read_mp.valid;
+		
+      } 
+	  else if (addr == FIFO_ADDR + 0x4) { send_data = read_mp.instAddr; }
+	  else if (addr == FIFO_ADDR + 0x8) { send_data = read_mp.memAddr; }
+	  else if (addr == FIFO_ADDR + 0xc) { send_data = read_mp.memEnd; }
+	  else if (addr == FIFO_ADDR + 0x10) { send_data = read_mp.data; }
+	  else if (addr == FIFO_ADDR + 0x14) { send_data = read_mp.store; }
+	  else if (addr == FIFO_ADDR + 0x18) { send_data = read_mp.done; }
+	  
+	  memcpy(data, &send_data, size);
+	  return NoFault;
+	  
     }
 
     // Read from timer
@@ -427,28 +419,46 @@ Fault
 AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
                           Addr addr, unsigned flags, uint64_t *res)
 {
+
+    if (traceData) {
+        traceData->setAddr(addr);
+    }
+    // Save memory address for monitoring
+    fed.memAddr = addr;
+    // Save data being written
+    fed.data = 0;
+	memcpy(&fed.data, data, size);
+    
+    dcache_latency = 0;
+
     // Write to fifo
     // Used to handl fifo control (writing data to fifo is done 
     // automatically by monitoring)
-    if (fifo_enabled && (addr == FIFO_ADDR)) {
-
-      int fifo_ctrl = (int)*data;
-      DPRINTF(Fifo, "Write to fifo control: %d\n", fifo_ctrl);
-
-      if (fifo_ctrl == 1) {
-        // Enable monitoring
-        monitoring_enabled = true;
-      } else if (fifo_ctrl == 0) {
-        // Disable monitoring
-        monitoring_enabled = false;
-      } else if (fifo_ctrl == 2) {
-        // Finished main core, set packet to indicate this
-        mp.done = true; 
-        DPRINTF(Fifo, "Main core done \n");
-      } else {
-        warn("Unrecognized fifo control: %d\n", fifo_ctrl);
+    if (fifo_enabled && (addr >= FIFO_ADDR && addr < FIFO_ADDR + 0xc)) {
+      if (addr < FIFO_ADDR + 0x4){
+        int fifo_ctrl = (int)*data;
+        DPRINTF(Fifo, "Write to fifo control: %d\n", fifo_ctrl);
+	  
+        if (fifo_ctrl == 1) {
+            // Enable monitoring
+            monitoring_enabled = true;
+            DPRINTF(Fifo, "Enabling monitoring\n");
+        } else if (fifo_ctrl == 0) {
+            // Disable monitoring
+            monitoring_enabled = false;
+            DPRINTF(Fifo, "Disabling monitoring\n");
+        } else if (fifo_ctrl == 2) {
+            // Finished main core, set packet to indicate this
+            mp.done = true; 
+            DPRINTF(Fifo, "Main core done \n");
+        } else {
+            warn("Unrecognized fifo control: %d\n", fifo_ctrl);
+        }
+      } else if (addr < FIFO_ADDR + 0x8){
+        mp.valid = true;
+        mp.memAddr = fed.data;
       }
-
+      
       return NoFault;
     }
     // Timer
@@ -488,14 +498,6 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
     // use the CPU's statically allocated write request and packet objects
     Request *req = &data_write_req;
 
-    if (traceData) {
-        traceData->setAddr(addr);
-    }
-    // Save memory address for monitoring
-    fed.memAddr = addr;
-    // Save data being written
-    fed.data = (uint64_t)(*data);
-
     //The block size of our peer.
     unsigned blockSize = dcachePort.peerBlockSize();
     //The size of the data we're trying to read.
@@ -507,8 +509,6 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
 
     if(secondAddr > addr)
         size = secondAddr - addr;
-
-    dcache_latency = 0;
 
     while(1) {
         req->setVirt(0, addr, size, flags, dataMasterId(), thread->pcState().instAddr());
@@ -683,19 +683,43 @@ AtomicSimpleCPU::tick()
                 }
 
                 postExecute();
+                
+                /* Send FIFO Packet */
+                // On store to FIFO_ADDR + 0x8, we will generate a packet to be
+                // sent
+                if (fifo_enabled && curStaticInst->isStore() 
+                    && fed.memAddr >= FIFO_ADDR + 0x8 && fed.memAddr < FIFO_ADDR + 0xc){
+                    
+                    DPRINTF(Fifo, "Creating custom packet at %d, PC: %x\n", curTick(), tc->pcState().instAddr());
+                    
+                    // Monitoring packet to be sent
+                    mp.instAddr = tc->pcState().instAddr();
+                    mp.memEnd = fed.data;
+                    mp.store = true;
+                    
+                    // Send packet on fifo port
+                    if(sendFifoPacket()) {
+                    // Successful, no need to stall
+                    fifoStall = false;
+                    } else {
+                    // Unsuccessful, stall fifo
+                    fifoStall = true;
+                    }
+                    
+                }
 
                 /* Monitoring */
                 // Currently on loads, generate fifo event
                 // Fifo and monitoring must be enabled
                 // Address cannot be for fifo or timer unless it is a fifo
                 // write to indicate that the main core is done.
-                if (fifo_enabled && monitoring_enabled && 
-                  (curStaticInst->isLoad() || curStaticInst->isStore()) &&
-                  ((fed.memAddr < FIFO_ADDR_START) || (fed.memAddr > TIMER_ADDR_END) || 
-                   mp.done)
-                  ) {
+                if (fifo_enabled && ( (mp.done && curStaticInst->isStore()) || 
+                    (monitoring_enabled && 
+                     (curStaticInst->isLoad() || curStaticInst->isStore()) &&
+                     ((fed.memAddr < FIFO_ADDR_START) || (fed.memAddr > TIMER_ADDR_END)) )
+                    ) ) {
 
-                  DPRINTF(Fifo, "Monitoring event at %d, data: %x\n", 
+                  DPRINTF(Fifo, "Monitoring event at %d, PC: %x\n", 
                       curTick(), tc->pcState().instAddr());
 
                   /*
@@ -709,6 +733,7 @@ AtomicSimpleCPU::tick()
                   mp.valid = true;
                   mp.instAddr = fed.instAddr;
                   mp.memAddr = fed.memAddr;
+				  mp.memEnd = fed.memAddr;
                   mp.data = fed.data;
                   if (curStaticInst->isStore()) {
                     mp.store = true;
@@ -717,21 +742,9 @@ AtomicSimpleCPU::tick()
                   } else {
                     panic("Neither store nor load instruction for monitoring\n");
                   }
-                  // Create request
-                  Request *req = &fed.req;
-                  unsigned size = sizeof(mp);
-                  unsigned flags = ArmISA::TLB::AllowUnaligned;
-                  // set physical address
-                  req->setPhys((Addr)FIFO_ADDR, size, flags, dataMasterId());
-
-                  // Create write packet
-                  MemCmd cmd = MemCmd::WriteReq;
-                  PacketPtr fifopkt = new Packet(req, cmd);
-                  // Set data
-                  fifopkt->dataStatic(&mp);
-
+                  
                   // Send packet on fifo port
-                  if(fifoPort.sendTimingReq(fifopkt)) {
+                  if(sendFifoPacket()) {
                     // Successful, no need to stall
                     fifoStall = false;
                   } else {
@@ -739,8 +752,6 @@ AtomicSimpleCPU::tick()
                     fifoStall = true;
                   }
 
-                  // Clean up
-                  delete fifopkt;
                 }
             }
 
@@ -790,23 +801,32 @@ AtomicSimpleCPU::tick()
     }
 }
 
-void AtomicSimpleCPU::handleFifoEvent() {
-
+bool AtomicSimpleCPU::sendFifoPacket() {
   // Create request
   Request *req = &fed.req;
-  unsigned size = sizeof(mp);
-  unsigned flags = ArmISA::TLB::AllowUnaligned;
   // set physical address
-  req->setPhys((Addr)FIFO_ADDR, size, flags, dataMasterId());
+  req->setPhys((Addr)FIFO_ADDR, sizeof(mp), ArmISA::TLB::AllowUnaligned, dataMasterId());
 
   // Create write packet
-  MemCmd cmd = MemCmd::WriteReq;
-  PacketPtr fifopkt = new Packet(req, cmd);
+  PacketPtr fifopkt = new Packet(req, MemCmd::WriteReq);
   // Set data
   fifopkt->dataStatic(&mp);
+  // Send request
+  bool success = fifoPort.sendTimingReq(fifopkt);
+  // Clean up
+  delete fifopkt;
+  if (success){
+    DPRINTF(Fifo, "Sent Packet with values: %x, %x, %x, %x, %x, %x, %x\n", mp.valid, mp.instAddr, mp.memAddr, mp.memEnd, mp.data, mp.store, mp.done);
+	mp.init();
+  }
+  
+  return success;
+}
+
+void AtomicSimpleCPU::handleFifoEvent() {
 
   // Try again
-  if (fifoPort.sendTimingReq(fifopkt)) {
+  if (sendFifoPacket()) {
     // Successful
     // Schedule tick event to resume CPU
     fifoStall = false;
@@ -819,8 +839,6 @@ void AtomicSimpleCPU::handleFifoEvent() {
     schedule(fifoEvent, curTick() + ticks(1));
   }
 
-  // Clean up
-  delete fifopkt;
 }
 
 void

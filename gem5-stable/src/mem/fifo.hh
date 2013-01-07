@@ -68,6 +68,7 @@ class monitoringPacket {
     bool valid;    // Valid packet, 0 if fifo is empty
     Addr instAddr; // program counter
     Addr memAddr;  // address of memory access
+	Addr memEnd;   // range of memory address
     uint64_t data; // data for memory access
     bool store;    // true if store instruction, false if load
     bool done;     // indicates that the main core program has finished
@@ -77,6 +78,7 @@ class monitoringPacket {
       valid = false;
       instAddr = 0;
       memAddr = 0;
+	  memEnd = 0;
       data = 0;
       store = false;
       done = false;

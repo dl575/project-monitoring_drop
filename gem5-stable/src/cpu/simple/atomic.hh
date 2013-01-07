@@ -147,6 +147,7 @@ class AtomicSimpleCPU : public BaseSimpleCPU
   private:
     // Fifo Event
     void handleFifoEvent();
+	bool sendFifoPacket();
     typedef EventWrapper<AtomicSimpleCPU, &AtomicSimpleCPU::handleFifoEvent> FifoEvent;
     FifoEvent fifoEvent;
 
