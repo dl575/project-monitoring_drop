@@ -261,7 +261,7 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
       if (addr == FIFO_ADDR) {
         // Create request at fifo location
         Request *req = &data_read_req;
-        req->setPhys((Addr)FIFO_ADDR, sizeof(read_mp), flags, dataMasterId());
+        req->setPhys(addr, sizeof(read_mp), flags, dataMasterId());
         // Read command
         MemCmd cmd = MemCmd::ReadReq;
         // Create packet
@@ -292,20 +292,18 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
         // Create request at fifo location
         Request *req = &data_read_req;
         // Size of monitoring packet
-        size = sizeof(int);
-        req->setPhys(addr, size, flags, dataMasterId());
+        req->setPhys(addr, sizeof(int), flags, dataMasterId());
         // Read command
         MemCmd cmd = MemCmd::ReadReq;
         // Create packet
         PacketPtr pkt = new Packet(req, cmd);
         // Point packet to data pointer
-        pkt->dataStatic(data);
+        pkt->dataStatic(&send_data);
 
         // Send read request
         fifoPort.sendFunctional(pkt);
 
         delete pkt;
-        return NoFault;
       } 
 
 	  memcpy(data, &send_data, size);

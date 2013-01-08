@@ -66,9 +66,10 @@
 #define FIFO_VALID        FIFO_ADDR          // valid packet
 #define FIFO_INSTADDR     (FIFO_ADDR + 0x04) // program counter
 #define FIFO_MEMADDR      (FIFO_ADDR + 0x08) // memory address
-#define FIFO_DATA         (FIFO_ADDR + 0x0c) // load/store data
-#define FIFO_STORE        (FIFO_ADDR + 0x10) // store flag
-#define FIFO_DONE         (FIFO_ADDR + 0x14) // main core done
+#define FIFO_MEMEND       (FIFO_ADDR + 0x0c) // memory end range
+#define FIFO_DATA         (FIFO_ADDR + 0x10) // load/store data
+#define FIFO_STORE        (FIFO_ADDR + 0x14) // store flag
+#define FIFO_DONE         (FIFO_ADDR + 0x18) // main core done
 
 // Fifo registers
 #define FIFO_FULL     (FIFO_ADDR + 0x1000) // returns 1 if fifo full
