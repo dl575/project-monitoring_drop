@@ -282,13 +282,32 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
 		send_data = read_mp.valid;
 		
       } 
-	  else if (addr == FIFO_ADDR + 0x4) { send_data = read_mp.instAddr; }
-	  else if (addr == FIFO_ADDR + 0x8) { send_data = read_mp.memAddr; }
-	  else if (addr == FIFO_ADDR + 0xc) { send_data = read_mp.memEnd; }
-	  else if (addr == FIFO_ADDR + 0x10) { send_data = read_mp.data; }
-	  else if (addr == FIFO_ADDR + 0x14) { send_data = read_mp.store; }
-	  else if (addr == FIFO_ADDR + 0x18) { send_data = read_mp.done; }
-	  
+	  else if (addr == FIFO_INSTADDR) { send_data = read_mp.instAddr; }
+	  else if (addr == FIFO_MEMADDR) { send_data = read_mp.memAddr; }
+	  else if (addr == FIFO_MEMEND) { send_data = read_mp.memEnd; }
+	  else if (addr == FIFO_DATA) { send_data = read_mp.data; }
+	  else if (addr == FIFO_STORE) { send_data = read_mp.store; }
+	  else if (addr == FIFO_DONE) { send_data = read_mp.done; }
+	  else if (addr == FIFO_FULL || addr == FIFO_EMPTY) {
+        // Create request at fifo location
+        Request *req = &data_read_req;
+        // Size of monitoring packet
+        size = sizeof(int);
+        req->setPhys(addr, size, flags, dataMasterId());
+        // Read command
+        MemCmd cmd = MemCmd::ReadReq;
+        // Create packet
+        PacketPtr pkt = new Packet(req, cmd);
+        // Point packet to data pointer
+        pkt->dataStatic(data);
+
+        // Send read request
+        fifoPort.sendFunctional(pkt);
+
+        delete pkt;
+        return NoFault;
+      } 
+
 	  memcpy(data, &send_data, size);
 	  return NoFault;
 	  

@@ -11,20 +11,17 @@
 #define TIMER_ADDR 0x30010000
 
 // Initialization
-#define INIT_TIMER_SUBTASK_START int *timer_start_subtask = (int *)TIMER_ADDR;
-#define INIT_TIMER_SUBTASK_END   int *timer_end_subtask = (int *)(TIMER_ADDR + 0x1);
-#define INIT_TIMER_TASK_START    int *timer_start_task = (int *)(TIMER_ADDR + 0x2);
-#define INIT_TIMER_TASK_END      int *timer_end_task = (int *)(TIMER_ADDR + 0x3);
-#define INIT_TIMER_READ          int *timer = (int *)TIMER_ADDR;
-#define INIT_TIMER INIT_TIMER_SUBTASK_START INIT_TIMER_SUBTASK_END INIT_TIMER_TASK_START INIT_TIMER_TASK_END INIT_TIMER_READ
+#define INIT_TIMER int *timer = (int *)TIMER_ADDR;
 
-// start/end subtask
-#define START_SUBTASK(WCET) *timer_start_subtask = WCET;
-#define END_SUBTASK         *timer_end_subtask = 1;
 // start/end task
-#define START_TASK(x) *timer_start_task = x;
-#define END_TASK   *timer_end_task = 1;
+#define START_TASK(x)          *(timer) = x;
+#define END_TASK               *(timer + 1)= 1;
+// start/end subtask
+#define START_SUBTASK(WCET)    *(timer + 2) = WCET;
+#define END_SUBTASK            *(timer + 3) = 1;
+// end subtask and start a new one
+#define ENDSTART_SUBTASK(WCET) *(timer + 4) = WCET;
 // read from slack timer
-#define READ_SLACK *timer
+#define READ_SLACK             *timer
 
 #endif // SLACKTIMER_H

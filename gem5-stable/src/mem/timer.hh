@@ -58,10 +58,11 @@
 #define TIMER_ADDR_END   TIMER_ADDR + 0x0000ffff
 
 // write registers
-#define TIMER_START_SUBTASK (TIMER_ADDR + 0x0)
-#define TIMER_END_SUBTASK   (TIMER_ADDR + 0x1)
-#define TIMER_START_TASK    (TIMER_ADDR + 0x2)
-#define TIMER_END_TASK      (TIMER_ADDR + 0x3)
+#define TIMER_START_TASK       (TIMER_ADDR + 0x00)
+#define TIMER_END_TASK         (TIMER_ADDR + 0x04)
+#define TIMER_START_SUBTASK    (TIMER_ADDR + 0x08)
+#define TIMER_END_SUBTASK      (TIMER_ADDR + 0x0c)
+#define TIMER_ENDSTART_SUBTASK (TIMER_ADDR + 0x10)
 
 // Packet that is written to timer
 class timerPacket {
