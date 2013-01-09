@@ -13,6 +13,8 @@
 
 int main(int argc, char *argv[]) {
   register int temp;
+  register int drops = 0;
+  register int not_drops = 0;
   // flags for whether memory was initialized
   bool metadata[METADATA_ADDRESSES];
 
@@ -30,6 +32,7 @@ int main(int argc, char *argv[]) {
     // If main core has finished, exit
     if (temp = READ_FIFO_DONE) {
       printf("Finished monitoring\n");
+      printf("Drops = %d, Non-drops = %d\n", drops, not_drops);
       return 0;
     }
 
@@ -37,14 +40,22 @@ int main(int argc, char *argv[]) {
     // can just stall
     while (READ_SLACK < MON_WCET && !READ_FIFO_FULL);
 
-    // Not enough slack
+    // Not enough slack, drop
     if (READ_SLACK < MON_WCET) {
       // Write to prevent false positives
-      metadata[(READ_FIFO_STORE >> 2) % METADATA_ADDRESSES] = 1;
+      metadata[(READ_FIFO_MEMADDR >> 2) % METADATA_ADDRESSES] = 1;
+      // Count number of dropped events
+#ifdef DEBUG
+      drops++;
+#endif
       // Finish here, next loop iteration
       continue;
     }
 
+    // Count number of non-dropped events
+#ifdef DEBUG
+    not_drops++;
+#endif
     // Store
     if (temp = READ_FIFO_STORE) {
       // Write metadata
