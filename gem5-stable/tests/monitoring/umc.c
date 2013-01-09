@@ -38,6 +38,7 @@ int main(int argc, char *argv[]) {
       return 0;
     }
     
+    //printf("pc = %x, m[%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);
     // Store
     if (temp = READ_FIFO_STORE) {
       // Write metadata
@@ -48,7 +49,7 @@ int main(int argc, char *argv[]) {
     } else {
       for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
         if (metadata[temp % METADATA_ADDRESSES] == 0) {
-            printf("UMC error\n");
+            printf("UMC error: pc = %x, m[%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);
             // Exit if UMC error
             return 1;
         }

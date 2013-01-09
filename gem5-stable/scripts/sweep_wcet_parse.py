@@ -36,6 +36,9 @@ for filename in glob.glob(os.path.join(log_dir, "wcet*.log")):
       ticks.append(int(tick_match.group(1))) 
   log_file.close()
 
+print wcets
+print drops
+
 fig = plot.figure()
 
 ax1 = plot.subplot(211)

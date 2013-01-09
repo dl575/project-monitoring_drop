@@ -47,9 +47,6 @@
  * JG 2005/12/12: Indented program.
  */
 
-#define DEBUG
-#include <stdio.h>
-
 #ifdef DEBUG
 int             cnt1, cnt2;
 #endif
@@ -59,15 +56,6 @@ unsigned int    a[11];
 int 
 main()
 {
-  int *fifo;
-  fifo = (int *)0x30000000;
-
-  *fifo = 1;
-
-  // Initialize since they didn't
-  cnt1 = 0;
-  cnt2 = 0;
-
 	int             i, j, temp;
 
 	a[0] = 0;		/* assume all data is positive */
@@ -100,20 +88,12 @@ main()
 			j--;
 		}
 #ifdef DEBUG
-    *fifo = 0;
 		printf("Inner Loop Counts: %d\n", cnt2);
-    *fifo = 1;
 #endif
 		i++;
 	}
 #ifdef DEBUG
-  *fifo = 0;
 	printf("Outer Loop : %d ,  Inner Loop : %d\n", cnt1, cnt2);
-  *fifo = 1;
 #endif
-
-  *fifo = 0;
-  while(1);
-
 	return 1;
 }
