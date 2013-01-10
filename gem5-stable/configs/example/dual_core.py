@@ -126,6 +126,7 @@ if system.cpu[1].timer_enabled:
 # Assign programs
 process0 = LiveProcess()
 process0.executable = os.environ["GEM5"] + "/tests/monitoring/loop.arm"
+# process0.executable = os.environ["GEM5"] + "/tests/monitoring/print_labels.arm"
 process0.cmd = ""
 system.cpu[0].workload = process0
 

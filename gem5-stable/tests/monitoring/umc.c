@@ -16,7 +16,7 @@
 #include "timer.h"
 #include "monitoring.h"
 
-#define METADATA_ADDRESSES 65536
+#define METADATA_ADDRESSES 1048576
 
 int main(int argc, char *argv[]) {
   register int temp;
@@ -45,10 +45,13 @@ int main(int argc, char *argv[]) {
         metadata[temp % METADATA_ADDRESSES] = 1;
       }
     // Load
+    } else if (READ_FIFO_NUMSRCREGS && READ_FIFO_SRCREG(0) == PCREG) {
+        //Case of loading from PC relative value. We skip the check in this case.
+        // printf("PC Relative Load @PC: %x\n", READ_FIFO_PC);
     } else {
       for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
         if (metadata[temp % METADATA_ADDRESSES] == 0) {
-            printf("UMC error\n");
+            printf("UMC error @ PC: %x\n", READ_FIFO_PC);
             // Exit if UMC error
             return 1;
         }
