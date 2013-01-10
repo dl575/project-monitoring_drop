@@ -18,20 +18,11 @@ fac(int n)
 int 
 main(void)
 {
-  int *fifo;
-  fifo = (int *)0x30000000;
-
-  *fifo = 1;
-
 	int             i;
 	int             s = 0;
 
 	for (i = 0; i <= 5; i++)
 		s += fac(i);
 
-  *fifo = 0;
-
-  while(1);
-  
 	return (s);
 }

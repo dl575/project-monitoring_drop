@@ -5,6 +5,9 @@
 #include "monitoring.h"
 
 #define TICKS_PER_CYCLE 500
+#ifndef WCET_CYCLES
+  #define WCET_CYCLES 300
+#endif
 
 int main(int argc, char *argv[]) {
 
@@ -31,19 +34,21 @@ int main(int argc, char *argv[]) {
   sum = 0;
 
   for (i = 0; i < 10; i++) {
-    ENDSTART_SUBTASK(300*TICKS_PER_CYCLE);
+//    ENDSTART_SUBTASK(300*TICKS_PER_CYCLE);
+    ENDSTART_SUBTASK(WCET_CYCLES*TICKS_PER_CYCLE);
     sum += array[i];
   }
 
   END_TASK;
 
-  // main core odne
-  MAIN_DONE;
   // Stop monitoring
   DISABLE_MONITOR;
 
   // Print result
   printf("%d\n", sum);
+
+  // main core done
+  MAIN_DONE;
 
   while(1);
 
