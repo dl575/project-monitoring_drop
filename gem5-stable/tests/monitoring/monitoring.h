@@ -36,8 +36,8 @@
   WRITE_FIFO_RANGE((unsigned int)&__bss_start__, (unsigned int)&__bss_end__)
 
 // code region initializatoin
-#define INIT_CODE extern void * _start , * _end; \
-  WRITE_FIFO_RANGE((unsigned int)&_start, (unsigned int) &_end)
+#define INIT_CODE extern void * _init , * _end; \
+  WRITE_FIFO_RANGE((unsigned int)&_init, (unsigned int) &_end)
 
 // Structure for storing monitoring packet data
 struct monitoring_packet {
