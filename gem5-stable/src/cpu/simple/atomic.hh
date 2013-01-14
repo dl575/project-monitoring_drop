@@ -147,7 +147,7 @@ class AtomicSimpleCPU : public BaseSimpleCPU
   private:
     // Fifo Event
     void handleFifoEvent();
-	bool sendFifoPacket();
+    bool sendFifoPacket();
     typedef EventWrapper<AtomicSimpleCPU, &AtomicSimpleCPU::handleFifoEvent> FifoEvent;
     FifoEvent fifoEvent;
 
@@ -181,6 +181,13 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 
     // Packet that is written to timer
     timerPacket write_tp;
+
+#ifdef DEBUG
+    // Start time of task
+    Tick start_task;
+    // Start time of a subtask
+    Tick start_subtask;
+#endif
 };
 
 #endif // __CPU_SIMPLE_ATOMIC_HH__

@@ -81,8 +81,9 @@ numThreads = 1
 (MainCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 MainCPUClass.clock = '2GHz'
 MainCPUClass.numThreads = numThreads;
-MainCPUClass.fifo_enabled = True
+MainCPUClass.fifo_enabled = False
 MainCPUClass.monitoring_enabled = False
+# Enable slack timer so it can write to it
 MainCPUClass.timer_enabled = True
 
 # Number of CPUs
@@ -93,32 +94,26 @@ system = System(cpu = [MainCPUClass(cpu_id=0)],
                 physmem = SimpleMemory(range=AddrRange("512MB")),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
-# print system.physmem
-# print system.physmem.range
-
-# Create a "fifo" memory, memory map [0x30000000, 0x3000ffff]
+# Create a "fifo" memory
 fifo = Fifo(range=AddrRange(start=0x30000000, size="64kB")) 
 system.fifo = fifo
 # Connect CPU to fifo
 if system.cpu[0].fifo_enabled:
   system.cpu[0].fifo_port = system.fifo.port
 
-# Create timer, memory map [0x30010000, 0x3001ffff]
+# Create timer
 timer = Timer(range=AddrRange(start=0x30010000, size="64kB"))
 system.timer = timer
+# Connect cpu 0
 if system.cpu[0].timer_enabled:
   system.cpu[0].timer_port = system.timer.port
 
-# Verify ranges
-# fifo_range  = fifo.range.__str__().split(':')
-# print "%x, %x" % (int(fifo_range[0]), int(fifo_range[1]))
-# timer_range  = timer.range.__str__().split(':')
-# print "%x, %x" % (int(timer_range[0]), int(timer_range[1]))
-
 # Assign programs
 process0 = LiveProcess()
-process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer.arm"
-process0.cmd = ""
+#process0.executable = os.environ["GEM5"] + "/tests/malarden_monitor/multi_malarden.arm"
+#process0.cmd = ""
+process0.executable = options.cmd
+process0.cmd = [options.cmd] + options.options.split()
 system.cpu[0].workload = process0
 
 # Connect system to the bus

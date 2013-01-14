@@ -52,6 +52,7 @@
 #include "debug/Fifo.hh"
 #include "debug/FifoStall.hh"
 #include "debug/SlackTimer.hh"
+#include "debug/Task.hh"
 #include "mem/packet.hh"
 #include "mem/packet_access.hh"
 #include "mem/physical.hh"
@@ -481,7 +482,6 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
     // Timer
     if (timer_enabled) { 
       if (addr >= TIMER_ADDR_START && addr <= TIMER_ADDR_END) {
-
         // Create request
         Request *timer_write_req = &fed.req;
         //unsigned size = sizeof(write_tp);
@@ -498,11 +498,24 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
 
         // Send read request packet on timer port
         timerPort.sendFunctional(timerpkt);
-        // Print out data for debugging
+
 #ifdef DEBUG
+        // Print out data for debugging
         int timer_write_data;
         memcpy((void *)&timer_write_data, data, sizeof(data));
         DPRINTF(SlackTimer, "Write to timer [%x]: %d\n", addr, timer_write_data);
+
+        // Print messages with start and end task so we can find WCET
+        if (addr == TIMER_START_TASK)
+          start_task = curTick();
+        else if (addr == TIMER_END_TASK)
+          DPRINTF(Task, "Task ET = %d\n", curTick() - start_task);
+
+        // Print execution times for subtask
+        if (addr == TIMER_END_SUBTASK || addr == TIMER_ENDSTART_SUBTASK)
+          DPRINTF(Task, "Subtask ET = %d\n", curTick() - start_subtask);
+        if (addr == TIMER_START_SUBTASK || addr == TIMER_ENDSTART_SUBTASK)
+          start_subtask = curTick();
 #endif // DEBUG
 
         // Clean up
