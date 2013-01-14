@@ -4,8 +4,8 @@
  * Author: Daniel Lo
  */
 
-#ifndef __MONITORING_H_
-#define MONITORING_H
+#ifndef __MONITORING_H__
+#define __MONITORING_H__
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -58,4 +58,4 @@ struct monitoring_packet {
 #define READ_FIFO_FULL    *(fifo + 0x400)
 #define READ_FIFO_EMPTY   *(fifo + 0x400 + 1)
 
-#endif // MONITORING_H
+#endif // __MONITORING_H__
