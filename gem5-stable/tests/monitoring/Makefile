@@ -1,5 +1,5 @@
 TARGET=
-CCFLAGS=
+CCFLAGS=-O2
 
 ${TARGET}: ${TARGET}.c
 	arm-linux-gnueabi-gcc -DUNIX ${CCFLAGS} ${TARGET}.c -o ${TARGET}.arm --static

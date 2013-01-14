@@ -46,10 +46,10 @@ int main(int argc, char *argv[]) {
         metadata[temp % METADATA_ADDRESSES] = 1;
       }
     // Load
-    } /*else if (READ_FIFO_NUMSRCREGS && READ_FIFO_SRCREG(0) == PCREG) {
+    } else if (READ_FIFO_NUMSRCREGS && READ_FIFO_SRCREG(0) == PCREG) {
         //Case of loading from PC relative value. We skip the check in this case.
         // printf("PC Relative Load @PC: %x\n", READ_FIFO_PC);
-    } */else {
+    } else {
       for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
         if (metadata[temp % METADATA_ADDRESSES] == 0) {
             printf("UMC error: pc = %x, m[%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);

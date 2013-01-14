@@ -54,7 +54,7 @@
 #include "params/Fifo.hh"
 
 // Number of entries in FIFO
-#define FIFO_SIZE 16
+#define FIFO_SIZE 256
 // Space between fifo entries
 #define FIFO_ENTRY_SIZE 0x100
 // FIFO device address
@@ -63,13 +63,16 @@
 #define FIFO_ADDR_END   FIFO_ADDR + 0x0000ffff
 
 // Addresses used for parts of monitoring packet
-#define FIFO_VALID        FIFO_ADDR          // valid packet
-#define FIFO_INSTADDR     (FIFO_ADDR + 0x04) // program counter
-#define FIFO_MEMADDR      (FIFO_ADDR + 0x08) // memory address
-#define FIFO_MEMEND       (FIFO_ADDR + 0x0c) // memory end range
-#define FIFO_DATA         (FIFO_ADDR + 0x10) // load/store data
-#define FIFO_STORE        (FIFO_ADDR + 0x14) // store flag
-#define FIFO_DONE         (FIFO_ADDR + 0x18) // main core done
+#define FIFO_VALID         FIFO_ADDR          // valid packet
+#define FIFO_INSTADDR      (FIFO_ADDR + 0x04) // program counter
+#define FIFO_MEMADDR       (FIFO_ADDR + 0x08) // memory address
+#define FIFO_MEMEND        (FIFO_ADDR + 0x0c) // memory end range
+#define FIFO_DATA          (FIFO_ADDR + 0x10) // load/store data
+#define FIFO_STORE         (FIFO_ADDR + 0x14) // store flag
+#define FIFO_DONE          (FIFO_ADDR + 0x18) // main core done
+#define FIFO_NUMSRCREGS    (FIFO_ADDR + 0x1c) // number of source registers
+#define FIFO_SRCREGS_START (FIFO_ADDR + 0x20) // first source register
+#define FIFO_SRCREGS_END   (FIFO_ADDR + 0x8c) //last source register
 
 // Fifo registers
 #define FIFO_FULL     (FIFO_ADDR + 0x1000) // returns 1 if fifo full
@@ -78,13 +81,15 @@
 // Monitoring packet that is stored as each fifo entry
 class monitoringPacket {
   public:
-    bool valid;    // Valid packet, 0 if fifo is empty
-    Addr instAddr; // program counter
-    Addr memAddr;  // address of memory access
-	Addr memEnd;   // range of memory address
-    uint64_t data; // data for memory access
-    bool store;    // true if store instruction, false if load
-    bool done;     // indicates that the main core program has finished
+    bool valid;           // Valid packet, 0 if fifo is empty
+    Addr instAddr;        // program counter
+    Addr memAddr;         // address of memory access
+	Addr memEnd;          // range of memory address
+    uint64_t data;        // data for memory access
+    bool store;           // true if store instruction, false if load
+    bool done;            // indicates that the main core program has finished
+    uint8_t numsrcregs;   // indicates the number of source registers used for this instruction
+    uint8_t srcregs[27];  // the actual source registers for the instruction
 
     // Clear all variables
     void init() {
@@ -95,6 +100,10 @@ class monitoringPacket {
       data = 0;
       store = false;
       done = false;
+      numsrcregs = 0;
+      for (unsigned i = 0; i < 27; ++i){
+        srcregs[i] = 0;
+      }
     }
 };
 

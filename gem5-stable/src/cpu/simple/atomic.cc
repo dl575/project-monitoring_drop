@@ -289,6 +289,8 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
 	  else if (addr == FIFO_DATA) { send_data = read_mp.data; }
 	  else if (addr == FIFO_STORE) { send_data = read_mp.store; }
 	  else if (addr == FIFO_DONE) { send_data = read_mp.done; }
+      else if (addr == FIFO_NUMSRCREGS) { send_data = read_mp.numsrcregs; }
+      else if (addr >= FIFO_SRCREGS_START && addr < FIFO_SRCREGS_END) { send_data = read_mp.srcregs[(addr - FIFO_SRCREGS_START) >> 2]; }
 	  else if (addr == FIFO_FULL || addr == FIFO_EMPTY) {
         // Create request at fifo location
         Request *req = &data_read_req;
@@ -753,9 +755,27 @@ AtomicSimpleCPU::tick()
                       curTick(), tc->pcState().instAddr());
 
                   /*
+                  std::ostringstream src_regs;
+                  src_regs << "Src regs used ( " << MaxInstSrcRegs << "total):";
+                  unsigned i;
+                  for (i = 0; i < curStaticInst->numSrcRegs(); ++i){
+                    src_regs << " " << i << "->" << curStaticInst->srcRegIdx(i);
+                  }
+                  src_regs << "\n";
+                  DPRINTF(Fifo, src_regs.str().data());
+                  
+                  std::ostringstream dest_regs;
+                  dest_regs << "Dest regs used:";
+                  for (i=0; i < curStaticInst->numDestRegs(); ++i){
+                    dest_regs << " " << i << "->" << curStaticInst->destRegIdx(i);
+                  }
+                  dest_regs << "\n";
+                  DPRINTF(Fifo, dest_regs.str().data());
+
                   DPRINTF(Fifo, "numsrc: %d, numdest: %d\n", curStaticInst->numSrcRegs(), curStaticInst->numDestRegs());
                   DPRINTF(Fifo, "src: %d, dest: %d\n", curStaticInst->srcRegIdx(0), curStaticInst->destRegIdx(0));
                   */
+                  
                   // Store instruction address that generated this event
                   fed.instAddr = tc->pcState().instAddr();
 
@@ -765,6 +785,10 @@ AtomicSimpleCPU::tick()
                   mp.memAddr = fed.memAddr;
 				  mp.memEnd = fed.memAddr;
                   mp.data = fed.data;
+                  mp.numsrcregs = curStaticInst->numSrcRegs();
+                  for (unsigned i = 0; i < curStaticInst->numSrcRegs(); ++i){
+                    mp.srcregs[i] = curStaticInst->srcRegIdx(i);
+                  }
                   if (curStaticInst->isStore()) {
                     mp.store = true;
                   } else if (curStaticInst->isLoad()) {
