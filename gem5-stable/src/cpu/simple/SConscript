@@ -54,4 +54,5 @@ DebugFlag('Fifo')
 DebugFlag('FifoStall')
 DebugFlag('SlackTimer')
 DebugFlag('Monitoring')
+DebugFlag('Task')
 
