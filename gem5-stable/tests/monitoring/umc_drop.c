@@ -6,10 +6,10 @@
 #include "timer.h"
 #include "monitoring.h"
 
-#define TICKS_PER_CYCLE 500
 // cycles needed to perform full monitoring
-#define MON_WCET 58*TICKS_PER_CYCLE 
+#define MON_WCET CYCLES(58)
 #define METADATA_ADDRESSES 65536
+#define DEBUG 1
 
 int main(int argc, char *argv[]) {
   register int temp;
@@ -38,12 +38,14 @@ int main(int argc, char *argv[]) {
 
     // If there's not enough slack and the fifo's not full,
     // can just stall
-    while (READ_SLACK < MON_WCET && !READ_FIFO_FULL);
+    // while (READ_SLACK < MON_WCET && !READ_FIFO_FULL); -> Can cause deadlock comment out for now
 
     // Not enough slack, drop
     if (READ_SLACK < MON_WCET) {
       // Write to prevent false positives
-      metadata[(READ_FIFO_MEMADDR >> 2) % METADATA_ADDRESSES] = 1;
+      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
+        metadata[temp % METADATA_ADDRESSES] = 1;
+      }
       // Count number of dropped events
 #ifdef DEBUG
       drops++;
@@ -59,13 +61,17 @@ int main(int argc, char *argv[]) {
     // Store
     if (temp = READ_FIFO_STORE) {
       // Write metadata
-      metadata[(READ_FIFO_MEMADDR >> 2) % METADATA_ADDRESSES] = 1;
+      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
+        metadata[temp % METADATA_ADDRESSES] = 1;
+      }
     // Load
     } else {
-      if (metadata[(READ_FIFO_MEMADDR >> 2) % METADATA_ADDRESSES] == 0) {
-        printf("UMC error: pc = %x, m[%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);
-        // Exit if UMC error
-        return 1;
+      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
+        if (metadata[temp % METADATA_ADDRESSES] == 0) {
+            printf("UMC error: pc = %x, m[%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);
+            // Exit if UMC error
+            return 1;
+        }
       }
     }
 

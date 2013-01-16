@@ -54,7 +54,7 @@
 #include "params/Fifo.hh"
 
 // Number of entries in FIFO
-#define FIFO_SIZE 256
+#define FIFO_SIZE 16
 // Space between fifo entries
 #define FIFO_ENTRY_SIZE 0x100
 // FIFO device address

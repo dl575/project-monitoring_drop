@@ -5,15 +5,14 @@
 #include "../monitoring/monitoring.h"
 #include "../monitoring/timer.h"
 
-#define TICKS_PER_CYCLE 500
 #ifndef WCET_CYCLES1
   #define WCET_CYCLES1 50
 #endif
 #ifndef WCET_CYCLES2
   #define WCET_CYCLES2 50
 #endif
-#define WCET1 WCET_CYCLES1*TICKS_PER_CYCLE
-#define WCET2 WCET_CYCLES2*TICKS_PER_CYCLE
+#define WCET1 CYCLES(WCET_CYCLES1)
+#define WCET2 CYCLES(WCET_CYCLES2)
 
 int fac(int n);
 int factorial(void);

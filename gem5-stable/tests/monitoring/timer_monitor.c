@@ -4,9 +4,10 @@
 #include "timer.h"
 #include "monitoring.h"
 
-#define TICKS_PER_CYCLE 500
-#ifndef WCET_CYCLES
-  #define WCET_CYCLES 300
+#define WCET_CYCLES 40
+
+#ifndef WCET_SCALE
+  #define WCET_SCALE 1
 #endif
 
 int main(int argc, char *argv[]) {
@@ -24,9 +25,9 @@ int main(int argc, char *argv[]) {
   int sum;
   int array[10];
 
-  START_TASK(200*TICKS_PER_CYCLE);
+  START_TASK(CYCLES(0));
 
-  START_SUBTASK(300*TICKS_PER_CYCLE);
+  START_SUBTASK(CYCLES(WCET_SCALE*206));
   // Initialize array
   for (i = 0; i < 10; i++)
     array[i] = i;
@@ -35,11 +36,13 @@ int main(int argc, char *argv[]) {
 
   for (i = 0; i < 10; i++) {
 //    ENDSTART_SUBTASK(300*TICKS_PER_CYCLE);
-    ENDSTART_SUBTASK(WCET_CYCLES*TICKS_PER_CYCLE);
+    ENDSTART_SUBTASK(CYCLES(WCET_SCALE*WCET_CYCLES));
     sum += array[i];
   }
+  
+  END_SUBTASK
 
-  END_TASK;
+  END_TASK(CYCLES(160))
 
   // Stop monitoring
   DISABLE_MONITOR;
@@ -49,8 +52,6 @@ int main(int argc, char *argv[]) {
 
   // main core done
   MAIN_DONE;
-
-  while(1);
 
   return 0;
 }

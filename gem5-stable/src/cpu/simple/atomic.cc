@@ -398,8 +398,9 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
             }
         }
 
-    // Save data for monitoring
-    fed.data = (uint64_t)(*data);
+        // Save data for monitoring
+        fed.data = 0;
+        memcpy(&fed.data, data, size);
 
         //If there's a fault, return it
         if (fault != NoFault) {
@@ -484,10 +485,37 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
     if (timer_enabled) { 
       if (addr >= TIMER_ADDR_START && addr <= TIMER_ADDR_END) {
 
+        //if end_task we get the timer slack and will add it to the
+        //additional slack we are storing into the timer.
+        
+        if (addr == TIMER_END_TASK){
+            int slack;
+            Request* req = &data_read_req;
+            unsigned flags = ArmISA::TLB::AllowUnaligned;
+            //size = sizeof(read_tp);
+            req->setPhys(TIMER_ADDR, sizeof(int), flags, dataMasterId());
+            // Read command
+            MemCmd cmd = MemCmd::ReadReq;
+            // Create packet
+            PacketPtr pkt = new Packet(req, cmd);
+            // Point packet to data pointer
+            pkt->dataStatic(&slack);
+
+            // Send read request
+            timerPort.sendFunctional(pkt);
+            
+            // Clean up
+            delete pkt;
+            
+            int stall_length = (int)fed.data + slack;
+            if (stall_length < 0) stall_length = 0;
+            
+            fed.data = stall_length;
+        }
+      
         // Create request
         Request *timer_write_req = &fed.req;
         //unsigned size = sizeof(write_tp);
-        unsigned size = sizeof(data);
         unsigned flags = ArmISA::TLB::AllowUnaligned;
         // set physical address
         timer_write_req->setPhys(addr, size, flags, dataMasterId());
@@ -503,7 +531,7 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
         // Print out data for debugging
 #ifdef DEBUG
         int timer_write_data;
-        memcpy((void *)&timer_write_data, data, sizeof(data));
+        memcpy(&timer_write_data, data, size);
         DPRINTF(SlackTimer, "Write to timer [%x]: %d\n", addr, timer_write_data);
 #endif // DEBUG
 
@@ -640,6 +668,7 @@ AtomicSimpleCPU::tick()
         if (fault == NoFault) {
             Tick icache_latency = 0;
             Tick fifo_latency = 0;
+            Tick timer_latency = 0;
             bool icache_access = false;
             dcache_access = false; // assume no dcache access
 
@@ -702,6 +731,33 @@ AtomicSimpleCPU::tick()
                 }
 
                 postExecute();
+                
+                /* Check if FIFO has emptied after a timer stall */
+                // Guarantees the WCET will work properly
+                if (timer_enabled && fifo_enabled && fed.was_stalled){
+                    fed.was_stalled = false;
+                    bool isempty;
+                    // Create request at fifo location
+                    Request *req = &data_read_req;
+                    // Size of monitoring packet
+                    req->setPhys(FIFO_EMPTY, sizeof(bool), ArmISA::TLB::AllowUnaligned, dataMasterId());
+                    // Read command
+                    MemCmd cmd = MemCmd::ReadReq;
+                    // Create packet
+                    PacketPtr pkt = new Packet(req, cmd);
+                    // Point packet to data pointer
+                    pkt->dataStatic(&isempty);
+
+                    // Send read request
+                    fifoPort.sendFunctional(pkt);
+
+                    delete pkt;
+                    DPRINTF(SlackTimer, "Checking if FIFO has emptied: %d\n", isempty);
+                    
+                    if (!isempty){
+                        panic("Could not finish monitoring within allotted time.\n");
+                    }
+                }
                 
                 /* Send FIFO Packet */
                 // On store to FIFO_ADDR + 0x8, we will generate a packet to be
@@ -794,6 +850,20 @@ AtomicSimpleCPU::tick()
                   }
 
                 }
+                
+                /* Stall for periodicity of task */
+                // Once we end a task, we should stall by the slack
+                // plus the additional time we specified. This is
+                // calculated in the writeMem function and stored in
+                // fed.data
+                if (timer_enabled && fed.memAddr == TIMER_END_TASK){
+                    fed.was_stalled = true;
+                    timer_latency = fed.data;
+                    DPRINTF(SlackTimer, "The CPU will be stalled for %d ticks\n", fed.data);
+                    fed.memAddr = 0;
+                }
+                
+                
             }
 
             // @todo remove me after debugging with legion done
@@ -810,6 +880,8 @@ AtomicSimpleCPU::tick()
 
             // Add fifo writing stall
             stall_ticks += fifo_latency;
+            // Add timer latency for stall
+            stall_ticks += timer_latency;
 
             if (stall_ticks) {
                 Tick stall_cycles = stall_ticks / ticks(1);

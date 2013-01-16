@@ -16,7 +16,7 @@
 #include "timer.h"
 #include "monitoring.h"
 
-#define METADATA_ADDRESSES 1048576
+#define METADATA_ADDRESSES 65536
 
 int main(int argc, char *argv[]) {
   register int temp;
@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
   // Main loop, loop until main core signals done
   while(1) {
     // Skip if fifo is empty
-    if (!(temp = READ_FIFO_VALID))
+    if ((temp = READ_FIFO_VALID) == 0)
       continue;
 
     // If main core has finished, exit
