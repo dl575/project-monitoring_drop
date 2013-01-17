@@ -28,7 +28,9 @@
 // make custom FIFO packets
 #define WRITE_FIFO_START(x) *(fifo + 1) = x;
 #define WRITE_FIFO_END(x) *(fifo + 2) = x;
-#define WRITE_FIFO_RANGE(x1,x2) *(fifo + 1) = x1; *(fifo + 2) = x2;
+#define WRITE_FIFO_RANGE(x1,x2) { *(fifo + 1) = x1; *(fifo + 2) = x2; }
+// This is the correct implementation that prevents compiler optimizations, but the above one will generate less packets.
+// #define WRITE_FIFO_RANGE(x1,x2) { unsigned int tmp[2] = { x1, x2 }; memcpy( (void *)(fifo + 1), tmp, 2*sizeof(int) ); }
 
 // bss initialization
 #define INIT_BSS extern void * __bss_start__; \

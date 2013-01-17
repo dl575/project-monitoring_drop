@@ -478,6 +478,7 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
       } else if (addr < FIFO_ADDR + 0x8){
         mp.valid = true;
         mp.memAddr = fed.data;
+        DPRINTF(Fifo, "Starting custom packet\n");
       }
       
       return NoFault;

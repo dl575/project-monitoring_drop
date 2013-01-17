@@ -4,7 +4,7 @@
 #include "timer.h"
 #include "monitoring.h"
 
-#define WCET_CYCLES 40
+#define WCET_CYCLES 400
 
 #ifndef WCET_SCALE
   #define WCET_SCALE 1
@@ -14,12 +14,17 @@ int main(int argc, char *argv[]) {
 
   // initialize monitoring
   INIT_MONITOR;
-  // Start monitoring
-  ENABLE_MONITOR;
   // initialize objects for timer
   INIT_TIMER;
-  int read_timer;
-
+  
+  // initialize code and make sure it finishes
+  START_TASK(CYCLES(0));
+  INIT_CODE;
+  END_TASK(CYCLES(400));
+  
+  // Start monitoring
+  ENABLE_MONITOR;
+  
   // Initialize program variables
   register int i;
   int sum;
@@ -27,7 +32,7 @@ int main(int argc, char *argv[]) {
 
   START_TASK(CYCLES(0));
 
-  START_SUBTASK(CYCLES(WCET_SCALE*206));
+  START_SUBTASK(CYCLES(WCET_SCALE*400));
   // Initialize array
   for (i = 0; i < 10; i++)
     array[i] = i;
