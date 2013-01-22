@@ -170,6 +170,7 @@ class AtomicSimpleCPU : public BaseSimpleCPU
           instAddr = 0;
           memAddr = 0;
           data = 0;
+          was_stalled = false;
         }
     };
     fifoEventDetails fed;

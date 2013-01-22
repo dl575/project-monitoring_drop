@@ -7,7 +7,7 @@
 #include "monitoring.h"
 
 // cycles needed to perform full monitoring
-#define MON_WCET CYCLES(58)
+#define MON_WCET 35
 #define METADATA_ADDRESSES 65536
 #define DEBUG 1
 
@@ -26,8 +26,14 @@ int main(int argc, char *argv[]) {
 
   while(1) {
     // Skip if fifo is empty
-    if ((temp = READ_FIFO_VALID) == 0)
+    if ((temp = READ_FIFO_EMPTY))
+        continue;
+    
+    // Check if packet is valid
+    if ((temp = READ_FIFO_VALID) == 0) {
+      POP_FIFO;
       continue;
+    }
 
     // If main core has finished, exit
     if (temp = READ_FIFO_DONE) {
@@ -43,13 +49,15 @@ int main(int argc, char *argv[]) {
     // Not enough slack, drop
     if (READ_SLACK < MON_WCET) {
       // Write to prevent false positives
-      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
+      register int memend = (READ_FIFO_MEMEND >> 2);
+      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
         metadata[temp % METADATA_ADDRESSES] = 1;
       }
       // Count number of dropped events
 #ifdef DEBUG
       drops++;
 #endif
+      POP_FIFO;
       // Finish here, next loop iteration
       continue;
     }
@@ -61,12 +69,14 @@ int main(int argc, char *argv[]) {
     // Store
     if (temp = READ_FIFO_STORE) {
       // Write metadata
-      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
+      register int memend = (READ_FIFO_MEMEND >> 2);
+      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
         metadata[temp % METADATA_ADDRESSES] = 1;
       }
     // Load
     } else {
-      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
+      register int memend = (READ_FIFO_MEMEND >> 2);
+      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
         if (metadata[temp % METADATA_ADDRESSES] == 0) {
             printf("UMC error: pc = %x, m[%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);
             // Exit if UMC error
@@ -74,6 +84,8 @@ int main(int argc, char *argv[]) {
         }
       }
     }
+    
+    POP_FIFO;
 
   }
 

@@ -24,10 +24,4 @@
 // read from slack timer
 #define READ_SLACK             *timer
 
-#ifndef TICKS_PER_CYCLE
-  #define TICKS_PER_CYCLE 500
-#endif
-
-#define CYCLES(x) x*TICKS_PER_CYCLE
-
 #endif // SLACKTIMER_H

@@ -39,7 +39,11 @@
 
 // code region initializatoin
 #define INIT_CODE extern void * _init , * _end; \
-  WRITE_FIFO_RANGE((unsigned int)&_init, (unsigned int) &_end)
+  WRITE_FIFO_RANGE((unsigned int)&_init, (unsigned int) &_end) \
+  while (!READ_FIFO_EMPTY);
+  
+// pop fifo
+#define POP_FIFO *(fifo + 3) = 1;
 
 // Structure for storing monitoring packet data
 struct monitoring_packet {
