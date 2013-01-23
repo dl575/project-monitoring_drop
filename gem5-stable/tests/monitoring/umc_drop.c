@@ -6,8 +6,6 @@
 #include "timer.h"
 #include "monitoring.h"
 
-// cycles needed to perform full monitoring
-#define MON_WCET 35
 #define METADATA_ADDRESSES 65536
 #define DEBUG 1
 

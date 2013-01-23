@@ -11,9 +11,7 @@ import re
 import subprocess
 
 # WCET per task to try (in cycles)
-nsteps = 10
-wmax = 300
-wcets = [i for i in range(100, wmax+1, int((wmax-100)/nsteps))]
+wcets = [i for i in range(80, 281, 20)]
 # directory where simulation results are stored
 log_dir = os.environ["GEM5"] + "/m5out/"
 # Directory where generated sources are
@@ -32,7 +30,7 @@ for filename in glob.glob(os.path.join(compile_dir, "malarden*.c")):
   for wcet in wcets:
     # Compile the main program 
     # Move it to ../multi_malarden.arm to work with config script
-    compile_cmd = "arm-linux-gnueabi-gcc -O2 -DUNIX -DWCET_SCALE=%f \
+    compile_cmd = "arm-linux-gnueabi-gcc -O2 -DUMC -DUNIX -DWCET_SCALE=%f \
         malarden_%s.c ../include/malarden.c -o malarden_%s.arm \
         --static; mv malarden_%s.arm ../multi_malarden.arm" % \
         ((float(wcet)/100), benchmarks, benchmarks, benchmarks)

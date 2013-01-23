@@ -13,7 +13,6 @@
 // Number of benchmarks
 #define NBENCH 3
 
-volatile int *timer;
 // Array of benchmarks
 int (*benchmarks[NBENCH])() = {factorial, insertsort, fibcall};
 
@@ -21,9 +20,10 @@ int main(int argc, char* argv[]) {
   
   INIT_MONITOR;
   INIT_CODE;
+  INIT_TIMER;
+  
   ENABLE_MONITOR;
   
-  timer = (int *)TIMER_ADDR;
   
   int i, bench;
 

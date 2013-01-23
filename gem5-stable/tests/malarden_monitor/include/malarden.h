@@ -3,15 +3,12 @@
 #define __MALARDEN_H__
 
 #include "../../monitoring/timer.h"
+#include "../../monitoring/monitoring.h"
 
-extern volatile int *timer;
 
 #ifndef WCET_SCALE
     #define WCET_SCALE 1
 #endif
-
-#define MONITOR_CYCLES 32
-#define FIFO_SIZE 16
 
 // WCETs in cycles
 // fac.c

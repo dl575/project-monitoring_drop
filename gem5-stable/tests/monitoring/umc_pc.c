@@ -13,7 +13,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "timer.h"
 #include "monitoring.h"
 
 #define METADATA_ADDRESSES 1048576
@@ -29,8 +28,14 @@ int main(int argc, char *argv[]) {
   // Main loop, loop until main core signals done
   while(1) {
     // Skip if fifo is empty
-    if (!(temp = READ_FIFO_VALID))
+    if ((temp = READ_FIFO_EMPTY))
+        continue;
+    
+    // Check if packet is valid
+    if ((temp = READ_FIFO_VALID) == 0) {
+      POP_FIFO;
       continue;
+    }
 
     // If main core has finished, exit
     if (temp = READ_FIFO_DONE) {
@@ -42,7 +47,8 @@ int main(int argc, char *argv[]) {
     // Store
     if (temp = READ_FIFO_STORE) {
       // Write metadata
-      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
+      register int memend = (READ_FIFO_MEMEND >> 2);
+      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
         metadata[temp % METADATA_ADDRESSES] = 1;
       }
     // Load
@@ -50,7 +56,8 @@ int main(int argc, char *argv[]) {
         //Case of loading from PC relative value. We skip the check in this case.
         // printf("PC Relative Load @PC: %x\n", READ_FIFO_PC);
     } else {
-      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp){
+      register int memend = (READ_FIFO_MEMEND >> 2);
+      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
         if (metadata[temp % METADATA_ADDRESSES] == 0) {
             printf("UMC error: pc = %x, m[%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);
             // Exit if UMC error
@@ -58,6 +65,9 @@ int main(int argc, char *argv[]) {
         }
       }
     }
+    
+    POP_FIFO;
+    
   }
 
   return 1;

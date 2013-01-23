@@ -17,7 +17,7 @@ compile_dir = os.environ["GEM5"] + "/tests/monitoring"
 # For each WCET to try
 for wcet in wcets:
   # Compile the main program
-  compile_cmd = "arm-linux-gnueabi-gcc -O2 -DUNIX -DWCET_SCALE=%f \
+  compile_cmd = "arm-linux-gnueabi-gcc -O2 -DUMC -DUNIX -DWCET_SCALE=%f \
       timer_monitor.c -o timer_monitor.arm --static" % (float(wcet)/100)
   print compile_cmd
   p = subprocess.Popen(compile_cmd, cwd=compile_dir, shell=True)

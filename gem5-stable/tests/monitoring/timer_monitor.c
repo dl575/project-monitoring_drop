@@ -5,8 +5,6 @@
 #include "monitoring.h"
 
 #define WCET_CYCLES 12
-#define MONITOR_CYCLES 32
-#define FIFO_SIZE 16
 
 #ifndef WCET_SCALE
   #define WCET_SCALE 1
@@ -46,7 +44,7 @@ int main(int argc, char *argv[]) {
   
   END_SUBTASK
 
-  END_TASK(FIFO_SIZE*MONITOR_CYCLES)
+  END_TASK(FIFO_SIZE*MON_DROP_WCET)
 
   // Stop monitoring
   DISABLE_MONITOR;

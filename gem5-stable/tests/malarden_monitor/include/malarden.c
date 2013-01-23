@@ -29,7 +29,7 @@ factorial()
   }
   END_SUBTASK(WCET_FAC);
 
-  END_TASK(FIFO_SIZE*MONITOR_CYCLES);
+  END_TASK(FIFO_SIZE*MON_DROP_WCET);
 
 	return (s);
 }
@@ -70,7 +70,7 @@ insertsort()
 	}
   END_SUBTASK;
 
-  END_TASK(FIFO_SIZE*MONITOR_CYCLES);
+  END_TASK(FIFO_SIZE*MON_DROP_WCET);
 
 	return 1;
 }
@@ -109,7 +109,7 @@ fibcall()
 	a = 30;
 	fib(a);
 
-  END_TASK(FIFO_SIZE*MONITOR_CYCLES);
+  END_TASK(FIFO_SIZE*MON_DROP_WCET);
 
 	return a;
 }

@@ -5,13 +5,18 @@
  */
 
 #ifndef __SLACKTIMER_H__
-#define SLACKTIMER_H
+#define __SLACKTIMER_H__
+
+#ifdef UMC
+    #include "umc_timing.h"
+#endif
 
 // Timer base address
 #define TIMER_ADDR 0x30010000
 
 // Initialization
-#define INIT_TIMER volatile int *timer = (int *)TIMER_ADDR;
+volatile int *timer;
+#define INIT_TIMER timer = (int *)TIMER_ADDR;
 
 // start/end task
 #define START_TASK(x)          *(timer) = x;
@@ -24,4 +29,4 @@
 // read from slack timer
 #define READ_SLACK             *timer
 
-#endif // SLACKTIMER_H
+#endif // __SLACKTIMER_H__

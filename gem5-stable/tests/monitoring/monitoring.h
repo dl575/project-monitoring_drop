@@ -16,6 +16,9 @@
 // Address of monitoring fifo (for read)
 #define MONITOR_ADDR 0x30000000
 
+// Fifo Size
+#define FIFO_SIZE 16
+
 // initialize fifo so it can be enabled/disabled
 #define INIT_MONITOR register volatile unsigned int *fifo = (unsigned int *)MONITOR_ADDR; 
 // enable monitoring
