@@ -4,7 +4,7 @@
 #include "timer.h"
 #include "monitoring.h"
 
-#define WCET_CYCLES 14
+#define WCET_CYCLES 12
 #define MONITOR_CYCLES 32
 #define FIFO_SIZE 16
 

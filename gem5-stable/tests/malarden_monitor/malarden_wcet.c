@@ -7,17 +7,22 @@
 #include <stdio.h>
 
 #include "../monitoring/timer.h"
+#include "../monitoring/monitoring.h"
 #include "include/malarden.h"
 
 // Number of benchmarks
 #define NBENCH 3
 
-int *timer;
+volatile int *timer;
 // Array of benchmarks
 int (*benchmarks[NBENCH])() = {factorial, insertsort, fibcall};
 
 int main(int argc, char* argv[]) {
-
+  
+  INIT_MONITOR;
+  INIT_CODE;
+  ENABLE_MONITOR;
+  
   timer = (int *)TIMER_ADDR;
   
   int i, bench;
@@ -27,6 +32,9 @@ int main(int argc, char* argv[]) {
       (*benchmarks[bench])(); 
     }
   }
+  
+  DISABLE_MONITOR;
+  MAIN_DONE;
 
   return 0;
 }
