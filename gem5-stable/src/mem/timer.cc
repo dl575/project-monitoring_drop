@@ -129,7 +129,6 @@ Timer::doFunctionalAccess(PacketPtr pkt)
                 slack = 0;
             }
             pkt->setData((uint8_t *)&slack);
-            DPRINTF(SlackTimer, "Read from timer: %d\n", slack);
         }
         //TRACE_PACKET("Read");
         pkt->makeResponse();

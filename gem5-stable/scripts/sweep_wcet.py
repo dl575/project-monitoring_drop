@@ -14,6 +14,10 @@ wcets = [i for i in range(100, 601, 20)]
 log_dir = os.environ["GEM5"] + "/m5out/"
 compile_dir = os.environ["GEM5"] + "/tests/monitoring"
 
+# Clear out old logs
+p = subprocess.Popen("rm -v %s/wcet*.log" % log_dir, shell=True)
+p.wait()
+
 # For each WCET to try
 for wcet in wcets:
   # Compile the main program
@@ -24,7 +28,9 @@ for wcet in wcets:
   p.wait()
 
   # Run simulation
-  run_cmd = "./scripts/run_dual.sh"
+  run_cmd = "gem5.debug $GEM5/configs/example/dual_core.py \
+             -c %s/timer_monitor.arm --cpu-type=atomic" % \
+             (compile_dir)
   # Output file to store simulation results in
   output = open(log_dir + ("wcet%.4d.log" % wcet), 'w')
   p = subprocess.Popen(run_cmd, cwd=os.environ["GEM5"], shell=True, stdout=output)

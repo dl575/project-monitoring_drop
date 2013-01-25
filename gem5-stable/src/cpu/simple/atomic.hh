@@ -187,8 +187,10 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 #ifdef DEBUG
     // Start time of task
     Tick start_task;
+    Addr task_addr;
     // Start time of a subtask
     Tick start_subtask;
+    Addr subtask_addr;
 #endif
 };
 

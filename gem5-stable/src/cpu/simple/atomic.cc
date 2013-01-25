@@ -534,11 +534,11 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
         if (addr == TIMER_START_TASK)
           start_task = curTick();
         else if (addr == TIMER_END_TASK)
-          DPRINTF(Task, "Task ET = %d\n", (curTick() - start_task)/ticks(1));
+          DPRINTF(Task, "Task @ %x ET = %d\n", task_addr, (curTick() - start_task)/ticks(1));
 
         // Print execution times for subtask
         if (addr == TIMER_END_SUBTASK || addr == TIMER_ENDSTART_SUBTASK)
-          DPRINTF(Task, "Subtask ET = %d\n", (curTick() - start_subtask)/ticks(1));
+          DPRINTF(Task, "Subtask @ %x ET = %d\n", subtask_addr, (curTick() - start_subtask)/ticks(1));
         if (addr == TIMER_START_SUBTASK || addr == TIMER_ENDSTART_SUBTASK)
           start_subtask = curTick();
 #endif // DEBUG
@@ -858,6 +858,18 @@ AtomicSimpleCPU::tick()
                   }
 
                 }
+                
+                #ifdef DEBUG
+                    // Used by debug printing in the writemem function
+                    if (timer_enabled){
+                        if (fed.memAddr == TIMER_START_TASK){
+                            task_addr = tc->pcState().instAddr();
+                        }
+                        if (fed.memAddr == TIMER_START_SUBTASK || fed.memAddr == TIMER_ENDSTART_SUBTASK){
+                            subtask_addr = tc->pcState().instAddr();
+                        }
+                    }
+                #endif
                 
                 /* Stall for periodicity of task */
                 // Once we end a task, we should stall by the slack

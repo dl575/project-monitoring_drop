@@ -31,15 +31,16 @@ for filename in glob.glob(os.path.join(compile_dir, "malarden*.c")):
     # Compile the main program 
     # Move it to ../multi_malarden.arm to work with config script
     compile_cmd = "arm-linux-gnueabi-gcc -O2 -DUMC -DUNIX -DWCET_SCALE=%f \
-        malarden_%s.c ../include/malarden.c -o malarden_%s.arm \
-        --static; mv malarden_%s.arm ../multi_malarden.arm" % \
-        ((float(wcet)/100), benchmarks, benchmarks, benchmarks)
+        malarden_%s.c ../include/malarden.c -o malarden_%s.arm --static;" % \
+        ((float(wcet)/100), benchmarks, benchmarks)
     print compile_cmd
     p = subprocess.Popen(compile_cmd, cwd=compile_dir, shell=True)
     p.wait()
 
     # Run simulation
-    run_cmd = "./scripts/run_dual.sh"
+    run_cmd = "gem5.debug $GEM5/configs/example/dual_core.py \
+               -c %s/malarden_%s.arm --cpu-type=atomic" % \
+               (compile_dir, benchmarks)
     # Output file to store simulation results in
     output = open(log_dir + "wcet_%s_%d.log" % (benchmarks, wcet), 'w')
     p = subprocess.Popen(run_cmd, cwd=os.environ["GEM5"], shell=True, stdout=output)
