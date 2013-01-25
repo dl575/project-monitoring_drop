@@ -35,6 +35,9 @@
 #include "cpu/translation.hh"
 #include "params/TimingSimpleCPU.hh"
 
+#include "mem/fifo.hh"
+#include "mem/timer.hh"
+
 class TimingSimpleCPU : public BaseSimpleCPU
 {
   public:
@@ -294,6 +297,59 @@ class TimingSimpleCPU : public BaseSimpleCPU
     };
 
     void completeDrain();
+
+
+  private:
+    Request data_read_req;
+
+    // Fifo Event
+    void handleFifoEvent();
+    bool sendFifoPacket();
+    typedef EventWrapper<TimingSimpleCPU, &TimingSimpleCPU::handleFifoEvent> FifoEvent;
+    FifoEvent fifoEvent;
+
+    // Stall because need to write to fifo but fifo is full
+    bool fifoStall;
+    // Amount of time spent stalled
+    int fifoStallTicks;
+
+    // Data structure for handling fifo event
+    class fifoEventDetails {
+      public:
+        Addr instAddr;
+        Addr memAddr;
+        uint64_t data;
+        Packet *pkt;
+        Request req;
+
+        void clear() {
+          instAddr = 0;
+          memAddr = 0;
+          data = 0;
+        }
+    };
+    fifoEventDetails fed;
+
+    // Monitoring packet that is written to fifo
+    monitoringPacket mp;
+    // Buffer for reading from Fifo
+    // Since reading form Fifo is destructive, need to buffer if multiple bytes
+    monitoringPacket read_mp;
+
+    // Packet that is written to timer
+    timerPacket write_tp;
+
+#ifdef DEBUG
+    // Start time of task
+    Tick start_task;
+    // Start time of a subtask
+    Tick start_subtask;
+    // Counter to keep track of which subtask is running
+    int subtask_count;
+#endif
+
+  public:
+    void postExecute();
 };
 
 #endif // __CPU_SIMPLE_TIMING_HH__
