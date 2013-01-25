@@ -11,11 +11,11 @@
 #define TIMER_ADDR 0x30010000
 
 // Initialization
-#define INIT_TIMER int *timer = (int *)TIMER_ADDR;
+#define INIT_TIMER volatile int *timer = (int *)TIMER_ADDR;
 
 // start/end task
 #define START_TASK(x)          *(timer) = x;
-#define END_TASK               *(timer + 1)= 1;
+#define END_TASK(x)            *(timer + 1)= x;
 // start/end subtask
 #define START_SUBTASK(WCET)    *(timer + 2) = WCET;
 #define END_SUBTASK            *(timer + 3) = 1;

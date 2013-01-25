@@ -68,7 +68,6 @@ Fifo::Fifo(const Params* p) :
                                        *this));
     }
 
-    invalidPacket.init();
 }
 
 void
@@ -86,6 +85,7 @@ Fifo::init()
     // Initialize head/tail pointers
     head_pointer = 0;
     tail_pointer = 0;
+    invalidPacket.init();
 }
 
 Tick
@@ -120,56 +120,61 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
            (pkt->getAddr() + pkt->getSize() - 1) <= range.end);
 
     // "Local" address
-    uint8_t *hostAddr = pmemAddr + pkt->getAddr() - range.start;
+    // uint8_t *hostAddr = pmemAddr + pkt->getAddr() - range.start;
 
     // Read request
     if (pkt->isRead()) {
-        int read_addr = pkt->getAddr();
-        // Reading a monitoring packet
-        if (read_addr == FIFO_ADDR) {
-          // If there is something to read
-          if (!empty()) {
-              // Copy from memory to packet
-              if (pmemAddr)
-                  memcpy(pkt->getPtr<uint8_t>(), hostAddr + FIFO_ENTRY_SIZE*tail_pointer, pkt->getSize());
-              // Update tail pointer
-              tail_pointer++;
-              tail_pointer %= FIFO_SIZE;
-              //TRACE_PACKET("Read");
-              DPRINTF(Fifo, "Read from tail %d, head at %d\n", tail_pointer, head_pointer);
-          } else {
-              memcpy(pkt->getPtr<uint8_t>(), &invalidPacket, pkt->getSize());
-              DPRINTF(Fifo, "Empty from tail %d, head at %d\n", tail_pointer, head_pointer);
-          }
-        // Read fifo full flag
-        } else if (read_addr == FIFO_FULL) {
-          int full_flag = full();
-          memcpy(pkt->getPtr<uint8_t>(), &full_flag, pkt->getSize());
-        // Read fifo empty flag
-        } else if (read_addr == FIFO_EMPTY) {
-          int empty_flag = empty();
-          memcpy(pkt->getPtr<uint8_t>(), &empty_flag, pkt->getSize());
-        } else {
-          warn("Unrecognized read from fifo address %x\n", read_addr);
+        if (pmemAddr){
+            //Get address we are reading
+            Addr read_addr = pkt->getAddr();
+            //This is the data we will send
+            uint64_t send_data = 0;
+            //This is the monitoring packet we will read
+            monitoringPacket mp = invalidPacket;
+            if (!empty()) { mp = fifo_array[tail_pointer]; }
+            
+            //Set data based on address
+            if (read_addr == FIFO_VALID) { send_data = mp.valid; }
+            else if (read_addr == FIFO_INSTADDR) { send_data = mp.instAddr; }
+            else if (read_addr == FIFO_MEMADDR) { send_data = mp.memAddr; }
+            else if (read_addr == FIFO_MEMEND) { send_data = mp.memEnd; }
+            else if (read_addr == FIFO_DATA) { send_data = mp.data; }
+            else if (read_addr == FIFO_STORE) { send_data = mp.store; }
+            else if (read_addr == FIFO_DONE) { send_data = mp.done; }
+            else if (read_addr == FIFO_NUMSRCREGS) { send_data = mp.numsrcregs; }
+            else if (read_addr >= FIFO_SRCREGS_START && read_addr < FIFO_SRCREGS_END) { send_data = mp.srcregs[(read_addr - FIFO_SRCREGS_START) >> 2]; }
+            else if (read_addr == FIFO_FULL) { send_data = full(); }
+            else if (read_addr == FIFO_EMPTY) { send_data = empty(); }
+            else {
+              warn("Unrecognized read from fifo address %x\n", read_addr);
+            }
+            //Send data
+            pkt->setData((uint8_t *)&send_data);
         }
         pkt->makeResponse();
     // Write request
     } else if (pkt->isWrite()) {
-        // If there is space in the fifo
-        if (!full()) {
-            // Copy from packet to memory
-            if (pmemAddr)
-                memcpy(hostAddr + FIFO_ENTRY_SIZE*head_pointer, pkt->getPtr<uint8_t>(), pkt->getSize());
-            // Update head_pointer
-            head_pointer++;
-            head_pointer %= FIFO_SIZE;
+        if (pmemAddr) {
+            //pop fifo
+            if (!empty() && pkt->getAddr() == FIFO_NEXT){
+                // Update tail_pointer
+                tail_pointer++;
+                tail_pointer %= FIFO_SIZE;
+                
+                DPRINTF(Fifo, "Pop fifo, now head at %d, tail is at %d\n", head_pointer, tail_pointer);
+            // If there is space in the fifo
+            } else if (!full() && pkt->getAddr() == FIFO_ADDR) {
+                // Copy from packet to memory
+                pkt->writeData((uint8_t *)(fifo_array + head_pointer));
+                // Update head_pointer
+                head_pointer++;
+                head_pointer %= FIFO_SIZE;
 
-            int data;
-            uint8_t *data_ptr = (uint8_t *) &data;
-            pkt->writeData(data_ptr);
-            DPRINTF(Fifo, "Write %d at head %d, tail is at %d\n", data, head_pointer, tail_pointer);
-        } else
-            DPRINTF(Fifo, "Full at head %d, tail is at %d\n", head_pointer, tail_pointer);
+                DPRINTF(Fifo, "Write at head %d, tail is at %d\n", head_pointer, tail_pointer);
+            } else {
+                DPRINTF(Fifo, "Full at head %d, tail is at %d\n", head_pointer, tail_pointer);
+            }
+        }
         pkt->makeResponse();
     // Not used/implemented for fifo
     /*

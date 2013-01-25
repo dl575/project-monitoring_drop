@@ -73,12 +73,18 @@ class timerPacket {
     int subtaskWCET;
     // Accumulated slack
     int slack;
+    // tick when WCET is reached
+    Tick WCET_tick;
+    // currently executing a task
+    bool intask;
 
     // Reset all variables
     void init() {
+      intask = false;
       subtaskStart = 0;
       subtaskWCET = 0;
       slack = 0;
+      WCET_tick = 0;
     }
 };
 

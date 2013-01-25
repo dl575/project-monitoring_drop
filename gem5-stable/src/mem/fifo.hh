@@ -54,7 +54,7 @@
 #include "params/Fifo.hh"
 
 // Number of entries in FIFO
-#define FIFO_SIZE 256
+#define FIFO_SIZE 16
 // Space between fifo entries
 #define FIFO_ENTRY_SIZE 0x100
 // FIFO device address
@@ -77,6 +77,13 @@
 // Fifo registers
 #define FIFO_FULL     (FIFO_ADDR + 0x1000) // returns 1 if fifo full
 #define FIFO_EMPTY    (FIFO_ADDR + 0x1004) // returns 1 if fifo empty
+
+// Fifo operations
+#define FIFO_OP_RANGE_START FIFO_ADDR                    //Start of op range
+#define FIFO_START_CUSTOM   (FIFO_OP_RANGE_START + 0x04) //Start a custom packet
+#define FIFO_END_CUSTOM     (FIFO_OP_RANGE_START + 0x08) //End the custom packet and send
+#define FIFO_NEXT           (FIFO_OP_RANGE_START + 0x0c) //Pop the fifo
+#define FIFO_OP_RANGE_END   (FIFO_OP_RANGE_START + 0x10) //End of op range
 
 // Monitoring packet that is stored as each fifo entry
 class monitoringPacket {
@@ -169,7 +176,10 @@ class Fifo : public AbstractMemory
     int head_pointer;
     int tail_pointer;
     
-    // Invalid packet that is sent on read from empty fifo
+    // Fifo Array
+    monitoringPacket fifo_array[FIFO_SIZE];
+    
+    // invalid packet
     monitoringPacket invalidPacket;
 
   public:

@@ -81,7 +81,7 @@ numThreads = 1
 (MainCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 MainCPUClass.clock = '2GHz'
 MainCPUClass.numThreads = numThreads;
-MainCPUClass.fifo_enabled = False
+MainCPUClass.fifo_enabled = True
 MainCPUClass.monitoring_enabled = False
 # Enable slack timer so it can write to it
 MainCPUClass.timer_enabled = True

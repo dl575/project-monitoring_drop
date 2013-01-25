@@ -164,11 +164,13 @@ class AtomicSimpleCPU : public BaseSimpleCPU
         uint64_t data;
         Packet *pkt;
         Request req;
+        bool was_stalled;
 
         void clear() {
           instAddr = 0;
           memAddr = 0;
           data = 0;
+          was_stalled = false;
         }
     };
     fifoEventDetails fed;

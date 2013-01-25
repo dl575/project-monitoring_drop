@@ -32,10 +32,10 @@ for i in range(nfuncs):
   for j in range(i+1, nfuncs):
     # Copy template to create new file
     output_filename = gen_dir + "malarden_%s_%s.c" % (funcs[i], funcs[j])
-    p = subprocess.Popen("cp -v %s %s" % (input_filename, output_filename), shell=True)
-    p.wait()
+    # p = subprocess.Popen("cp -v %s %s" % (input_filename, output_filename), shell=True)
+    # p.wait()
     # Replace <INSERT_FUNCTIONS> with the selected functions
-    p = subprocess.Popen("perl -pi -w -e 's/<INSERT FUNCTIONS>/%s();\n    %s();/g;' %s" % \
-        (funcs[i], funcs[j], output_filename), shell=True)
+    p = subprocess.Popen("perl -p -w -e 's/<INSERT FUNCTIONS>/%s();\n    %s();/g;' %s > %s" % \
+        (funcs[i], funcs[j], input_filename, output_filename), shell=True)
     p.wait()
 

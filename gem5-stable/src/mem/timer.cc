@@ -120,7 +120,16 @@ Timer::doFunctionalAccess(PacketPtr pkt)
             //memcpy(pkt->getPtr<uint8_t>(), hostAddr, pkt->getSize());
             //memcpy(pkt->getPtr<uint8_t>(), &stored_tp, pkt->getSize());
             */
-            memcpy(pkt->getPtr<uint8_t>(), &stored_tp.slack, pkt->getSize());
+            int slack;
+            if (stored_tp.intask){
+                slack = stored_tp.slack;
+            } else if (curTick() < stored_tp.WCET_tick){
+                slack = stored_tp.WCET_tick - curTick();
+            } else {
+                slack = 0;
+            }
+            pkt->setData((uint8_t *)&slack);
+            DPRINTF(SlackTimer, "Read from timer: %d\n", slack);
         }
         //TRACE_PACKET("Read");
         pkt->makeResponse();
@@ -132,35 +141,48 @@ Timer::doFunctionalAccess(PacketPtr pkt)
             // Start subtask
             if (write_addr == TIMER_START_SUBTASK) {
               // Save WCET that was written by CPU
-              memcpy(&stored_tp.subtaskWCET, pkt->getPtr<uint8_t>(), pkt->getSize());
+              stored_tp.subtaskWCET = 0;
+              pkt->writeData((uint8_t *)&stored_tp.subtaskWCET);
               // Save current time
               stored_tp.subtaskStart = curTick();
-              DPRINTF(SlackTimer, "Written to timer: start = %d, WCET = %d\n", stored_tp.subtaskStart, stored_tp.subtaskWCET);
+              DPRINTF(SlackTimer, "Written to timer: subtask start = %d, WCET = %d\n", stored_tp.subtaskStart, stored_tp.subtaskWCET);
             // End subtask
             } else if (write_addr == TIMER_END_SUBTASK) {
               // Accumulate remaining subtask slack into total task slack 
-              stored_tp.slack += stored_tp.subtaskWCET - (curTick() - stored_tp.subtaskStart);
-              DPRINTF(SlackTimer, "Written to timer: end, slack = %d\n", stored_tp.slack);
+              int additional_slack = stored_tp.subtaskWCET - (curTick() - stored_tp.subtaskStart);
+              int prev_slack = stored_tp.slack;
+              stored_tp.slack = prev_slack + additional_slack;
+              DPRINTF(SlackTimer, "Written to timer: subtask end, slack = %d(prev) + %d(add) = %d\n", prev_slack, additional_slack, stored_tp.slack);
             } else if (write_addr == TIMER_ENDSTART_SUBTASK) {
               // End the current subtask and also start a new one
 
               // Accumulate remaining subtask slack into total task slack
-              stored_tp.slack += stored_tp.subtaskWCET - (curTick() - stored_tp.subtaskStart);
-              DPRINTF(SlackTimer, "Written to timer: end, slack = %d\n", stored_tp.slack);
+              int additional_slack = stored_tp.subtaskWCET - (curTick() - stored_tp.subtaskStart);
+              int prev_slack = stored_tp.slack;
+              stored_tp.slack = prev_slack + additional_slack;
+              DPRINTF(SlackTimer, "Written to timer: subtask end, slack = %d(prev) + %d(add) = %d\n", prev_slack, additional_slack, stored_tp.slack);
 
               // Save WCET that was written by CPU
-              memcpy(&stored_tp.subtaskWCET, pkt->getPtr<uint8_t>(), pkt->getSize());
+              stored_tp.subtaskWCET = 0;
+              pkt->writeData((uint8_t *)&stored_tp.subtaskWCET);
               // Save current time
               stored_tp.subtaskStart = curTick();
-              DPRINTF(SlackTimer, "Written to timer: start = %d, WCET = %d\n", stored_tp.subtaskStart, stored_tp.subtaskWCET);
+              DPRINTF(SlackTimer, "Written to timer: subtask start = %d, WCET = %d\n", stored_tp.subtaskStart, stored_tp.subtaskWCET);
             } else if (write_addr == TIMER_START_TASK) {
               // Reset all variables
               stored_tp.init();
+              stored_tp.intask = true;
               // Use optionally passed value as initial slack
-              memcpy(&stored_tp.slack, pkt->getPtr<uint8_t>(), pkt->getSize());
+              pkt->writeData((uint8_t *)&stored_tp.slack);
+              DPRINTF(SlackTimer, "Written to timer: task start, slack = %d\n", stored_tp.slack);
             } else if (write_addr == TIMER_END_TASK) {
-              // "Infinite" slack for monitoring to finish
-              stored_tp.slack = INT_MAX;
+              stored_tp.intask = false;
+              stored_tp.WCET_tick = curTick() + stored_tp.slack;
+              DPRINTF(SlackTimer, "Written to timer: task end, faster than WCET by %d\n", stored_tp.slack);
+              //Check if met WCET
+              if(stored_tp.slack < 0) {
+                panic("Did not meet WCET. Slack is negative.\n");
+              }
             } else {
               warn("Unknown address written to for timer.");
             }

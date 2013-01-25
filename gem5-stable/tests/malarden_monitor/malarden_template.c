@@ -5,12 +5,14 @@
 #include "../../monitoring/timer.h"
 #include "../include/malarden.h"
 
-int *timer;
+volatile int *timer;
 
 int main(int argc, char* argv[]) {
 
   INIT_MONITOR;
+  INIT_CODE;
   ENABLE_MONITOR;
+  
   timer = (int *)TIMER_ADDR;
 
   int i;

@@ -126,10 +126,13 @@ if system.cpu[1].timer_enabled:
 # Assign programs
 process0 = LiveProcess()
 process0.executable = os.environ["GEM5"] + "/tests/malarden_monitor/multi_malarden.arm"
+# process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer_monitor.arm"
+# process0.executable = os.environ["GEM5"] + "../../papabench/sw/airborne/autopilot/autopilot.elf"
 process0.cmd = ""
 system.cpu[0].workload = process0
 
 process1 = LiveProcess()
+# process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc.arm"
 process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc_drop.arm"
 process1.cmd = ""
 system.cpu[1].workload = process1

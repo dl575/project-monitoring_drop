@@ -4,28 +4,30 @@
 
 #include "../../monitoring/timer.h"
 
-extern int *timer;
+extern volatile int *timer;
 
-#define TICKS_PER_CYCLE 500
+#ifndef WCET_SCALE
+    #define WCET_SCALE 1
+#endif
+
+#define MONITOR_CYCLES 32
+#define FIFO_SIZE 16
 
 // WCETs in cycles
 // fac.c
-#ifndef WCETC_FAC
-  #define WCETC_FAC 50
-#endif
-// insertsort.c
-#ifndef WCETC_IS
-  #define WCETC_IS 50
-#endif
-// fibcall.c
-#ifndef WCETC_FC
-  #define WCETC_FC 50
-#endif
+#define WCETC_FAC 22
 
-// WCETs in ticks
-#define WCET_FAC WCETC_FAC*TICKS_PER_CYCLE
-#define WCET_IS  WCETC_IS*TICKS_PER_CYCLE
-#define WCET_FC  WCETC_FC*TICKS_PER_CYCLE
+// insertsort.c
+#define WCETC_IS 1292
+
+// fibcall.c
+#define WCETC_FC 4
+
+// Scaled WCETs 
+#define WCET_FAC WCETC_FAC*WCET_SCALE
+#define WCET_IS  WCETC_IS*WCET_SCALE
+#define WCET_FC  WCETC_FC*WCET_SCALE
+
 
 int fac(int n);
 int factorial();
