@@ -420,7 +420,7 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
     fed.memAddr = addr;
     // Save data being written
     fed.data = 0;
-	memcpy(&fed.data, data, size);
+    memcpy(&fed.data, data, size);
     
     dcache_latency = 0;
 

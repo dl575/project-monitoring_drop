@@ -156,12 +156,16 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
     } else if (pkt->isWrite()) {
         if (pmemAddr) {
             //pop fifo
-            if (!empty() && pkt->getAddr() == FIFO_NEXT){
-                // Update tail_pointer
-                tail_pointer++;
-                tail_pointer %= FIFO_SIZE;
-                
-                DPRINTF(Fifo, "Pop fifo, now head at %d, tail is at %d\n", head_pointer, tail_pointer);
+            if (pkt->getAddr() == FIFO_NEXT){
+                if (!empty()) {
+                    // Update tail_pointer
+                    tail_pointer++;
+                    tail_pointer %= FIFO_SIZE;
+                    
+                    DPRINTF(Fifo, "Pop fifo, now head at %d, tail is at %d\n", head_pointer, tail_pointer);
+                } else {
+                    DPRINTF(Fifo, "Pop empty fifo, now head at %d, tail is at %d\n", head_pointer, tail_pointer);
+                }
             // If there is space in the fifo
             } else if (!full() && pkt->getAddr() == FIFO_ADDR) {
                 // Copy from packet to memory

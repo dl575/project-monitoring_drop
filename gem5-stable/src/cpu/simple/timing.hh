@@ -313,23 +313,6 @@ class TimingSimpleCPU : public BaseSimpleCPU
     // Amount of time spent stalled
     int fifoStallTicks;
 
-    // Data structure for handling fifo event
-    class fifoEventDetails {
-      public:
-        Addr instAddr;
-        Addr memAddr;
-        uint64_t data;
-        Packet *pkt;
-        Request req;
-
-        void clear() {
-          instAddr = 0;
-          memAddr = 0;
-          data = 0;
-        }
-    };
-    fifoEventDetails fed;
-
     // Monitoring packet that is written to fifo
     monitoringPacket mp;
     // Buffer for reading from Fifo
@@ -338,6 +321,9 @@ class TimingSimpleCPU : public BaseSimpleCPU
 
     // Packet that is written to timer
     timerPacket write_tp;
+
+    // Request for writing to fifo/timer
+    Request data_write_req;
 
 #ifdef DEBUG
     // Start time of task

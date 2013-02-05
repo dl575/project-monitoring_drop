@@ -411,75 +411,44 @@ TimingSimpleCPU::readMem(Addr addr, uint8_t *data,
 
     // Read from fifo
     if (fifo_enabled && addr >= FIFO_ADDR_START && addr <= FIFO_ADDR_END) {
-	  
-      uint64_t send_data = 0;
-	  
-      if (addr == FIFO_ADDR) {
+
         // Create request at fifo location
         Request *req = &data_read_req;
-        req->setPhys(addr, sizeof(read_mp), flags, dataMasterId());
+        req->setPhys(addr, size, flags, dataMasterId());
         // Read command
         MemCmd cmd = MemCmd::ReadReq;
         // Create packet
         PacketPtr pkt = new Packet(req, cmd);
         // Point packet to monitoring packet
-        pkt->dataStatic(&read_mp);
+        pkt->dataStatic(data);
 
         // Send read request
         fifoPort.sendFunctional(pkt);
-
-        // Copy to Fifo buffer
-        //memcpy(&read_mp, data, sizeof(read_mp));
-        DPRINTF(Fifo, "read_mp: %x, %x, %x, %x, %x, %x, %x\n", read_mp.valid, read_mp.instAddr, read_mp.memAddr, read_mp.memEnd, read_mp.data, read_mp.store, read_mp.done);
-
         // Clean up
         delete pkt;
-		
-        send_data = read_mp.valid;
-		
-      } 
-      else if (addr == FIFO_INSTADDR) { send_data = read_mp.instAddr; }
-      else if (addr == FIFO_MEMADDR) { send_data = read_mp.memAddr; }
-      else if (addr == FIFO_MEMEND) { send_data = read_mp.memEnd; }
-      else if (addr == FIFO_DATA) { send_data = read_mp.data; }
-      else if (addr == FIFO_STORE) { send_data = read_mp.store; }
-      else if (addr == FIFO_DONE) { send_data = read_mp.done; }
-      else if (addr == FIFO_NUMSRCREGS) { send_data = read_mp.numsrcregs; }
-      else if (addr >= FIFO_SRCREGS_START && addr < FIFO_SRCREGS_END) { send_data = read_mp.srcregs[(addr - FIFO_SRCREGS_START) >> 2]; }
-      else if (addr == FIFO_FULL || addr == FIFO_EMPTY) {
-          // Create request at fifo location
-          Request *req = &data_read_req;
-          // Size of monitoring packet
-          req->setPhys(addr, sizeof(int), flags, dataMasterId());
-          // Read command
-          MemCmd cmd = MemCmd::ReadReq;
-          // Create packet
-          PacketPtr pkt = new Packet(req, cmd);
-          // Point packet to data pointer
-          pkt->dataStatic(&send_data);
 
-          // Send read request
-          fifoPort.sendFunctional(pkt);
+        // Print out for debug
+#ifdef DEBUG
+        if (addr < FIFO_EMPTY){
+            int read_data;
+            memcpy(&read_data, data, size);
+            DPRINTF(Fifo, "read fifo @ %x = %x\n", addr, read_data);
+        }
+#endif
 
-          delete pkt;
-        } 
+        const int asid = 0;
+        const ThreadID tid = 0;
+        const Addr pc = thread->instAddr();
+        RequestPtr req2  = new Request(asid, addr, size,
+                                      flags, dataMasterId(), pc, _cpuId, tid);
+        MemCmd cmd2 = MemCmd::ReadReq;
+        PacketPtr pkt2 = new Packet(req2, cmd2);
+        pkt2->dataStatic(data);
+        pkt2->req->setFlags(Request::NO_ACCESS);
 
-      memcpy(data, &send_data, size);
+        completeDataAccess(pkt2);
 
-    const int asid = 0;
-    const ThreadID tid = 0;
-    const Addr pc = thread->instAddr();
-    RequestPtr req  = new Request(asid, addr, size,
-                                  flags, dataMasterId(), pc, _cpuId, tid);
-    MemCmd cmd = MemCmd::ReadReq;
-    PacketPtr pkt = new Packet(req, cmd);
-    pkt->dataStatic(data);
-    pkt->req->setFlags(Request::NO_ACCESS);
-
-    completeDataAccess(pkt);
-
-      return NoFault;
-	  
+        return NoFault;
     }
 
     // Read from timer
@@ -513,7 +482,6 @@ TimingSimpleCPU::readMem(Addr addr, uint8_t *data,
         return NoFault;
       }
     }
-
 
     Fault fault;
     const int asid = 0;
@@ -604,10 +572,10 @@ TimingSimpleCPU::writeMem(uint8_t *data, unsigned size,
     memcpy(&fed.data, data, size);
 
     // Write to fifo
-    // Used to handl fifo control (writing data to fifo is done 
+    // Used to handle fifo control (writing data to fifo is done 
     // automatically by monitoring)
-    if (fifo_enabled && (addr >= FIFO_ADDR && addr < FIFO_ADDR + 0xc)) {
-      if (addr < FIFO_ADDR + 0x4){
+    if (fifo_enabled && (addr >= FIFO_OP_RANGE_START && addr < FIFO_OP_RANGE_END)) {
+      if (addr == FIFO_ADDR){
         int fifo_ctrl = (int)*data;
         DPRINTF(Fifo, "Write to fifo control: %d\n", fifo_ctrl);
 	  
@@ -626,57 +594,100 @@ TimingSimpleCPU::writeMem(uint8_t *data, unsigned size,
         } else {
             warn("Unrecognized fifo control: %d\n", fifo_ctrl);
         }
-      } else if (addr < FIFO_ADDR + 0x8){
+      } else if (addr == FIFO_START_CUSTOM){
         mp.valid = true;
         mp.memAddr = fed.data;
+        DPRINTF(Fifo, "Starting custom packet\n");
+      } else if (addr == FIFO_NEXT){
+        Request* req = &data_write_req;
+        unsigned flags = ArmISA::TLB::AllowUnaligned;
+        //size = sizeof(read_tp);
+        req->setPhys(addr, sizeof(fed.data), flags, dataMasterId());
+        // Read command
+        MemCmd cmd = MemCmd::WriteReq;
+        // Create packet
+        PacketPtr pkt = new Packet(req, cmd);
+        // Point packet to data pointer
+        pkt->dataStatic(&fed.data);
+
+        // Send read request
+        fifoPort.sendFunctional(pkt);
+
+        // Clean up
+        delete pkt;
       }
       
       return NoFault;
     }
+
     // Timer
     if (timer_enabled) { 
       if (addr >= TIMER_ADDR_START && addr <= TIMER_ADDR_END) {
+
+        //if end_task we get the timer slack and will add it to the
+        //additional slack we are storing into the timer.
+        
+        if (addr == TIMER_END_TASK){
+            int slack;
+            Request* req = &data_read_req;
+            unsigned flags = ArmISA::TLB::AllowUnaligned;
+            //size = sizeof(read_tp);
+            req->setPhys(TIMER_ADDR, sizeof(int), flags, dataMasterId());
+            // Read command
+            MemCmd cmd = MemCmd::ReadReq;
+            // Create packet
+            PacketPtr pkt = new Packet(req, cmd);
+            // Point packet to data pointer
+            pkt->dataStatic(&slack);
+
+            // Send read request
+            timerPort.sendFunctional(pkt);
+            
+            // Clean up
+            delete pkt;
+            
+            int stall_length = (int)fed.data*ticks(1) + slack;
+            if (stall_length < 0) stall_length = 0;
+            
+            fed.data = stall_length;
+        }
+        // Get data
+        int write_data = 0;
+        if (size > sizeof(int)) size = sizeof(int);
+        memcpy(&write_data, data, size);
+        //convert from cycles to ticks
+        write_data *= ticks(1);
         // Create request
         Request *timer_write_req = &fed.req;
         //unsigned size = sizeof(write_tp);
-        unsigned size = sizeof(data);
         unsigned flags = ArmISA::TLB::AllowUnaligned;
         // set physical address
-        timer_write_req->setPhys(addr, size, flags, dataMasterId());
+        timer_write_req->setPhys(addr, sizeof(int), flags, dataMasterId());
         // Create write packet
         MemCmd cmd = MemCmd::WriteReq;
         PacketPtr timerpkt = new Packet(timer_write_req, cmd);
         // Set data
-        write_tp.subtaskStart = curTick();
-        timerpkt->dataStatic(data);
+        // write_tp.subtaskStart = curTick();
+        timerpkt->dataStatic(&write_data);
 
         // Send read request packet on timer port
         timerPort.sendFunctional(timerpkt);
 
 #ifdef DEBUG
         // Print out data for debugging
-        int timer_write_data;
-        memcpy((void *)&timer_write_data, data, sizeof(data));
-        DPRINTF(SlackTimer, "Write to timer [%x]: %d\n", addr, timer_write_data);
+        DPRINTF(SlackTimer, "Write to timer [%x]: %d\n", addr, write_data);
 
         // Print messages with start and end task so we can find WCET
-        if (addr == TIMER_START_TASK) {
+        if (addr == TIMER_START_TASK)
           start_task = curTick();
-          // Reset subtask counter
-          subtask_count = 0;
-        } else if (addr == TIMER_END_TASK) {
-          DPRINTF(Task, "Task ET = %d\n", curTick() - start_task);
-        }
+        else if (addr == TIMER_END_TASK)
+          DPRINTF(Task, "Task ET = %d\n", (curTick() - start_task)/ticks(1));
 
-        // Print execution times for subtask when it ends
-        if (addr == TIMER_END_SUBTASK || addr == TIMER_ENDSTART_SUBTASK) {
-          DPRINTF(Task, "Subtask %d ET = %d\n", subtask_count, curTick() - start_subtask);
-        }
-        // Start a new subtask
-        if (addr == TIMER_START_SUBTASK || addr == TIMER_ENDSTART_SUBTASK) {
+        // Print execution times for subtask
+        if (addr == TIMER_END_SUBTASK || addr == TIMER_ENDSTART_SUBTASK)
+          DPRINTF(Task, "Subtask ET = %d\n", (curTick() - start_subtask)/ticks(1));
+        if (addr == TIMER_START_SUBTASK || addr == TIMER_ENDSTART_SUBTASK)
           start_subtask = curTick();
-          subtask_count++;
-        }
 #endif // DEBUG
 
         // Clean up
@@ -924,10 +935,38 @@ void TimingSimpleCPU::postExecute() {
   // Perform original postExecute
   BaseSimpleCPU::postExecute();
 
+  /* Check if FIFO has emptied after a timer stall */
+  // Guarantees the WCET will work properly
+  if (timer_enabled && fifo_enabled && fed.was_stalled){
+      fed.was_stalled = false;
+      bool isempty;
+      // Create request at fifo location
+      Request *req = &data_read_req;
+      // Size of monitoring packet
+      req->setPhys(FIFO_EMPTY, sizeof(bool), ArmISA::TLB::AllowUnaligned, dataMasterId());
+      // Read command
+      MemCmd cmd = MemCmd::ReadReq;
+      // Create packet
+      PacketPtr pkt = new Packet(req, cmd);
+      // Point packet to data pointer
+      pkt->dataStatic(&isempty);
+
+      // Send read request
+      fifoPort.sendFunctional(pkt);
+
+      delete pkt;
+      DPRINTF(SlackTimer, "Checking if FIFO has emptied: %d\n", isempty);
+      
+      if (!isempty){
+          panic("Could not finish monitoring within allotted time.\n");
+      }
+  }
+        
   /* Send FIFO Packet */
-  // On store to FIFO_ADDR + 0x8, we will generate a packet to be sent
+  // On store to FIFO_ADDR + 0x8, we will generate a packet to be
+  // sent
   if (fifo_enabled && curStaticInst->isStore() 
-      && fed.memAddr >= FIFO_ADDR + 0x8 && fed.memAddr < FIFO_ADDR + 0xc){
+      && fed.memAddr == FIFO_END_CUSTOM){
       
       DPRINTF(Fifo, "Creating custom packet at %d, PC: %x\n", curTick(), tc->pcState().instAddr());
       
@@ -935,58 +974,30 @@ void TimingSimpleCPU::postExecute() {
       mp.instAddr = tc->pcState().instAddr();
       mp.memEnd = fed.data;
       mp.store = true;
-      
-      // Send packet on fifo port
-      sendFifoPacket();
-      /*
-      if(sendFifoPacket()) {
-          // Successful, no need to stall
-          fifoStall = false;
-      } else {
-          // Unsuccessful, stall fifo
-          fifoStall = true;
+
+      if (!sendFifoPacket()) {
+        // Set state of CPU to stall
+        _status = FifoStall;
+        // Do not advance PC yet
+        stayAtPC = true;
+        // Schedule packet to be resent
+        schedule(fifoEvent, curTick() + ticks(1));
       }
-      */
   }
 
   /* Monitoring */
   // Currently on loads, generate fifo event
   // Fifo and monitoring must be enabled
   // Address cannot be for fifo or timer unless it is a fifo
-  //   write to indicate that the main core is done.
-  if (fifo_enabled && 
-       ((mp.done && curStaticInst->isStore()) || 
-         (monitoring_enabled && 
-           (curStaticInst->isLoad() || curStaticInst->isStore()) &&
-           (fed.memAddr < FIFO_ADDR_START || fed.memAddr > TIMER_ADDR_END) 
-         )
-       ) 
-     ) {
+  // write to indicate that the main core is done.
+  if (fifo_enabled && ( (mp.done && curStaticInst->isStore()) || 
+      (monitoring_enabled && 
+       (curStaticInst->isLoad() || curStaticInst->isStore()) &&
+       ((fed.memAddr < FIFO_ADDR_START) || (fed.memAddr > TIMER_ADDR_END)) )
+      ) ) {
 
     DPRINTF(Fifo, "Monitoring event at %d, PC: %x\n", 
         curTick(), tc->pcState().instAddr());
-
-    /*
-    std::ostringstream src_regs;
-    src_regs << "Src regs used ( " << MaxInstSrcRegs << "total):";
-    unsigned i;
-    for (i = 0; i < curStaticInst->numSrcRegs(); ++i){
-      src_regs << " " << i << "->" << curStaticInst->srcRegIdx(i);
-    }
-    src_regs << "\n";
-    DPRINTF(Fifo, src_regs.str().data());
-    
-    std::ostringstream dest_regs;
-    dest_regs << "Dest regs used:";
-    for (i=0; i < curStaticInst->numDestRegs(); ++i){
-      dest_regs << " " << i << "->" << curStaticInst->destRegIdx(i);
-    }
-    dest_regs << "\n";
-    DPRINTF(Fifo, dest_regs.str().data());
-
-    DPRINTF(Fifo, "numsrc: %d, numdest: %d\n", curStaticInst->numSrcRegs(), curStaticInst->numDestRegs());
-    DPRINTF(Fifo, "src: %d, dest: %d\n", curStaticInst->srcRegIdx(0), curStaticInst->destRegIdx(0));
-    */
     
     // Store instruction address that generated this event
     fed.instAddr = tc->pcState().instAddr();
@@ -1008,31 +1019,33 @@ void TimingSimpleCPU::postExecute() {
     } else {
       panic("Neither store nor load instruction for monitoring\n");
     }
-    
-    // Send packet on fifo port
-    /*
-    if(sendFifoPacket()) {
-      // Successful, no need to stall
-      fifoStall = false;
-    } else {
-      // Unsuccessful, stall fifo
-      fifoStall = true;
-    }
-    */
 
     // Attempt to send packet to fifo
     if (!sendFifoPacket()) {
-      // If unsuccessful
-      DPRINTF(Fifo, "Stalled...\n");
       // Set state of CPU to stall
       _status = FifoStall;
       // Do not advance PC yet
       stayAtPC = true;
-      // Schedule packet ot be resent
+      // Schedule packet to be resent
       schedule(fifoEvent, curTick() + ticks(1));
     }
 
   }
+
+  // FIXME: uncomment and handle this:
+  /* Stall for periodicity of task */
+  // Once we end a task, we should stall by the slack
+  // plus the additional time we specified. This is
+  // calculated in the writeMem function and stored in
+  // fed.data
+  /*
+  if (timer_enabled && fed.memAddr == TIMER_END_TASK){
+      fed.was_stalled = true;
+      timer_latency = fed.data;
+      DPRINTF(SlackTimer, "The CPU will be stalled for %d ticks\n", fed.data);
+      fed.memAddr = 0;
+  }
+  */
 
   /*** End of monitoring ***/
 
@@ -1050,11 +1063,6 @@ bool TimingSimpleCPU::sendFifoPacket() {
   fifopkt->dataStatic(&mp);
   // Send request
   bool success = fifoPort.sendTimingReq(fifopkt);
-  //FIXME
-  /*
-fifoPort.sendFunctional(fifopkt);
-bool success = true;
-*/
   // Clean up
   delete fifopkt;
   if (success){
@@ -1072,9 +1080,6 @@ void TimingSimpleCPU::handleFifoEvent() {
   // Try again
   if (sendFifoPacket()) {
     // Successful
-    // Schedule tick event to resume CPU
-    //fifoStall = false;
-    //schedule(tickEvent, nextCycle(curTick()));
     DPRINTF(Fifo, "Success, stalled for %d\n", curTick() - fifoStallTicks);
     DPRINTF(FifoStall, "Fifo caused stall for %d ticks\n", curTick() - fifoStallTicks);
 
