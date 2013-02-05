@@ -147,30 +147,27 @@ class AtomicSimpleCPU : public BaseSimpleCPU
   private:
     // Fifo Event
     void handleFifoEvent();
+    bool isFifoEmpty();
     bool sendFifoPacket();
     typedef EventWrapper<AtomicSimpleCPU, &AtomicSimpleCPU::handleFifoEvent> FifoEvent;
     FifoEvent fifoEvent;
 
     // Stall because need to write to fifo but fifo is full
     bool fifoStall;
+    // Stall due to having extra slack in timer
+    bool timerStalled;
     // Amount of time spent stalled
     int fifoStallTicks;
 
     // Data structure for handling fifo event
     class fifoEventDetails {
       public:
-        Addr instAddr;
         Addr memAddr;
         uint64_t data;
-        Packet *pkt;
-        Request req;
-        bool was_stalled;
 
         void clear() {
-          instAddr = 0;
           memAddr = 0;
           data = 0;
-          was_stalled = false;
         }
     };
     fifoEventDetails fed;
@@ -191,6 +188,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     // Start time of a subtask
     Tick start_subtask;
     Addr subtask_addr;
+    // Count number of packets
+    unsigned num_packets;
 #endif
 };
 

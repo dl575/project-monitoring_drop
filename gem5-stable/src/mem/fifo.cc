@@ -171,7 +171,9 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
                 head_pointer %= FIFO_SIZE;
 
                 DPRINTF(Fifo, "Write at head %d, tail is at %d\n", head_pointer, tail_pointer);
-            } else {
+            } else if (empty()){
+                DPRINTF(Fifo, "Empty at head %d, tail is at %d\n", head_pointer, tail_pointer);
+            } else if (full()){
                 DPRINTF(Fifo, "Full at head %d, tail is at %d\n", head_pointer, tail_pointer);
             }
         }

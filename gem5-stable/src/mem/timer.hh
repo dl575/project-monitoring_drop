@@ -63,6 +63,8 @@
 #define TIMER_START_SUBTASK    (TIMER_ADDR + 0x08)
 #define TIMER_END_SUBTASK      (TIMER_ADDR + 0x0c)
 #define TIMER_ENDSTART_SUBTASK (TIMER_ADDR + 0x10)
+#define TIMER_START_DECREMENT  (TIMER_ADDR + 0x14)
+#define TIMER_END_DECREMENT    (TIMER_ADDR + 0x18)
 
 // Packet that is written to timer
 class timerPacket {
@@ -73,10 +75,11 @@ class timerPacket {
     int subtaskWCET;
     // Accumulated slack
     int slack;
-    // tick when WCET is reached
-    Tick WCET_tick;
     // currently executing a task
     bool intask;
+    // decrement start time
+    Tick decrementStart;
+
 
     // Reset all variables
     void init() {
@@ -84,7 +87,7 @@ class timerPacket {
       subtaskStart = 0;
       subtaskWCET = 0;
       slack = 0;
-      WCET_tick = 0;
+      decrementStart = 0;
     }
 };
 

@@ -75,8 +75,9 @@
 #define FIFO_SRCREGS_END   (FIFO_ADDR + 0x8c) //last source register
 
 // Fifo registers
-#define FIFO_FULL     (FIFO_ADDR + 0x1000) // returns 1 if fifo full
-#define FIFO_EMPTY    (FIFO_ADDR + 0x1004) // returns 1 if fifo empty
+#define FIFO_REG_START (FIFO_ADDR + 0x1000) 
+#define FIFO_FULL      (FIFO_REG_START)       // returns 1 if fifo full
+#define FIFO_EMPTY     (FIFO_REG_START + 0x4) // returns 1 if fifo empty
 
 // Fifo operations
 #define FIFO_OP_RANGE_START FIFO_ADDR                    //Start of op range
