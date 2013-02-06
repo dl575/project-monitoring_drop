@@ -112,6 +112,7 @@ AtomicSimpleCPU::init()
     fed.clear();
     fifoStall = false;
     timerStalled = false;
+    fifoEmpty = false;
 }
 
 AtomicSimpleCPU::AtomicSimpleCPU(AtomicSimpleCPUParams *p)
@@ -280,17 +281,31 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
         // Send read request
         fifoPort.sendFunctional(pkt);
 
-        // Print out for debug
-#ifdef DEBUG
-        if (addr < FIFO_EMPTY){
-            int read_data;
+        // Clean up
+        delete pkt;
+        
+        bool wasEmpty = fifoEmpty;
+        
+        // Checking if reading from empty fifo
+        if (addr < FIFO_REG_START) {
+            fifoEmpty = isFifoEmpty();
+        #ifdef DEBUG
+            if (wasEmpty ^ fifoEmpty){
+                // Print out for debug
+                DPRINTF(Fifo, "Check if Fifo empty: %d\n", fifoEmpty);
+            } 
+        #endif
+        }
+        
+    #ifdef DEBUG
+        if (addr < FIFO_EMPTY && !(wasEmpty && fifoEmpty)){
+            unsigned read_data;
+            unsigned read_size = size;
+            if (sizeof(unsigned) < read_size){ read_size = sizeof(unsigned); }//Make sure we don't copy garbage data
             memcpy(&read_data, data, size);
             DPRINTF(Fifo, "read fifo @ %x = %x\n", addr, read_data);
         }
-#endif
-
-        // Clean up
-        delete pkt;
+    #endif
 
         return NoFault;   
     }
@@ -656,8 +671,6 @@ AtomicSimpleCPU::tick()
 
     for (int i = 0; i < width || locked; ++i) {
         numCycles++;
-        
-        bool fifoEmpty = false;
 
         if (!curStaticInst || !curStaticInst->isDelayedCommit())
             checkForInterrupts();
@@ -776,18 +789,6 @@ AtomicSimpleCPU::tick()
                     } else {
                         // Unsuccessful, stall fifo
                         fifoStall = true;
-                    }
-                    
-                }
-                
-                // Checking if reading from empty fifo
-                if (fifo_enabled && curStaticInst->isLoad() && 
-                    fed.memAddr >= FIFO_ADDR_START && fed.memAddr < FIFO_REG_START) {
-                    bool wasEmpty = fifoEmpty;
-                    fifoEmpty = isFifoEmpty();
-                    
-                    if (wasEmpty ^ fifoEmpty){
-                        DPRINTF(Fifo, "Check if Fifo empty: %d\n", fifoEmpty);
                     }
                     
                 }

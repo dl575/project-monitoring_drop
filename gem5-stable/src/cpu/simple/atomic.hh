@@ -156,6 +156,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     bool fifoStall;
     // Stall due to having extra slack in timer
     bool timerStalled;
+    // Allows for stalling when fifo is empty
+    bool fifoEmpty;
     // Amount of time spent stalled
     int fifoStallTicks;
 

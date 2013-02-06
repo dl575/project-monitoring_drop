@@ -77,17 +77,23 @@ class timerPacket {
     int slack;
     // currently executing a task
     bool intask;
+    // currently decrementing slack
+    bool isDecrement;
     // decrement start time
     Tick decrementStart;
+    // WCET end time
+    Tick WCET_end;
 
 
     // Reset all variables
     void init() {
       intask = false;
+      isDecrement = false;
       subtaskStart = 0;
       subtaskWCET = 0;
       slack = 0;
       decrementStart = 0;
+      WCET_end = 0;
     }
 };
 

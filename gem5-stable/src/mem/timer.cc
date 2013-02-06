@@ -121,14 +121,15 @@ Timer::doFunctionalAccess(PacketPtr pkt)
             //memcpy(pkt->getPtr<uint8_t>(), &stored_tp, pkt->getSize());
             */
             int slack;
-            if (stored_tp.intask){
+            if (stored_tp.intask && !stored_tp.isDecrement){
                 slack = stored_tp.slack;
-            } else {
+            } else if (stored_tp.isDecrement || (!stored_tp.intask && curTick() < stored_tp.WCET_end)){
                 slack = stored_tp.slack - (curTick() - stored_tp.decrementStart);
+                if (slack > stored_tp.slack){ panic("Timer Underflow."); }
+            } else {
+                slack = INT_MAX;
             }
-            if (slack > stored_tp.slack){
-                panic("Timer Underflow.");
-            }
+            
             pkt->setData((uint8_t *)&slack);
         }
         //TRACE_PACKET("Read");
@@ -178,27 +179,32 @@ Timer::doFunctionalAccess(PacketPtr pkt)
             } else if (write_addr == TIMER_END_TASK) {
               stored_tp.intask = false;
               stored_tp.decrementStart = curTick();
-            #ifdef DEBUG
               int additional_time = 0;
               pkt->writeData((uint8_t *)&additional_time);
+              stored_tp.WCET_end = curTick() + stored_tp.slack + additional_time; // Actual deadline
+            #ifdef DEBUG
               DPRINTF(SlackTimer, "Written to timer: task end, %d(slack) + %d(add) = %d\n", stored_tp.slack, additional_time, stored_tp.slack+additional_time);
             #endif
             } else if (write_addr == TIMER_START_DECREMENT) {
-              stored_tp.intask = false;
-              stored_tp.decrementStart = curTick();
-              
-              DPRINTF(SlackTimer, "Written to timer: decrement start = %d, slack = %d\n", stored_tp.decrementStart, stored_tp.slack);
-            } else if (write_addr == TIMER_END_DECREMENT) {
-              stored_tp.intask = true;
-              Tick delay_time = (curTick() - stored_tp.decrementStart);
-              int slack = stored_tp.slack - delay_time;
-              if (slack > stored_tp.slack){
-                panic("Timer Underflow.");
+              if (stored_tp.intask){
+                  stored_tp.isDecrement = true;
+                  stored_tp.decrementStart = curTick();
+                  
+                  DPRINTF(SlackTimer, "Written to timer: decrement start = %d, slack = %d\n", stored_tp.decrementStart, stored_tp.slack);
               }
-              stored_tp.slack = slack;
-              stored_tp.subtaskStart += delay_time;
-              
-              DPRINTF(SlackTimer, "Written to timer: decrement end, slack = %d\n", stored_tp.slack);
+            } else if (write_addr == TIMER_END_DECREMENT) {
+              if (stored_tp.intask){
+                  stored_tp.isDecrement = false;
+                  Tick delay_time = (curTick() - stored_tp.decrementStart);
+                  int slack = stored_tp.slack - delay_time;
+                  if (slack > stored_tp.slack){
+                    panic("Timer Underflow.");
+                  }
+                  stored_tp.slack = slack;
+                  stored_tp.subtaskStart += delay_time; //Prevent double counting decremented slack
+                  
+                  DPRINTF(SlackTimer, "Written to timer: decrement end, slack = %d\n", stored_tp.slack);
+              }
             } else {
               warn("Unknown address written to for timer.");
             }
