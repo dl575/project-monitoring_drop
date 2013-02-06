@@ -1,5 +1,9 @@
 if [ $1 ]; then
-    gem5.debug --debug-flags=$2 $GEM5/configs/example/dual_core.py -c $1 --cpu-type=atomic
+    if [ $2 ]; then
+        gem5.debug --debug-flags=$2 $GEM5/configs/example/dual_core.py -c $1 --cpu-type=atomic
+    else
+        gem5.debug $GEM5/configs/example/dual_core.py -c $1 --cpu-type=atomic
+    fi
     # gem5.debug $GEM5/configs/example/dual_core.py  --cpu-type=atomic
     # gem5.debug --debug-flags=Fifo $GEM5/configs/example/dual_core.py  --cpu-type=atomic
     # gem5.debug --debug-flags=Fifo,SlackTimer,Task $GEM5/configs/example/dual_core.py  --cpu-type=atomic

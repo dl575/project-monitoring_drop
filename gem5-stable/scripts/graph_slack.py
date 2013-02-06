@@ -31,7 +31,7 @@ while 1:
     if r:
         readtime.append(int(r.group(1)))
         readslack.append(int(r.group(2)))
-    end = re.search("Written to timer: task end", line)
+    end = re.search("Checking if FIFO has emptied", line)
     if end:
         # Plot results
         fig = plot.figure()

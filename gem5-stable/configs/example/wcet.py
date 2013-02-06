@@ -64,6 +64,7 @@ from cpu2000 import *
 parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
+parser.add_option("--delay", action="store", type="string", dest="delay", help="cause the WCET monitor to stall for a delay")
 
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
@@ -79,7 +80,7 @@ numThreads = 1
 
 # Create new CPU type for main core
 (MainCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
-MainCPUClass.clock = '200MHz'
+MainCPUClass.clock = '250MHz'
 MainCPUClass.numThreads = numThreads;
 MainCPUClass.fifo_enabled = True
 MainCPUClass.monitoring_enabled = False
@@ -128,10 +129,12 @@ process0 = LiveProcess()
 process0.executable = options.cmd
 process0.cmd = [options.cmd] + options.options.split()
 system.cpu[0].workload = process0
-
 process1 = LiveProcess()
 process1.executable = os.environ["GEM5"] + "/tests/monitoring/wcet_monitor.arm"
-process1.cmd = ""
+if options.delay:
+  process1.cmd = [process1.executable] + [options.delay]
+else:
+  process1.cmd = ""
 system.cpu[1].workload = process1
 
 # Connect system to the bus
