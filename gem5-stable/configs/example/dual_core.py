@@ -96,7 +96,7 @@ MonCPUClass.monitoring_enabled = False
 MonCPUClass.timer_enabled = True
 
 # Number of CPUs
-np = 2
+options.num_cpus = 2
 
 # Create system, CPUs, bus, and memory
 system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
@@ -130,14 +130,14 @@ if options.cmd:
   process0.executable = options.cmd
   process0.cmd = [options.cmd] + options.options.split()
 else:
-  #process0.executable = os.environ["GEM5"] + "/tests/malarden_monitor/multi_malarden.arm"
-  process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer_monitor.arm"
+  process0.executable = os.environ["GEM5"] + "/tests/malarden_monitor/malarden_wcet.arm"
+  #process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer_monitor.arm"
   # process0.executable = os.environ["GEM5"] + "../../papabench/sw/airborne/autopilot/autopilot.elf"
   process0.cmd = ""
 system.cpu[0].workload = process0
 
 process1 = LiveProcess()
-process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc_drop.arm"
+process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc.arm"
 #process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc_drop.arm"
 process1.cmd = ""
 system.cpu[1].workload = process1
@@ -146,13 +146,8 @@ system.cpu[1].workload = process1
 system.system_port = system.membus.slave
 # Connect memory to bus
 system.physmem.port = system.membus.master
-# Connect CPUs to the memory bus
-system.cpu[0].connectAllPorts(system.membus)
-system.cpu[1].connectAllPorts(system.membus)
-
-# Setup interrupt controllers on CPUs
-system.cpu[0].createInterruptController()
-system.cpu[1].createInterruptController()
+# Set up caches if enabled, connect to memory bus, and set up interrupts
+CacheConfig.config_cache(options, system)
 
 # Run simulation
 root = Root(full_system = False, system = system)

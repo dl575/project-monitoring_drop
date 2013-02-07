@@ -21,7 +21,7 @@
 #
 
 CCFLAGS=-O2
-CPUTYPE=timing
+CONFIGFLAGS="--cpu-type=timing --caches"
 
 function makeall {
   cd $GEM5/tests/monitoring
@@ -35,8 +35,8 @@ function makeall {
 
 # Check that simulation $1 finishes with no errors
 function test_finished {
-  gem5.debug --redirect-stdout $GEM5/configs/example/dual_core.py --cpu-type=$CPUTYPE \
-    -c tests/monitoring/test_umc_loop$1.arm
+  gem5.debug --redirect-stdout $GEM5/configs/example/dual_core.py \
+    -c tests/monitoring/test_umc_loop$1.arm $CONFIGFLAGS
   if grep --quiet "Finished monitoring" m5out/simout && ! grep --quiet "UMC error" m5out/simout
     then
       echo "Test $1 passed"
@@ -48,8 +48,8 @@ function test_finished {
 
 # Check that simulation $1 errors
 function test_error {
-  gem5.debug --redirect-stdout $GEM5/configs/example/dual_core.py --cpu-type=$CPUTYPE \
-    -c tests/monitoring/test_umc_loop$1.arm
+  gem5.debug --redirect-stdout $GEM5/configs/example/dual_core.py \
+    -c tests/monitoring/test_umc_loop$1.arm $CONFIGFLAGS
   if ! grep --quiet "Finished monitoring" m5out/simout && grep --quiet "UMC error" m5out/simout
     then
       echo "Test $1 passed"
@@ -74,7 +74,7 @@ else
       test_finished 0
       ;;
     1)
-      test_error 1
+      test_finished 1
       ;;
     2)
       test_error 2
