@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
       return 0;
     }
     
-    printf("pc = %x, m[%x:%x] = %d %s\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_MEMEND, READ_FIFO_DATA, READ_FIFO_STORE ? "store" : "load");
+    //printf("pc = %x, m[%x:%x] = %d %s\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_MEMEND, READ_FIFO_DATA, READ_FIFO_STORE ? "store" : "load");
     // Store
     if (temp = READ_FIFO_STORE) {
       // Write metadata

@@ -308,6 +308,11 @@ class TimingSimpleCPU : public BaseSimpleCPU
     typedef EventWrapper<TimingSimpleCPU, &TimingSimpleCPU::handleFifoEvent> FifoEvent;
     FifoEvent fifoEvent;
 
+    // Timer event to stall at end of task
+    void handleEndTaskEvent();
+    typedef EventWrapper<TimingSimpleCPU, &TimingSimpleCPU::handleEndTaskEvent> EndTaskEvent;
+    EndTaskEvent endTaskEvent;
+
     // Stall because need to write to fifo but fifo is full
     bool fifoStall;
     // Amount of time spent stalled

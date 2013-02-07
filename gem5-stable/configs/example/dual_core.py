@@ -130,15 +130,15 @@ if options.cmd:
   process0.executable = options.cmd
   process0.cmd = [options.cmd] + options.options.split()
 else:
-  process0.executable = os.environ["GEM5"] + "/tests/malarden_monitor/malarden_wcet.arm"
-  #process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer_monitor.arm"
+  #process0.executable = os.environ["GEM5"] + "/tests/malarden_monitor/malarden_wcet.arm"
+  process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer_monitor.arm"
   # process0.executable = os.environ["GEM5"] + "../../papabench/sw/airborne/autopilot/autopilot.elf"
   process0.cmd = ""
 system.cpu[0].workload = process0
 
 process1 = LiveProcess()
-process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc.arm"
-#process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc_drop.arm"
+#process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc.arm"
+process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc_drop.arm"
 process1.cmd = ""
 system.cpu[1].workload = process1
 

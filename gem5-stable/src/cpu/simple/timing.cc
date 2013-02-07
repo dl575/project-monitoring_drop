@@ -99,7 +99,7 @@ TimingSimpleCPU::TimingCPUPort::TickEvent::schedule(PacketPtr _pkt, Tick t)
 TimingSimpleCPU::TimingSimpleCPU(TimingSimpleCPUParams *p)
     : BaseSimpleCPU(p), fetchTranslation(this), icachePort(this),
     dcachePort(this), fetchEvent(this),
-    fifoEvent(this)
+    fifoEvent(this), endTaskEvent(this)
 {
     _status = Idle;
 
@@ -1032,20 +1032,24 @@ void TimingSimpleCPU::postExecute() {
 
   }
 
-  // FIXME: uncomment and handle this:
   /* Stall for periodicity of task */
   // Once we end a task, we should stall by the slack
   // plus the additional time we specified. This is
   // calculated in the writeMem function and stored in
   // fed.data
-  /*
-  if (timer_enabled && fed.memAddr == TIMER_END_TASK){
+  // Timer enbaled, end of task, and stall for fed.data needed at end of task
+  if (timer_enabled && fed.memAddr == TIMER_END_TASK && fed.memAddr > 0) {
       fed.was_stalled = true;
-      timer_latency = fed.data;
-      DPRINTF(SlackTimer, "The CPU will be stalled for %d ticks\n", fed.data);
       fed.memAddr = 0;
+      DPRINTF(SlackTimer, "The CPU will be stalled for %d ticks\n", fed.data);
+
+      // Set state of CPU to stall
+      _status = FifoStall;
+      // Do not advance PC yet
+      stayAtPC = true;
+      // Schedule stall event
+      schedule(endTaskEvent, curTick() + fed.data);
   }
-  */
 
   /*** End of monitoring ***/
 
@@ -1094,6 +1098,13 @@ void TimingSimpleCPU::handleFifoEvent() {
   }
 }
 
+void TimingSimpleCPU::handleEndTaskEvent() {
+  DPRINTF(SlackTimer, "Resuming execution\n");
+  // Unstall CPU, handle next instruction
+  _status = Running;
+  stayAtPC = false;
+  advanceInst(NoFault);
+}
 
 
 void
