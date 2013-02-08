@@ -304,6 +304,7 @@ class TimingSimpleCPU : public BaseSimpleCPU
 
     // Fifo Event
     void handleFifoEvent();
+    bool isFifoEmpty();
     bool sendFifoPacket();
     typedef EventWrapper<TimingSimpleCPU, &TimingSimpleCPU::handleFifoEvent> FifoEvent;
     FifoEvent fifoEvent;
@@ -315,8 +316,12 @@ class TimingSimpleCPU : public BaseSimpleCPU
 
     // Stall because need to write to fifo but fifo is full
     bool fifoStall;
+    // Stall due to having extra slack in timer
+    bool timerStalled;
     // Amount of time spent stalled
     int fifoStallTicks;
+    // Allows for stalling when fifo is empty
+    bool fifoEmpty;
 
     // Monitoring packet that is written to fifo
     monitoringPacket mp;
@@ -333,10 +338,12 @@ class TimingSimpleCPU : public BaseSimpleCPU
 #ifdef DEBUG
     // Start time of task
     Tick start_task;
+    Addr task_addr;
     // Start time of a subtask
     Tick start_subtask;
-    // Counter to keep track of which subtask is running
-    int subtask_count;
+    Addr subtask_addr;
+    // Count number of packets
+    unsigned num_packets;
 #endif
 
   public:
