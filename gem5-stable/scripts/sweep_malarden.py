@@ -11,11 +11,14 @@ import re
 import subprocess
 
 # WCET per task to try (in cycles)
-wcets = [i for i in range(80, 281, 20)]
+wcets = [i for i in range(96,100,1) + range(100,111,1)]
 # directory where simulation results are stored
-log_dir = os.environ["GEM5"] + "/m5out/"
+log_dir = os.environ["GEM5"] + "/m5out/malarden/"
 # Directory where generated sources are
 compile_dir = os.environ["GEM5"] + "/tests/malarden_monitor/generated/"
+
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
 # Clear out old logs
 p = subprocess.Popen("rm -v %s/wcet*.log" % log_dir, shell=True)
@@ -30,7 +33,7 @@ for filename in glob.glob(os.path.join(compile_dir, "malarden*.c")):
   for wcet in wcets:
     # Compile the main program 
     # Move it to ../multi_malarden.arm to work with config script
-    compile_cmd = "arm-linux-gnueabi-gcc -O2 -DUMC -DUNIX -DWCET_SCALE=%f \
+    compile_cmd = "arm-linux-gnueabi-gcc -DUMC -DUNIX -O2 -DWCET_SCALE=%f \
         malarden_%s.c ../include/malarden.c -o malarden_%s.arm --static;" % \
         ((float(wcet)/100), benchmarks, benchmarks)
     print compile_cmd
@@ -44,6 +47,9 @@ for filename in glob.glob(os.path.join(compile_dir, "malarden*.c")):
     # Output file to store simulation results in
     output = open(log_dir + "wcet_%s_%d.log" % (benchmarks, wcet), 'w')
     p = subprocess.Popen(run_cmd, cwd=os.environ["GEM5"], shell=True, stdout=output)
-    p.wait()
+    result = p.wait()
     output.close()
+    if (result != 0):
+        p = subprocess.Popen("rm -v %s/wcet_%s_%d.log" % (log_dir, benchmarks, wcet), shell=True)
+        p.wait()
 

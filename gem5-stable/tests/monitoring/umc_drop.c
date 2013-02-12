@@ -20,13 +20,10 @@ int main(int argc, char *argv[]) {
   INIT_MONITOR
   // set up timer interface for reading
   INIT_TIMER
-  int slack;
+  // slack needed for full monitoring
+  int full_slack = MON_WCET - MON_DROP_WCET;
 
   while(1) {
-    // Skip if fifo is empty
-    if ((temp = READ_FIFO_EMPTY))
-        continue;
-    
     // Check if packet is valid
     if ((temp = READ_FIFO_VALID) == 0) {
       POP_FIFO;
@@ -45,7 +42,7 @@ int main(int argc, char *argv[]) {
     // while (READ_SLACK < MON_WCET && !READ_FIFO_FULL); -> Can cause deadlock comment out for now
 
     // Not enough slack, drop
-    if (READ_SLACK < MON_WCET) {
+    if (READ_SLACK < full_slack) {
       // Write to prevent false positives
       register int memend = (READ_FIFO_MEMEND >> 2);
       for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){

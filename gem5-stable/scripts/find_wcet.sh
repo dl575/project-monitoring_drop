@@ -9,7 +9,7 @@ tasks high enough so you don't get negative slack.
 "
 
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    gem5.debug --debug-flags=Task $GEM5/configs/example/wcet.py -c $2 --delay=$1 --cpu-type=atomic | tee $3 | $DIR/calculate_wcet.pl
+    gem5.debug --debug-flags=SlackTimer,Fifo,Task $GEM5/configs/example/wcet.py -c $2 --delay=$1 --cpu-type=atomic | tee $3 | $DIR/calculate_wcet.pl
 elif [ $1 ]; then
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     $DIR/calculate_wcet.pl $1
@@ -17,6 +17,6 @@ else
     echo "usage: 
   find_wcet.sh drop_delay executable.arm [output.log]
 OR
-  find_wcet.sh output.log (if you already have the output)"
+  find_wcet.sh output.log (if you already have an output with debug Task flag)"
 fi
 

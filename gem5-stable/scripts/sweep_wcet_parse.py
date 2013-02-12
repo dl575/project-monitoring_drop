@@ -15,8 +15,10 @@ import os
 
 import matplotlib.pyplot as plot
 
+program = 'timer_monitor'
+
 # directory where simulation results are stored
-log_dir = os.environ["GEM5"] + "/m5out/"
+log_dir = os.environ["GEM5"] + "/m5out/%s/" % program
 
 # Lists for storing data
 wcets = []

@@ -1025,7 +1025,7 @@ void TimingSimpleCPU::postExecute() {
       // If unsuccessful
       DPRINTF(Fifo, "Stalled...\n");
       // Set state of CPU to stall
-      _status = FifoStall;
+      // _status = FifoStall;
       // Do not advance PC yet
       stayAtPC = true;
       // Schedule packet ot be resent

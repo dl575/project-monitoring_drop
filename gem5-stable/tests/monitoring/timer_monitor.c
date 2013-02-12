@@ -4,7 +4,8 @@
 #include "timer.h"
 #include "monitoring.h"
 
-#define WCET_CYCLES 12
+#define WCET_CYCLES 14
+#define WCET 155
 
 #ifndef WCET_SCALE
   #define WCET_SCALE 1
@@ -27,9 +28,9 @@ int main(int argc, char *argv[]) {
   int sum;
   int array[10];
 
-  START_TASK(0);
+  START_TASK((WCET_SCALE-1)*WCET);
 
-  START_SUBTASK(WCET_SCALE*66);
+  START_SUBTASK(66);
   // Initialize array
   for (i = 0; i < 10; i++)
     array[i] = i;
@@ -38,7 +39,7 @@ int main(int argc, char *argv[]) {
 
   for (i = 0; i < 10; i++) {
 //    ENDSTART_SUBTASK(300*TICKS_PER_CYCLE);
-    ENDSTART_SUBTASK(WCET_SCALE*WCET_CYCLES);
+    ENDSTART_SUBTASK(WCET_CYCLES);
     sum += array[i];
   }
   

@@ -12,7 +12,7 @@ import os
 import matplotlib.pyplot as plot
 
 # directory where simulation results are stored
-log_dir = os.environ["GEM5"] + "/m5out/"
+log_dir = os.environ["GEM5"] + "/m5out/malarden/"
 
 # Benchmark names
 benchmarks = []
@@ -63,8 +63,6 @@ print ticks
 
 # Plot all the drops vs. WCET and execution time vs. WCET plots 
 # using subplots on one figure.
-nsubplot = 1
-fig = plot.figure()
 
 # For each set of benchmarks
 for benchmark in benchmarks:
@@ -75,8 +73,10 @@ for benchmark in benchmarks:
   pnot_drops = not_drops[benchmark]
   pticks = ticks[benchmark]
 
+  fig = plot.figure()
+  
   # Plot drops vs. WCET
-  ax1 = plot.subplot(330 + nsubplot)
+  ax1 = plot.subplot(211)
   ax1.scatter(pwcets, pdrops)
   ax1.scatter(pwcets, pnot_drops, c='r')
   plot.title(benchmark)
@@ -85,18 +85,12 @@ for benchmark in benchmarks:
   plot.grid(True)
   #plot.legend(("Dropped", "Not dropped"), loc="best")
 
-  # Next subplot
-  nsubplot += 1
-
   # Plot execution time vs. WCET
-  plot.subplot(330 + nsubplot)
+  plot.subplot(212)
   plot.scatter(pwcets, pticks)
-  plot.title(benchmark)
   plot.xlabel("WCET")
   plot.ylabel("Execution time")
   plot.grid(True)
 
-  # Next subplot
-  nsubplot += 1
 
 plot.show()

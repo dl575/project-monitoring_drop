@@ -11,10 +11,10 @@
 #include "include/malarden.h"
 
 // Number of benchmarks
-#define NBENCH 3
+#define NBENCH 2
 
 // Array of benchmarks
-int (*benchmarks[NBENCH])() = {factorial, insertsort, fibcall};
+int (*benchmarks[NBENCH])() = {insertsort, crc};
 
 int main(int argc, char* argv[]) {
   
@@ -24,16 +24,19 @@ int main(int argc, char* argv[]) {
   
   ENABLE_MONITOR;
   
-  
+  register int result = 0;
   int i, bench;
 
   for (bench = 0; bench < NBENCH; bench++) {
     for (i = 0; i < 10; i++) {
-      (*benchmarks[bench])(); 
+      result += (*benchmarks[bench])(); 
     }
   }
   
   DISABLE_MONITOR;
+  
+  printf("Result is: %d\n", result);
+  
   MAIN_DONE;
 
   return 0;
