@@ -137,7 +137,8 @@ class BaseSimpleCPU : public BaseCPU
         DcacheRetry,
         DcacheWaitResponse,
         DcacheWaitSwitch,
-        SwitchedOut
+        SwitchedOut,
+        FifoStall
     };
 
     Status _status;
@@ -455,6 +456,19 @@ class BaseSimpleCPU : public BaseCPU
     FifoPort fifoPort;
     // Port for accessing timer
     CpuPort timerPort;
+
+    // Data structure for handling fifo event
+    class fifoEventDetails {
+      public:
+        Addr memAddr;
+        uint64_t data;
+
+        void clear() {
+          memAddr = 0;
+          data = 0;
+        }
+    };
+    fifoEventDetails fed;
 
 };
 

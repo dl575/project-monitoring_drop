@@ -162,16 +162,6 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     int fifoStallTicks;
 
     // Data structure for handling fifo event
-    class fifoEventDetails {
-      public:
-        Addr memAddr;
-        uint64_t data;
-
-        void clear() {
-          memAddr = 0;
-          data = 0;
-        }
-    };
     fifoEventDetails fed;
 
     // Monitoring packet that is written to fifo

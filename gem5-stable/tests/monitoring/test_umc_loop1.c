@@ -1,6 +1,8 @@
 
 /*
- * All variables local and initialized. Should pass with no error.
+ * Sum variable is not initialized. 
+ * This test passes with -O2 flag. The compiler assigns sum to a
+ * register which is not initialized but also never loads from memory.
  */
 
 #include <stdio.h>
@@ -22,7 +24,7 @@ int main(int argc, char *argv[]) {
   for (i = 0; i < 10; i++)
      array[i] = i;
   // Initalize sum
-  sum = 0;
+  //sum = 0;
 
   for (i = 0; i < 10; i++)
     sum += array[i];

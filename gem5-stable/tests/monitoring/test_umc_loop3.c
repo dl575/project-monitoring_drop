@@ -1,11 +1,15 @@
 
 /*
- * All variables local and initialized. Should pass with no error.
+ * Varables are global and initialized.
+ * No error should occur.
  */
 
 #include <stdio.h>
 
 #include "monitoring.h"
+
+int array[10];
+int sum;
 
 int main(int argc, char *argv[]) {
   INIT_MONITOR
@@ -13,8 +17,6 @@ int main(int argc, char *argv[]) {
   INIT_CODE
 
   int i;
-  int array[10];
-  int sum;
 
   ENABLE_MONITOR
   
