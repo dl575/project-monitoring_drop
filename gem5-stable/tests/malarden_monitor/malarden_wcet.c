@@ -11,10 +11,10 @@
 #include "include/malarden.h"
 
 // Number of benchmarks
-#define NBENCH 2
+#define NBENCH 3
 
 // Array of benchmarks
-int (*benchmarks[NBENCH])() = {insertsort, crc};
+int (*benchmarks[NBENCH])() = {insertsort, crc, edn};
 
 int main(int argc, char* argv[]) {
   

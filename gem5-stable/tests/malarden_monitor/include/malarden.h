@@ -10,48 +10,42 @@
     #define WCET_SCALE 1
 #endif
 
-// WCETs in cycles
-// fac.c
-#define WCET_FAC_SUB 178
-
-// fibcall.c
-#define WCET_FC_SUB 27
-
-// Scaled WCETs 
-#define WCET_FAC 1*(WCET_SCALE-1)
-#define WCET_FC  1*(WCET_SCALE-1)
-
-int fac(int n);
-int factorial();
-
-int fib(int n);
-int fibcall();
-
-
 /** insertsort.c **/
-#define WCET_IS  5833*(WCET_SCALE-1)
-#define WCET_IS_1 171
-#define WCET_IS_2 1064
-
+#define WCET_IS  5772*(WCET_SCALE-1)
+#define WCET_IS_1 271
+#define WCET_IS_2 1013
 int insertsort();
 
 /** crc.c **/
-#define WCET_CRC 38229*(WCET_SCALE-1)
-#define WCET_CRC_1 500
-#define WCET_CRC_2 499
+#define WCET_CRC 38110*(WCET_SCALE-1)
+#define WCET_CRC_1 412
+#define WCET_CRC_2 471
 #define WCET_CRC_3 118
-#define WCET_CRC_4 30
-#define WCET_CRC_5 88
-#define WCET_CRC_6 306
+#define WCET_CRC_4 29
+#define WCET_CRC_5 89
+#define WCET_CRC_6 307
+int crc(void);
+
+/** edn.c **/
+#define WCET_EDN 331126*(WCET_SCALE-1)
+#define WCET_EDN_1 13127
+#define WCET_EDN_2 84
+#define WCET_EDN_3 390
+#define WCET_EDN_4 56
+#define WCET_EDN_5 359
+#define WCET_EDN_6 2831
+#define WCET_EDN_7 526
+#define WCET_EDN_8 1932
+#define WCET_EDN_9 555
+#define WCET_EDN_10 84
+#define WCET_EDN_11 727
+#define WCET_EDN_12 224
+#define WCET_EDN_13 1175
+#define WCET_EDN_14 2912
+#define WCET_EDN_15 253
+int edn(void);
 
 
-typedef unsigned char uchar;
-#define LOBYTE(x) ((uchar)((x) & 0xFF))
-#define HIBYTE(x) ((uchar)((x) >> 8))
-
-unsigned short icrc1(unsigned short crc, unsigned char onech);
-unsigned short icrc(unsigned short crc, unsigned long len, short jinit, int jrev, unsigned char * lin);
-int crc (void);
 
 #endif // __MALARDEN_H__
 
