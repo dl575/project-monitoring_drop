@@ -1030,7 +1030,7 @@ void TimingSimpleCPU::postExecute() {
     if (!sendFifoPacket()) {
       // If unsuccesful,
       // Set state of CPU to stall
-      // _status = FifoStall;
+      _status = FifoStall;
       // Do not advance PC yet
       stayAtPC = true;
       // Schedule packet to be resent
