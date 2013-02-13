@@ -1,6 +1,6 @@
 
 /*
- * All variables local and initialized. Should pass with no error.
+ * First two elements of array are not initialized. Test should fail.
  */
 
 #include <stdio.h>
@@ -18,8 +18,8 @@ int main(int argc, char *argv[]) {
 
   ENABLE_MONITOR
   
-  // Initialize array
-  for (i = 0; i < 10; i++)
+  // Initialize array, don't initialize i=0,1
+  for (i = 2; i < 10; i++)
      array[i] = i;
   // Initalize sum
   sum = 0;
