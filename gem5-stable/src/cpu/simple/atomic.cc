@@ -51,6 +51,7 @@
 #include "debug/SimpleCPU.hh"
 #include "debug/Fifo.hh"
 #include "debug/FifoStall.hh"
+#include "debug/Monitoring.hh"
 #include "debug/SlackTimer.hh"
 #include "debug/Task.hh"
 #include "mem/packet.hh"
@@ -755,6 +756,15 @@ AtomicSimpleCPU::tick()
                 }
 
                 postExecute();
+
+                // On control, print out link register
+                if (curStaticInst->isControl() && monitoring_enabled) {
+                  DPRINTF(Monitoring, "pc = %x, iscontrol=%d, iscall = %d, isreturn = %d\n", 
+                      (int)tc->instAddr(), 
+                      curStaticInst->isControl(),
+                      curStaticInst->isCall(), curStaticInst->isReturn());
+                  DPRINTF(Monitoring, "LR = %x\n", tc->readIntReg(14));
+                }
                 
                 /* Check if FIFO has emptied after a timer stall */
                 // Guarantees the WCET will work properly
@@ -798,9 +808,13 @@ AtomicSimpleCPU::tick()
                 // Fifo and monitoring must be enabled
                 // Address cannot be for fifo or timer unless it is a fifo
                 // write to indicate that the main core is done.
+
+                // FIXME: Changed from memory to control events temporarily
+                // FIXME: configurable filter for what to monitor
                 if (fifo_enabled && ( (mp.done && curStaticInst->isStore()) || 
                     (monitoring_enabled && 
-                     (curStaticInst->isLoad() || curStaticInst->isStore()) &&
+//                     (curStaticInst->isLoad() || curStaticInst->isStore()) &&
+                     curStaticInst->isControl() &&
                      ((fed.memAddr < FIFO_ADDR_START) || (fed.memAddr > TIMER_ADDR_END)) )
                     ) ) {
                     
@@ -845,9 +859,12 @@ AtomicSimpleCPU::tick()
                     mp.store = true;
                   } else if (curStaticInst->isLoad()) {
                     mp.store = false;
-                  } else {
-                    panic("Neither store nor load instruction for monitoring\n");
                   }
+                  // Control instruction information
+                  mp.control = curStaticInst->isControl();
+                  mp.call    = curStaticInst->isCall();
+                  mp.ret     = curStaticInst->isReturn();
+                  mp.lr      = tc->readIntReg(14);
                   
                   // Send packet on fifo port
                   if(sendFifoPacket()) {
