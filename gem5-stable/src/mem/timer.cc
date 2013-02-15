@@ -120,6 +120,7 @@ Timer::doFunctionalAccess(PacketPtr pkt)
             //memcpy(pkt->getPtr<uint8_t>(), hostAddr, pkt->getSize());
             //memcpy(pkt->getPtr<uint8_t>(), &stored_tp, pkt->getSize());
             */
+            
             int slack;
             if (stored_tp.intask && !stored_tp.isDecrement){
                 slack = stored_tp.slack;
@@ -130,7 +131,13 @@ Timer::doFunctionalAccess(PacketPtr pkt)
                 slack = INT_MAX;
             }
             
-            pkt->setData((uint8_t *)&slack);
+            Addr read_addr = pkt->getAddr();
+            if (read_addr == TIMER_READ_SLACK){
+                pkt->setData((uint8_t *)&slack);
+            } else if (read_addr == TIMER_READ_DROP) {
+                int drop_status = (slack >= stored_tp.drop_thres);
+                pkt->setData((uint8_t *)&drop_status);
+            }
         }
         //TRACE_PACKET("Read");
         pkt->makeResponse();
@@ -138,7 +145,7 @@ Timer::doFunctionalAccess(PacketPtr pkt)
         if (pmemAddr) {
             //memcpy(hostAddr, pkt->getPtr<uint8_t>(), pkt->getSize());
 
-            int write_addr = pkt->getAddr();
+            Addr write_addr = pkt->getAddr();
             // Start subtask
             if (write_addr == TIMER_START_SUBTASK) {
               // Save WCET that was written by CPU
@@ -181,9 +188,16 @@ Timer::doFunctionalAccess(PacketPtr pkt)
               stored_tp.decrementStart = curTick();
               int additional_time = 0;
               pkt->writeData((uint8_t *)&additional_time);
-              stored_tp.WCET_end = curTick() + stored_tp.slack + additional_time; // Actual deadline
+              int wait_time = stored_tp.slack + additional_time;
+              stored_tp.WCET_end = curTick() + wait_time; // Actual deadline
             #ifdef DEBUG
-              DPRINTF(SlackTimer, "Written to timer: task end, %d(slack) + %d(add) = %d\n", stored_tp.slack, additional_time, stored_tp.slack+additional_time);
+              DPRINTF(SlackTimer, "Written to timer: task end, %d(slack) + %d(add) = %d\n", stored_tp.slack, additional_time, wait_time);
+            #endif
+            } else if (write_addr == TIMER_SET_THRES) {
+              stored_tp.drop_thres = 0;
+              pkt->writeData((uint8_t *)&stored_tp.drop_thres);
+            #ifdef DEBUG
+              DPRINTF(SlackTimer, "Written to timer: drop threshold = %d\n", stored_tp.drop_thres);
             #endif
             } else if (write_addr == TIMER_START_DECREMENT) {
               if (stored_tp.intask){

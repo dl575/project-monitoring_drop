@@ -161,9 +161,6 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     // Amount of time spent stalled
     int fifoStallTicks;
 
-    // Data structure for handling fifo event
-    fifoEventDetails fed;
-
     // Monitoring packet that is written to fifo
     monitoringPacket mp;
     // Buffer for reading from Fifo

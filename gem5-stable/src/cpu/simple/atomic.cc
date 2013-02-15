@@ -307,11 +307,11 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
         }
     #endif
 
-        return NoFault;   
+        return (fifoEmpty)? (new ReExec()) : NoFault;   
     }
 
     // Read from timer
-    if (timer_enabled && addr == TIMER_ADDR) {
+    if (timer_enabled && addr >= TIMER_ADDR_START && addr <= TIMER_ADDR_END) {
         // read data
         int read_timer = 0;
         // Create request at timer location
@@ -325,20 +325,31 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
 
         // Send read request
         timerPort.sendFunctional(pkt);
-
-        // Print out for debug
-#ifdef DEBUG
-        DPRINTF(SlackTimer, "read from timer: %d ticks, %d cycles\n", read_timer, read_timer/ticks(1));
-#endif
         
-        read_timer /= ticks(1);
-        
-        memcpy(data, &read_timer, size);
+        if (addr == TIMER_READ_SLACK) {
+            // Print out for debug
+        #ifdef DEBUG
+            DPRINTF(SlackTimer, "read from timer: %d ticks, %d cycles\n", read_timer, read_timer/ticks(1));
+        #endif
+            read_timer /= ticks(1);
+            memcpy(data, &read_timer, size);
 
-        // Clean up
-        delete pkt;
+            // Clean up
+            delete pkt;
 
-        return NoFault;
+            return NoFault;
+        } else if (addr == TIMER_READ_DROP) {
+            // Print out for debug
+        #ifdef DEBUG
+            DPRINTF(SlackTimer, "read from timer: drop? %d\n", !read_timer);
+        #endif
+            memcpy(data, &read_timer, size);
+
+            // Clean up
+            delete pkt;
+            
+            return NoFault;
+        }
     }
 
     //The block size of our peer.
@@ -499,7 +510,7 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
             Request* req = &data_read_req;
             unsigned flags = ArmISA::TLB::AllowUnaligned;
             //size = sizeof(read_tp);
-            req->setPhys(TIMER_ADDR, sizeof(int), flags, dataMasterId());
+            req->setPhys(TIMER_READ_SLACK, sizeof(int), flags, dataMasterId());
             // Read command
             MemCmd cmd = MemCmd::ReadReq;
             // Create packet
@@ -515,7 +526,7 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
             
             int stall_length = (int)fed.data*ticks(1) + slack;
             if (stall_length < 0){
-                panic("Did not meet WCET. Slack is negative.\n");
+                panic("Did not meet WCET. Slack is negative: %d.\n", stall_length/ticks(1));
             }
             fed.data = stall_length;
         }
@@ -879,7 +890,8 @@ AtomicSimpleCPU::tick()
                 // plus the additional time we specified. This is
                 // calculated in the writeMem function and stored in
                 // fed.data
-                if (timer_enabled && fed.memAddr == TIMER_END_TASK){
+                if (timer_enabled && curStaticInst->isStore()
+                    && fed.memAddr == TIMER_END_TASK){
                     timerStalled = true;
                     timer_latency = fed.data;
                     DPRINTF(SlackTimer, "The CPU will be stalled for %d ticks\n", fed.data);
@@ -919,7 +931,7 @@ AtomicSimpleCPU::tick()
             }
 
         }
-        if(fault != NoFault || (!stayAtPC && !fifoEmpty))
+        if(fault != NoFault || !stayAtPC)
             advancePC(fault);
     }
 
