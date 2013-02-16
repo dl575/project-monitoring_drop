@@ -7,15 +7,12 @@
 #include "monitoring.h"
 
 #define METADATA_ADDRESSES 65536
-#define DEBUG 1
 
   // flags for whether memory was initialized
   bool metadata[METADATA_ADDRESSES];
 
 int main(int argc, char *argv[]) {
   register int temp;
-  register int drops = 0;
-  register int not_drops = 0;
 
   // Set up monitoring
   INIT_MONITOR
@@ -30,33 +27,9 @@ int main(int argc, char *argv[]) {
       POP_FIFO;
       continue;
     }
-
-    // If main core has finished, exit
-    if (temp = READ_FIFO_DONE) {
-      printf("Finished monitoring\n");
-      printf("Drops = %d, Non-drops = %d\n", drops, not_drops);
-      return 0;
-    }
-        
-    // Not enough slack, drop
-    if (READ_SLACK_DROP == 0) {
-        // Write to prevent false positives
-        register int memend = (READ_FIFO_MEMEND >> 2);
-        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
-        metadata[temp % METADATA_ADDRESSES] = 1;
-        }
-        // Count number of dropped events
-    #ifdef DEBUG
-        drops++;
-    #endif
-    
-    }
+     
     // Run full monitoring
-    else {
-        // Count number of non-dropped events
-    #ifdef DEBUG
-        not_drops++;
-    #endif
+    if (READ_SLACK_DROP == 1) {
         // Store
         if (temp = READ_FIFO_STORE) {
           // Write metadata
@@ -74,6 +47,14 @@ int main(int argc, char *argv[]) {
                 return 1;
             }
           }
+        }
+    }     
+    // Not enough slack, drop
+    else {
+        // Write to prevent false positives
+        register int memend = (READ_FIFO_MEMEND >> 2);
+        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
+            metadata[temp % METADATA_ADDRESSES] = 1;
         }
     }
     

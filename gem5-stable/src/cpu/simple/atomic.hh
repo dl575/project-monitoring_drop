@@ -147,6 +147,7 @@ class AtomicSimpleCPU : public BaseSimpleCPU
   private:
     // Fifo Event
     void handleFifoEvent();
+    bool isFifoDone();
     bool isFifoEmpty();
     bool sendFifoPacket();
     typedef EventWrapper<AtomicSimpleCPU, &AtomicSimpleCPU::handleFifoEvent> FifoEvent;
@@ -160,6 +161,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     bool fifoEmpty;
     // Amount of time spent stalled
     int fifoStallTicks;
+    // Count number of drops and non-drops
+    unsigned drops, not_drops;
 
     // Monitoring packet that is written to fifo
     monitoringPacket mp;

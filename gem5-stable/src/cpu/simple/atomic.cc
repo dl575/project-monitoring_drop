@@ -60,6 +60,7 @@
 #include "sim/faults.hh"
 #include "sim/system.hh"
 #include "sim/full_system.hh"
+#include "sim/sim_exit.hh"
 
 #include "mem/fifo.hh"
 #include "mem/timer.hh"
@@ -113,6 +114,8 @@ AtomicSimpleCPU::init()
     fifoStall = false;
     timerStalled = false;
     fifoEmpty = false;
+    drops = 0;
+    not_drops = 0;
 }
 
 AtomicSimpleCPU::AtomicSimpleCPU(AtomicSimpleCPUParams *p)
@@ -339,9 +342,12 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
 
             return NoFault;
         } else if (addr == TIMER_READ_DROP) {
+            // Update hardware counters
+            if (read_timer == 1) { not_drops++; }
+            else { drops++; }
             // Print out for debug
         #ifdef DEBUG
-            DPRINTF(SlackTimer, "read from timer: drop? %d\n", !read_timer);
+            DPRINTF(SlackTimer, "read from timer: drop? %d, numdrops: %d, numfull: %d\n", !read_timer, drops, not_drops);
         #endif
             memcpy(data, &read_timer, size);
 
@@ -780,6 +786,22 @@ AtomicSimpleCPU::tick()
                     }
                 }
                 
+                /* Check if next FIFO packet has the done flag and
+                 * exit.
+                 */
+                if (fifo_enabled && curStaticInst->isLoad()
+                    && fed.memAddr >= FIFO_ADDR_START && fed.memAddr <= FIFO_ADDR_END
+                    && !fifoEmpty && isFifoDone()) {
+
+                    // Had some dropping event
+                    if (drops || not_drops){
+                        printf("Drops = %d, Non-drops = %d\n", drops, not_drops);
+                    }
+
+                    exitSimLoop("fifo done flag received");
+
+                }
+                
                 /* Send FIFO Packet */
                 // On store to FIFO_END_CUSTOM, we will generate 
                 // a packet to be sent
@@ -949,6 +971,27 @@ AtomicSimpleCPU::tick()
             schedule(tickEvent, curTick() + latency);
         }
     }
+}
+
+bool AtomicSimpleCPU::isFifoDone() {
+    bool isdone;
+    // Create request at fifo location
+    Request *req = &data_read_req;
+    // Size of monitoring packet
+    req->setPhys(FIFO_DONE, sizeof(bool), ArmISA::TLB::AllowUnaligned, dataMasterId());
+    // Read command
+    MemCmd cmd = MemCmd::ReadReq;
+    // Create packet
+    PacketPtr pkt = new Packet(req, cmd);
+    // Point packet to data pointer
+    pkt->dataStatic(&isdone);
+
+    // Send read request
+    fifoPort.sendFunctional(pkt);
+
+    delete pkt;
+
+    return isdone;
 }
 
 bool AtomicSimpleCPU::isFifoEmpty() {
