@@ -764,6 +764,7 @@ AtomicSimpleCPU::tick()
                       curStaticInst->isControl(),
                       curStaticInst->isCall(), curStaticInst->isReturn());
                   DPRINTF(Monitoring, "LR = %x\n", tc->readIntReg(14));
+                  DPRINTF(Monitoring, "next PC = %x\n", tc->nextInstAddr());
                 }
                 
                 /* Check if FIFO has emptied after a timer stall */
@@ -814,7 +815,7 @@ AtomicSimpleCPU::tick()
                 if (fifo_enabled && ( (mp.done && curStaticInst->isStore()) || 
                     (monitoring_enabled && 
 //                     (curStaticInst->isLoad() || curStaticInst->isStore()) &&
-                     curStaticInst->isControl() &&
+                     (curStaticInst->isCall() || curStaticInst->isReturn()) &&
                      ((fed.memAddr < FIFO_ADDR_START) || (fed.memAddr > TIMER_ADDR_END)) )
                     ) ) {
                     
@@ -865,6 +866,7 @@ AtomicSimpleCPU::tick()
                   mp.call    = curStaticInst->isCall();
                   mp.ret     = curStaticInst->isReturn();
                   mp.lr      = tc->readIntReg(14);
+                  mp.nextpc  = tc->nextInstAddr();
                   
                   // Send packet on fifo port
                   if(sendFifoPacket()) {

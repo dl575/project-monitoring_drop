@@ -27,6 +27,10 @@ function makeall {
   cd $GEM5/tests/monitoring
   make TARGET=test_lrc0 CCFLAGS=$CCFLAGS
   make TARGET=test_lrc1 CCFLAGS=$CCFLAGS
+  make TARGET=test_lrc2 CCFLAGS=$CCFLAGS
+  make TARGET=test_lrc3 CCFLAGS=$CCFLAGS
+  make TARGET=test_lrc4 CCFLAGS=$CCFLAGS
+  make TARGET=test_lrc5 CCFLAGS=$CCFLAGS
   make TARGET=lrc
 }
 
@@ -61,6 +65,10 @@ then
   # Run all tests
   test_finished 0
   test_error 1
+  test_finished 2
+  test_error 3
+  test_finished 4
+  test_error 5
 else
   # Run test based on argument
   case $1 in
@@ -69,6 +77,18 @@ else
       ;;
     1)
       test_error 1
+      ;;
+    2)
+      test_finished 2
+      ;;
+    3)
+      test_error 3
+      ;;
+    4)
+      test_finished 4
+      ;;
+    5)
+      test_error 5
       ;;
     make)
       makeall

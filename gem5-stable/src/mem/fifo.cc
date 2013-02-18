@@ -147,6 +147,7 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
             else if (read_addr == FIFO_CALL) { send_data = mp.call; }
             else if (read_addr == FIFO_RET) { send_data = mp.ret; }
             else if (read_addr == FIFO_LR) { send_data = mp.lr; }
+            else if (read_addr == FIFO_NEXTPC) { send_data = mp.nextpc; }
             else if (read_addr == FIFO_FULL) { send_data = full(); }
             else if (read_addr == FIFO_EMPTY) { send_data = empty(); }
             else {

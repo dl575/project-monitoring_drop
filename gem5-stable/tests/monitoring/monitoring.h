@@ -59,11 +59,11 @@ struct monitoring_packet {
   int done;
   int numsrcregs;
   int srcreg[MAXNUMSRCREGS];
-  /*
   int control; // Flag for control instruction 
   int call;    // Flag for call instruction
   int ret;     // Flag for return instruction
-  */
+  int lr;      // Link register value
+  int pcreg;   // Program counter register value
 };
 
 // Read from fifo into x (which should be struct monitoring_packet)
@@ -82,6 +82,7 @@ struct monitoring_packet {
 #define READ_FIFO_CALL        *(fifo + 37)
 #define READ_FIFO_RET         *(fifo + 38)
 #define READ_FIFO_LR          *(fifo + 39)
+#define READ_FIFO_NEXTPC      *(fifo + 40)
 
 // Fifo flags
 #define READ_FIFO_FULL    *(fifo + 0x400)

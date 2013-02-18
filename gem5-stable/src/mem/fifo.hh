@@ -77,6 +77,7 @@
 #define FIFO_CALL          (FIFO_ADDR + 0x94) // call flag
 #define FIFO_RET           (FIFO_ADDR + 0x98) // return flag
 #define FIFO_LR            (FIFO_ADDR + 0x9c) // link register
+#define FIFO_NEXTPC        (FIFO_ADDR + 0xa0) // next instruction address
 
 // Fifo registers
 #define FIFO_REG_START (FIFO_ADDR + 0x1000) 
@@ -106,6 +107,7 @@ class monitoringPacket {
     bool call;            // true if call instruction
     bool ret;             // true if return instruction
     uint64_t lr;          // link register
+    uint64_t nextpc;      // next program counter
 
     // Clear all variables
     void init() {
@@ -124,6 +126,7 @@ class monitoringPacket {
       call = false;
       ret = false;
       lr = 0;
+      nextpc = 0;
     }
 };
 
