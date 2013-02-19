@@ -483,6 +483,24 @@ class BaseSimpleCPU : public BaseCPU
     // Data structure for saving informatino for monitoring
     fifoEventDetails fed;
 
+    // Monitoring filter - decides which instructions to monitor
+    class monitorFilter {
+      public:
+        bool load;
+        bool store;
+        bool call;
+        bool ret;
+
+        // Constructor sets all flags to false 
+        monitorFilter() {
+          load = false;
+          store = false;
+          call = false;
+          ret = false;
+        }
+    };
+    monitorFilter mf;
+
     // Monitoring packet that is written to fifo
     monitoringPacket mp;
     // Buffer for reading from Fifo

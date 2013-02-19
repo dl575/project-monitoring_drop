@@ -95,6 +95,12 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     monitoring_enabled = p->monitoring_enabled;
     timer_enabled = p->timer_enabled;
 
+    // Monitoring filter parameters
+    mf.load = p->monitoring_filter_load;
+    mf.store = p->monitoring_filter_store;
+    mf.call = p->monitoring_filter_call;
+    mf.ret = p->monitoring_filter_ret;
+
     if (FullSystem)
         thread = new SimpleThread(this, 0, p->system, p->itb, p->dtb);
     else

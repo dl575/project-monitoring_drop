@@ -728,23 +728,6 @@ AtomicSimpleCPU::tick()
 
             if (curStaticInst) {
 
-
-              /*
-                if (curStaticInst->isInteger()) {
-                  DPRINTF(Fifo, "# src: %d, # dest: %d\n", curStaticInst->numSrcRegs(),
-                      curStaticInst->numDestRegs());
-                  int i;
-                  for (i = 0; i < curStaticInst->numSrcRegs(); i++) {
-                    DPRINTF(Fifo, "src[%d] = %x\n", i, curStaticInst->srcRegIdx(i));
-                  }
-                  for (i = 0; i < curStaticInst->numDestRegs(); i++) {
-                    DPRINTF(Fifo, "dest[%d] = %x\n", i, curStaticInst->destRegIdx(i));
-                  }
-                  // disassemble takes a pc and symbol table, not even sure what the pc is used for
-                  DPRINTF(Fifo, "dis: %s\n", curStaticInst->disassemble(0, NULL));
-                }
-                */
-
                 fault = curStaticInst->execute(this, traceData);
 
                 // keep an instruction count
@@ -756,17 +739,7 @@ AtomicSimpleCPU::tick()
                 }
 
                 postExecute();
-
-                // On control, print out link register
-                if (curStaticInst->isControl() && monitoring_enabled) {
-                  DPRINTF(Monitoring, "pc = %x, iscontrol=%d, iscall = %d, isreturn = %d\n", 
-                      (int)tc->instAddr(), 
-                      curStaticInst->isControl(),
-                      curStaticInst->isCall(), curStaticInst->isReturn());
-                  DPRINTF(Monitoring, "LR = %x\n", tc->readIntReg(14));
-                  DPRINTF(Monitoring, "next PC = %x\n", tc->nextInstAddr());
-                }
-                
+               
                 /* Check if FIFO has emptied after a timer stall */
                 // Guarantees the WCET will work properly
                 if (timer_enabled && fifo_enabled && timerStalled){
@@ -814,8 +787,13 @@ AtomicSimpleCPU::tick()
                 // FIXME: configurable filter for what to monitor
                 if (fifo_enabled && ( (mp.done && curStaticInst->isStore()) || 
                     (monitoring_enabled && 
-//                     (curStaticInst->isLoad() || curStaticInst->isStore()) &&
-                     (curStaticInst->isCall() || curStaticInst->isReturn()) &&
+                     (
+                      (curStaticInst->isLoad() && mf.load) ||
+                      (curStaticInst->isStore() && mf.store) ||
+                      (curStaticInst->isCall() && mf.call) || 
+                      (curStaticInst->isReturn() && mf.ret)
+                     )
+                     &&
                      ((fed.memAddr < FIFO_ADDR_START) || (fed.memAddr > TIMER_ADDR_END)) )
                     ) ) {
                     
@@ -824,49 +802,28 @@ AtomicSimpleCPU::tick()
                   DPRINTF(Fifo, "Monitoring event at %d, PC: %x\n", 
                       curTick(), tc->instAddr());
 
-                  /*
-                  std::ostringstream src_regs;
-                  src_regs << "Src regs used ( " << MaxInstSrcRegs << "total):";
-                  unsigned i;
-                  for (i = 0; i < curStaticInst->numSrcRegs(); ++i){
-                    src_regs << " " << i << "->" << curStaticInst->srcRegIdx(i);
-                  }
-                  src_regs << "\n";
-                  DPRINTF(Fifo, src_regs.str().data());
-                  
-                  std::ostringstream dest_regs;
-                  dest_regs << "Dest regs used:";
-                  for (i=0; i < curStaticInst->numDestRegs(); ++i){
-                    dest_regs << " " << i << "->" << curStaticInst->destRegIdx(i);
-                  }
-                  dest_regs << "\n";
-                  DPRINTF(Fifo, dest_regs.str().data());
-
-                  DPRINTF(Fifo, "numsrc: %d, numdest: %d\n", curStaticInst->numSrcRegs(), curStaticInst->numDestRegs());
-                  DPRINTF(Fifo, "src: %d, dest: %d\n", curStaticInst->srcRegIdx(0), curStaticInst->destRegIdx(0));
-                  */
-                  
                   // Monitoring packet to be sent
                   mp.valid = true;
-                  mp.instAddr = tc->instAddr();
-                  mp.memAddr = fed.memAddr;
+                  mp.instAddr = tc->instAddr(); // current PC
+                  mp.memAddr = fed.memAddr; // memory access instruction
                   mp.memEnd = fed.memAddr;
-                  mp.data = fed.data;
+                  mp.data = fed.data;       // memory access data
                   mp.numsrcregs = curStaticInst->numSrcRegs();
                   for (unsigned i = 0; i < curStaticInst->numSrcRegs(); ++i){
                     mp.srcregs[i] = curStaticInst->srcRegIdx(i);
                   }
+                  // load/store flag
                   if (curStaticInst->isStore()) {
                     mp.store = true;
                   } else if (curStaticInst->isLoad()) {
                     mp.store = false;
                   }
                   // Control instruction information
-                  mp.control = curStaticInst->isControl();
-                  mp.call    = curStaticInst->isCall();
-                  mp.ret     = curStaticInst->isReturn();
-                  mp.lr      = tc->readIntReg(14);
-                  mp.nextpc  = tc->nextInstAddr();
+                  mp.control = curStaticInst->isControl(); // control inst
+                  mp.call    = curStaticInst->isCall();    // call inst
+                  mp.ret     = curStaticInst->isReturn();  // return inst
+                  mp.lr      = tc->readIntReg(14); // Link register
+                  mp.nextpc  = tc->nextInstAddr(); // Next program counter
                   
                   // Send packet on fifo port
                   if(sendFifoPacket()) {
