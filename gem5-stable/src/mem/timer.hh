@@ -89,9 +89,7 @@ class timerPacket {
     Tick decrementStart;
     // WCET end time
     Tick WCET_end;
-    // Drop threshold for monitor
-    int drop_thres;
-
+    
     // Reset all variables
     void init() {
       intask = false;
@@ -101,7 +99,6 @@ class timerPacket {
       slack = 0;
       decrementStart = 0;
       WCET_end = 0;
-      drop_thres = 0;
     }
 };
 
@@ -139,6 +136,8 @@ class Timer : public AbstractMemory
     Tick lat_var;
 
     timerPacket stored_tp;
+    // Drop threshold for monitor
+    int drop_thres;
 
   public:
 

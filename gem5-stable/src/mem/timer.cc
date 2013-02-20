@@ -77,6 +77,7 @@ Timer::init()
 
     // Initialize stored_tp
     stored_tp.init();
+    drop_thres = 0;
 }
 
 Tick
@@ -135,7 +136,7 @@ Timer::doFunctionalAccess(PacketPtr pkt)
             if (read_addr == TIMER_READ_SLACK){
                 pkt->setData((uint8_t *)&slack);
             } else if (read_addr == TIMER_READ_DROP) {
-                int drop_status = (slack >= stored_tp.drop_thres);
+                int drop_status = (slack >= drop_thres);
                 pkt->setData((uint8_t *)&drop_status);
             }
         }
@@ -144,7 +145,7 @@ Timer::doFunctionalAccess(PacketPtr pkt)
     } else if (pkt->isWrite()) {
         if (pmemAddr) {
             //memcpy(hostAddr, pkt->getPtr<uint8_t>(), pkt->getSize());
-
+            
             Addr write_addr = pkt->getAddr();
             // Start subtask
             if (write_addr == TIMER_START_SUBTASK) {
@@ -194,10 +195,10 @@ Timer::doFunctionalAccess(PacketPtr pkt)
               DPRINTF(SlackTimer, "Written to timer: task end, %d(slack) + %d(add) = %d\n", stored_tp.slack, additional_time, wait_time);
             #endif
             } else if (write_addr == TIMER_SET_THRES) {
-              stored_tp.drop_thres = 0;
-              pkt->writeData((uint8_t *)&stored_tp.drop_thres);
+              drop_thres = 0;
+              pkt->writeData((uint8_t *)&drop_thres);
             #ifdef DEBUG
-              DPRINTF(SlackTimer, "Written to timer: drop threshold = %d\n", stored_tp.drop_thres);
+              DPRINTF(SlackTimer, "Written to timer: drop threshold = %d\n", drop_thres);
             #endif
             } else if (write_addr == TIMER_START_DECREMENT) {
               if (stored_tp.intask){

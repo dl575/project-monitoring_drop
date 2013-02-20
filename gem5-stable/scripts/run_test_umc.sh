@@ -20,24 +20,28 @@
 # CPUTYPE can be set to define the --cpu-type flag used by gem5.
 #
 
-CCFLAGS=-O2
-CONFIGFLAGS="--cpu-type=timing --caches"
+TESTDIR="tests/monitoring/test_umc"
+MONDIR="tests/monitoring"
+
+CCFLAGS="-O2 -I $GEM5/$MONDIR"
+CONFIGFLAGS="--cpu-type=atomic"
 
 function makeall {
-  cd $GEM5/tests/monitoring
-  make TARGET=test_umc_loop0 CCFLAGS=$CCFLAGS
-  make TARGET=test_umc_loop1 CCFLAGS=$CCFLAGS
-  make TARGET=test_umc_loop2 CCFLAGS=$CCFLAGS
-  make TARGET=test_umc_loop3 CCFLAGS=$CCFLAGS
-  make TARGET=test_umc_loop4 CCFLAGS=$CCFLAGS
+  cd $GEM5/$TESTDIR
+  make TARGET=test_umc_loop0 CCFLAGS="$CCFLAGS"
+  make TARGET=test_umc_loop1 CCFLAGS="$CCFLAGS"
+  make TARGET=test_umc_loop2 CCFLAGS="$CCFLAGS"
+  make TARGET=test_umc_loop3 CCFLAGS="$CCFLAGS"
+  make TARGET=test_umc_loop4 CCFLAGS="$CCFLAGS"
+  cd $GEM5/$MONDIR
   make TARGET=umc
 }
 
 # Check that simulation $1 finishes with no errors
 function test_finished {
   gem5.debug --redirect-stdout $GEM5/configs/example/dual_core.py \
-    -c tests/monitoring/test_umc_loop$1.arm $CONFIGFLAGS
-  if grep --quiet "Finished monitoring" m5out/simout && ! grep --quiet "UMC error" m5out/simout
+    -c $GEM5/$TESTDIR/test_umc_loop$1.arm $CONFIGFLAGS
+  if grep --quiet "fifo done flag received" $GEM5/m5out/simout && ! grep --quiet "UMC error" $GEM5/m5out/simout
     then
       echo "Test $1 passed"
     else
@@ -49,8 +53,8 @@ function test_finished {
 # Check that simulation $1 errors
 function test_error {
   gem5.debug --redirect-stdout $GEM5/configs/example/dual_core.py \
-    -c tests/monitoring/test_umc_loop$1.arm $CONFIGFLAGS
-  if ! grep --quiet "Finished monitoring" m5out/simout && grep --quiet "UMC error" m5out/simout
+    -c $GEM5/$TESTDIR/test_umc_loop$1.arm $CONFIGFLAGS
+  if ! grep --quiet "fifo done flag received" $GEM5/m5out/simout && grep --quiet "UMC error" $GEM5/m5out/simout
     then
       echo "Test $1 passed"
     else
