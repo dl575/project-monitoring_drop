@@ -104,8 +104,9 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 
     bool fastmem;
     Request ifetch_req;
-    Request data_read_req;
-    Request data_write_req;
+    // Added to base.hh
+    // Request data_read_req;
+    // Request data_write_req;
 
     bool dcache_access;
     Tick dcache_latency;
@@ -145,11 +146,13 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 
     // Fifo Event
     void handleFifoEvent();
-    bool isFifoEmpty();
-    bool sendFifoPacket();
     typedef EventWrapper<AtomicSimpleCPU, &AtomicSimpleCPU::handleFifoEvent> FifoEvent;
     FifoEvent fifoEvent;
 
+    // function to handle end_task command
+    void endTask();
+    // Time to stall at end task
+    Tick timer_latency;
 };
 
 #endif // __CPU_SIMPLE_ATOMIC_HH__

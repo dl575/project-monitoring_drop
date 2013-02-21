@@ -299,8 +299,6 @@ class TimingSimpleCPU : public BaseSimpleCPU
 
     // Fifo Event
     void handleFifoEvent();
-    bool isFifoEmpty();
-    bool sendFifoPacket();
     typedef EventWrapper<TimingSimpleCPU, &TimingSimpleCPU::handleFifoEvent> FifoEvent;
     FifoEvent fifoEvent;
 
@@ -310,12 +308,14 @@ class TimingSimpleCPU : public BaseSimpleCPU
     EndTaskEvent endTaskEvent;
 
     // Requests for reading/writing to fifo/timer
-    Request data_read_req;
-    Request data_write_req;
+    //Request data_read_req;
+    //Request data_write_req;
 
-  public:
-    // Overload postExecute to perform monitoring
-    void postExecute();
+    // function to handle end_task command
+    void endTask();
+
+    // Additional functionality to stall due to fifo
+    void stallFromFifo();
 };
 
 #endif // __CPU_SIMPLE_TIMING_HH__

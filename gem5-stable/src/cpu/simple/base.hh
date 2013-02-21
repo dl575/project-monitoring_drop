@@ -521,6 +521,32 @@ class BaseSimpleCPU : public BaseCPU
     unsigned num_packets;
 #endif
 
+    // Function that performs monitoring operatino during postExecute
+    void performMonitoring();
+    // Requests for reading/writing to fifo/timer
+    Request data_read_req;
+    Request data_write_req;
+    virtual void endTask() {
+      panic("endTask not implemented\n");
+    }
+
+    // Read from fifo into data
+    void readFromFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+    // Read from slack timer into data
+    void readFromTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+    // Write to fifo
+    void writeToFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+    // Write to timer
+    void writeToTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+
+    // Checks whether fifo is empty
+    bool isFifoEmpty();
+    // Send monitoring packet to fifo
+    bool sendFifoPacket();
+
+    // Additional functionality to stall due to fifo
+    virtual void stallFromFifo() {}
+
 };
 
 #endif // __CPU_SIMPLE_BASE_HH__
