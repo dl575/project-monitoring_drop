@@ -46,9 +46,6 @@
 #include "cpu/simple/base.hh"
 #include "params/AtomicSimpleCPU.hh"
 
-#include "mem/fifo.hh"
-#include "mem/timer.hh"
-
 class AtomicSimpleCPU : public BaseSimpleCPU
 {
   public:
@@ -107,8 +104,9 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 
     bool fastmem;
     Request ifetch_req;
-    Request data_read_req;
-    Request data_write_req;
+    // Added to base.hh
+    // Request data_read_req;
+    // Request data_write_req;
 
     bool dcache_access;
     Tick dcache_latency;
@@ -145,44 +143,16 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     void printAddr(Addr a);
 
   private:
+
     // Fifo Event
     void handleFifoEvent();
-    bool isFifoEmpty();
-    bool sendFifoPacket();
     typedef EventWrapper<AtomicSimpleCPU, &AtomicSimpleCPU::handleFifoEvent> FifoEvent;
     FifoEvent fifoEvent;
 
-    // Stall because need to write to fifo but fifo is full
-    bool fifoStall;
-    // Stall due to having extra slack in timer
-    bool timerStalled;
-    // Allows for stalling when fifo is empty
-    bool fifoEmpty;
-    // Amount of time spent stalled
-    int fifoStallTicks;
-
-    // Data structure for handling fifo event
-    fifoEventDetails fed;
-
-    // Monitoring packet that is written to fifo
-    monitoringPacket mp;
-    // Buffer for reading from Fifo
-    // Since reading form Fifo is destructive, need to buffer if multiple bytes
-    monitoringPacket read_mp;
-
-    // Packet that is written to timer
-    timerPacket write_tp;
-
-#ifdef DEBUG
-    // Start time of task
-    Tick start_task;
-    Addr task_addr;
-    // Start time of a subtask
-    Tick start_subtask;
-    Addr subtask_addr;
-    // Count number of packets
-    unsigned num_packets;
-#endif
+    // function to handle end_task command
+    void endTask();
+    // Time to stall at end task
+    Tick timer_latency;
 };
 
 #endif // __CPU_SIMPLE_ATOMIC_HH__

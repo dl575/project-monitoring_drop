@@ -59,6 +59,9 @@
 #include "sim/full_system.hh"
 #include "sim/system.hh"
 
+#include "mem/fifo.hh"
+#include "mem/timer.hh"
+
 // forward declarations
 class Checkpoint;
 class Process;
@@ -457,6 +460,15 @@ class BaseSimpleCPU : public BaseCPU
     // Port for accessing timer
     CpuPort timerPort;
 
+    // Stall because need to write to fifo but fifo is full
+    bool fifoStall;
+    // Stall due to having extra slack in timer
+    bool timerStalled;
+    // Allows for stalling when fifo is empty
+    bool fifoEmpty;
+    // Amount of time spent stalled
+    int fifoStallTicks;
+
     // Data structure for handling fifo event
     class fifoEventDetails {
       public:
@@ -468,7 +480,72 @@ class BaseSimpleCPU : public BaseCPU
           data = 0;
         }
     };
+    // Data structure for saving informatino for monitoring
     fifoEventDetails fed;
+
+    // Monitoring filter - decides which instructions to monitor
+    class monitorFilter {
+      public:
+        bool load;
+        bool store;
+        bool call;
+        bool ret;
+
+        // Constructor sets all flags to false 
+        monitorFilter() {
+          load = false;
+          store = false;
+          call = false;
+          ret = false;
+        }
+    };
+    monitorFilter mf;
+
+    // Monitoring packet that is written to fifo
+    monitoringPacket mp;
+    // Buffer for reading from Fifo
+    // Since reading form Fifo is destructive, need to buffer if multiple bytes
+    monitoringPacket read_mp;
+
+    // Packet that is written to timer
+    timerPacket write_tp;
+
+#ifdef DEBUG
+    // Start time of task
+    Tick start_task;
+    Addr task_addr;
+    // Start time of a subtask
+    Tick start_subtask;
+    Addr subtask_addr;
+    // Count number of packets
+    unsigned num_packets;
+#endif
+
+    // Function that performs monitoring operatino during postExecute
+    void performMonitoring();
+    // Requests for reading/writing to fifo/timer
+    Request data_read_req;
+    Request data_write_req;
+    virtual void endTask() {
+      panic("endTask not implemented\n");
+    }
+
+    // Read from fifo into data
+    void readFromFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+    // Read from slack timer into data
+    void readFromTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+    // Write to fifo
+    void writeToFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+    // Write to timer
+    void writeToTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+
+    // Checks whether fifo is empty
+    bool isFifoEmpty();
+    // Send monitoring packet to fifo
+    bool sendFifoPacket();
+
+    // Additional functionality to stall due to fifo
+    virtual void stallFromFifo() {}
 
 };
 

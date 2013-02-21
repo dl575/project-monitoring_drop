@@ -35,9 +35,6 @@
 #include "cpu/translation.hh"
 #include "params/TimingSimpleCPU.hh"
 
-#include "mem/fifo.hh"
-#include "mem/timer.hh"
-
 class TimingSimpleCPU : public BaseSimpleCPU
 {
   public:
@@ -298,14 +295,10 @@ class TimingSimpleCPU : public BaseSimpleCPU
 
     void completeDrain();
 
-
   private:
-    Request data_read_req;
 
     // Fifo Event
     void handleFifoEvent();
-    bool isFifoEmpty();
-    bool sendFifoPacket();
     typedef EventWrapper<TimingSimpleCPU, &TimingSimpleCPU::handleFifoEvent> FifoEvent;
     FifoEvent fifoEvent;
 
@@ -314,40 +307,15 @@ class TimingSimpleCPU : public BaseSimpleCPU
     typedef EventWrapper<TimingSimpleCPU, &TimingSimpleCPU::handleEndTaskEvent> EndTaskEvent;
     EndTaskEvent endTaskEvent;
 
-    // Stall because need to write to fifo but fifo is full
-    bool fifoStall;
-    // Stall due to having extra slack in timer
-    bool timerStalled;
-    // Amount of time spent stalled
-    int fifoStallTicks;
-    // Allows for stalling when fifo is empty
-    bool fifoEmpty;
+    // Requests for reading/writing to fifo/timer
+    //Request data_read_req;
+    //Request data_write_req;
 
-    // Monitoring packet that is written to fifo
-    monitoringPacket mp;
-    // Buffer for reading from Fifo
-    // Since reading form Fifo is destructive, need to buffer if multiple bytes
-    monitoringPacket read_mp;
+    // function to handle end_task command
+    void endTask();
 
-    // Packet that is written to timer
-    timerPacket write_tp;
-
-    // Request for writing to fifo/timer
-    Request data_write_req;
-
-#ifdef DEBUG
-    // Start time of task
-    Tick start_task;
-    Addr task_addr;
-    // Start time of a subtask
-    Tick start_subtask;
-    Addr subtask_addr;
-    // Count number of packets
-    unsigned num_packets;
-#endif
-
-  public:
-    void postExecute();
+    // Additional functionality to stall due to fifo
+    void stallFromFifo();
 };
 
 #endif // __CPU_SIMPLE_TIMING_HH__

@@ -72,7 +72,12 @@
 #define FIFO_DONE          (FIFO_ADDR + 0x18) // main core done
 #define FIFO_NUMSRCREGS    (FIFO_ADDR + 0x1c) // number of source registers
 #define FIFO_SRCREGS_START (FIFO_ADDR + 0x20) // first source register
-#define FIFO_SRCREGS_END   (FIFO_ADDR + 0x8c) //last source register
+#define FIFO_SRCREGS_END   (FIFO_ADDR + 0x8c) // last source register
+#define FIFO_CONTROL       (FIFO_ADDR + 0x90) // control flag
+#define FIFO_CALL          (FIFO_ADDR + 0x94) // call flag
+#define FIFO_RET           (FIFO_ADDR + 0x98) // return flag
+#define FIFO_LR            (FIFO_ADDR + 0x9c) // link register
+#define FIFO_NEXTPC        (FIFO_ADDR + 0xa0) // next instruction address
 
 // Fifo registers
 #define FIFO_REG_START (FIFO_ADDR + 0x1000) 
@@ -92,19 +97,24 @@ class monitoringPacket {
     bool valid;           // Valid packet, 0 if fifo is empty
     Addr instAddr;        // program counter
     Addr memAddr;         // address of memory access
-	Addr memEnd;          // range of memory address
+    Addr memEnd;          // range of memory address
     uint64_t data;        // data for memory access
     bool store;           // true if store instruction, false if load
     bool done;            // indicates that the main core program has finished
     uint8_t numsrcregs;   // indicates the number of source registers used for this instruction
     uint8_t srcregs[27];  // the actual source registers for the instruction
+    bool control;         // true if control instruction
+    bool call;            // true if call instruction
+    bool ret;             // true if return instruction
+    uint64_t lr;          // link register
+    uint64_t nextpc;      // next program counter
 
     // Clear all variables
     void init() {
       valid = false;
       instAddr = 0;
       memAddr = 0;
-	  memEnd = 0;
+      memEnd = 0;
       data = 0;
       store = false;
       done = false;
@@ -112,6 +122,11 @@ class monitoringPacket {
       for (unsigned i = 0; i < 27; ++i){
         srcregs[i] = 0;
       }
+      control = false;
+      call = false;
+      ret = false;
+      lr = 0;
+      nextpc = 0;
     }
 };
 

@@ -61,6 +61,11 @@ import CacheConfig
 from Caches import *
 from cpu2000 import *
 
+# Define the monitoring function used
+monitor = "umc"
+#monitor = "umc_drop"
+#monitor = "lrc"
+
 parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
@@ -85,6 +90,14 @@ MainCPUClass.fifo_enabled = True
 MainCPUClass.monitoring_enabled = False
 # Enable slack timer so it can write to it
 MainCPUClass.timer_enabled = True
+# Set up monitoring filter
+if monitor == "umc" or monitor == "umc_drop":
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+elif monitor == "lrc":
+  MainCPUClass.monitoring_filter_call = True
+  MainCPUClass.monitoring_filter_ret = True
+
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 MonCPUClass.clock = '2GHz'
@@ -130,15 +143,20 @@ if options.cmd:
   process0.executable = options.cmd
   process0.cmd = [options.cmd] + options.options.split()
 else:
-  #process0.executable = os.environ["GEM5"] + "/tests/malarden_monitor/malarden_wcet.arm"
-  process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer_monitor.arm"
+  process0.executable = os.environ["GEM5"] + "/tests/malarden_monitor/malarden_wcet.arm"
+  #process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer_monitor.arm"
+  #process0.executable = os.environ["GEM5"] + "/tests/monitoring/test_umc_loop0.arm"
   # process0.executable = os.environ["GEM5"] + "../../papabench/sw/airborne/autopilot/autopilot.elf"
   process0.cmd = ""
 system.cpu[0].workload = process0
 
 process1 = LiveProcess()
-#process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc.arm"
-process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc_drop.arm"
+if monitor == "umc":
+  process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc.arm"
+elif monitor == "umc_drop":
+  process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc_drop.arm"
+elif monitor == "lrc":
+  process1.executable = os.environ["GEM5"] + "/tests/monitoring/lrc.arm"
 process1.cmd = ""
 system.cpu[1].workload = process1
 
