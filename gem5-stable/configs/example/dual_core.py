@@ -62,9 +62,10 @@ from Caches import *
 from cpu2000 import *
 
 # Define the monitoring function used
-monitor = "umc"
+#monitor = "umc"
 #monitor = "umc_drop"
 #monitor = "lrc"
+monitor = "lrc_drop"
 
 parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
@@ -94,9 +95,11 @@ MainCPUClass.timer_enabled = True
 if monitor == "umc" or monitor == "umc_drop":
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
-elif monitor == "lrc":
+elif monitor == "lrc" or monitor == "lrc_drop":
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
+else:
+  raise Exception("Monitor filter not set up for %s" % monitor)
 
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
@@ -157,6 +160,10 @@ elif monitor == "umc_drop":
   process1.executable = os.environ["GEM5"] + "/tests/monitoring/umc_drop.arm"
 elif monitor == "lrc":
   process1.executable = os.environ["GEM5"] + "/tests/monitoring/lrc.arm"
+elif monitor == "lrc_drop":
+  process1.executable = os.environ["GEM5"] + "/tests/monitoring/lrc_drop.arm"
+else:
+  raise Exception("No executable defined for monitor %s" % monitor)
 process1.cmd = ""
 system.cpu[1].workload = process1
 
