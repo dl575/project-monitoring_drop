@@ -508,6 +508,37 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
     if (timer_enabled) { 
       if (addr >= TIMER_ADDR_START && addr <= TIMER_ADDR_END) {
 
+        // Get data
+        int write_data = 0;
+        if (size > sizeof(int)) size = sizeof(int);
+        memcpy(&write_data, data, size);
+      
+      #ifdef DEBUG
+        // Print out data for debugging
+        DPRINTF(SlackTimer, "Write to timer [%x]: %d\n", addr, write_data);
+        // Print messages with start and end task so we can find WCET
+        if (addr == TIMER_START_TASK) {
+          start_task = curTick();
+          num_packets = 0;
+          last_packets = 0;
+          num_stalls = 0;
+          last_stalls = 0;
+          task_addr = tc->instAddr();
+        } else if (addr == TIMER_END_TASK) {
+          DPRINTF(Task, "Task @ %x ET = %d, Packets = %d\n", task_addr, (curTick() - start_task - num_stalls)/ticks(1), num_packets);
+        }
+        // Print execution times for subtask
+        if (addr == TIMER_END_SUBTASK || addr == TIMER_ENDSTART_SUBTASK) {
+          DPRINTF(Task, "Subtask @ %x ET = %d, Packets = %d\n", subtask_addr, (curTick() - start_subtask - (num_stalls - last_stalls))/ticks(1), num_packets-last_packets);
+          last_packets = num_packets;
+          last_stalls = num_stalls;
+        }
+        if (addr == TIMER_START_SUBTASK || addr == TIMER_ENDSTART_SUBTASK) {
+          start_subtask = curTick();
+          subtask_addr = tc->instAddr();
+        }
+      #endif // DEBUG
+      
         //if end_task we get the timer slack and will add it to the
         //additional slack we are storing into the timer.
         
@@ -536,10 +567,7 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
             }
             fed.data = stall_length;
         }
-        // Get data
-        int write_data = 0;
-        if (size > sizeof(int)) size = sizeof(int);
-        memcpy(&write_data, data, size);
+
         //convert from cycles to ticks
         write_data *= ticks(1);
         // Create request
@@ -557,27 +585,6 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
 
         // Send read request packet on timer port
         timerPort.sendFunctional(timerpkt);
-
-#ifdef DEBUG
-        // Print out data for debugging
-        DPRINTF(SlackTimer, "Write to timer [%x]: %d\n", addr, write_data);
-        // Print messages with start and end task so we can find WCET
-        if (addr == TIMER_START_TASK) {
-          start_task = curTick();
-          num_packets = 0;
-          task_addr = tc->instAddr();
-        } else if (addr == TIMER_END_TASK) {
-          DPRINTF(Task, "Task @ %x ET = %d, Packets = %d\n", task_addr, (curTick() - start_task)/ticks(1), num_packets);
-        }
-        // Print execution times for subtask
-        if (addr == TIMER_END_SUBTASK || addr == TIMER_ENDSTART_SUBTASK) {
-          DPRINTF(Task, "Subtask @ %x ET = %d\n", subtask_addr, (curTick() - start_subtask)/ticks(1));
-        }
-        if (addr == TIMER_START_SUBTASK || addr == TIMER_ENDSTART_SUBTASK) {
-          start_subtask = curTick();
-          subtask_addr = tc->instAddr();
-        }
-#endif // DEBUG
 
         // Clean up
         delete timerpkt;
@@ -760,9 +767,10 @@ AtomicSimpleCPU::tick()
                   DPRINTF(Fifo, "dis: %s\n", curStaticInst->disassemble(0, NULL));
                 }
                 */
-
+                setPredicate(true);
                 fault = curStaticInst->execute(this, traceData);
-
+                bool predicate_result = readPredicate();
+                
                 // keep an instruction count
                 if (fault == NoFault)
                     countInst();
@@ -805,8 +813,9 @@ AtomicSimpleCPU::tick()
                 /* Send FIFO Packet */
                 // On store to FIFO_END_CUSTOM, we will generate 
                 // a packet to be sent
-                if (fifo_enabled && curStaticInst->isStore() 
-                    && fed.memAddr == FIFO_END_CUSTOM){
+                if (fifo_enabled && predicate_result &&
+                    curStaticInst->isStore() && 
+                    fed.memAddr == FIFO_END_CUSTOM){
                     
                     DPRINTF(Fifo, "Creating custom packet at %d, PC: %x\n", curTick(), tc->instAddr());
                     
@@ -832,7 +841,7 @@ AtomicSimpleCPU::tick()
                 // Address cannot be for fifo or timer unless it is a fifo
                 // write to indicate that the main core is done.
                 if (fifo_enabled && ( (mp.done && curStaticInst->isStore()) || 
-                    (monitoring_enabled && 
+                    (monitoring_enabled && predicate_result &&
                      (curStaticInst->isLoad() || curStaticInst->isStore()) &&
                      ((fed.memAddr < FIFO_ADDR_START) || (fed.memAddr > TIMER_ADDR_END)) )
                     ) ) {
@@ -913,7 +922,7 @@ AtomicSimpleCPU::tick()
                 // calculated in the writeMem function and stored in
                 // fed.data
                 if (timer_enabled && curStaticInst->isStore()
-                    && fed.memAddr == TIMER_END_TASK){
+                    && predicate_result && fed.memAddr == TIMER_END_TASK){
                     timerStalled = true;
                     timer_latency = fed.data;
                     DPRINTF(SlackTimer, "The CPU will be stalled for %d ticks\n", fed.data);
@@ -965,6 +974,10 @@ AtomicSimpleCPU::tick()
         if (fifoStall) {
             DPRINTF(Fifo, "Rescheduling...\n");
             schedule(fifoEvent, curTick() + latency);
+        #ifdef DEBUG
+            // Count how many packets cause a stall
+            num_packets++;
+        #endif
             // Store start of stall time
             fifoStallTicks = curTick();
         } else {
@@ -1032,7 +1045,6 @@ bool AtomicSimpleCPU::sendFifoPacket() {
   if (success){
     #ifdef DEBUG
       DPRINTF(Fifo, "Sent Packet with values: %x, %x, %x, %x, %x, %x, %x\n", mp.valid, mp.instAddr, mp.memAddr, mp.memEnd, mp.data, mp.store, mp.done);
-      num_packets++;
     #endif
     mp.init();
   }
@@ -1065,8 +1077,12 @@ void AtomicSimpleCPU::handleFifoEvent() {
 
     schedule(tickEvent, curTick() + ticks(1));
     
-    DPRINTF(Fifo, "Success, stalled for %d\n", curTick() - fifoStallTicks);
-    DPRINTF(FifoStall, "Fifo caused stall for %d ticks\n", curTick() - fifoStallTicks);
+  #ifdef DEBUG
+    unsigned stall_amt = curTick()-fifoStallTicks;
+    DPRINTF(Fifo, "Success, stalled for %d\n", stall_amt/ticks(1));
+    num_stalls += stall_amt;
+    DPRINTF(FifoStall, "Fifo caused stall for %d ticks\n", stall_amt);
+  #endif
   } else {
     // Failed
     // Retry on next cycle

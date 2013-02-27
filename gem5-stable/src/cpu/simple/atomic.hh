@@ -182,6 +182,9 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     Addr subtask_addr;
     // Count number of packets
     unsigned num_packets;
+    unsigned last_packets;
+    unsigned num_stalls;
+    unsigned last_stalls;
 #endif
 };
 

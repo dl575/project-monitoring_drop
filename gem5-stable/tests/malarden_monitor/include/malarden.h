@@ -11,38 +11,41 @@
 #endif
 
 /** insertsort.c **/
-#define WCET_IS  5772*(WCET_SCALE-1)
-#define WCET_IS_1 271
-#define WCET_IS_2 1013
+// No monitoring: 733
+#define WCET_IS  2269*(WCET_SCALE-1)
+#define WCET_IS_1 19
+#define WCET_IS_2 412
 int insertsort();
 
 /** crc.c **/
-#define WCET_CRC 38110*(WCET_SCALE-1)
-#define WCET_CRC_1 412
-#define WCET_CRC_2 471
-#define WCET_CRC_3 118
-#define WCET_CRC_4 29
-#define WCET_CRC_5 89
-#define WCET_CRC_6 307
+// No monitoring: 31245
+#define WCET_CRC 32765*(WCET_SCALE-1)
+#define WCET_CRC_1 67
+#define WCET_CRC_2 165
+#define WCET_CRC_3 116
+#define WCET_CRC_4 20
+#define WCET_CRC_5 35
+#define WCET_CRC_6 103
 int crc(void);
 
 /** edn.c **/
-#define WCET_EDN 331126*(WCET_SCALE-1)
-#define WCET_EDN_1 13127
-#define WCET_EDN_2 84
-#define WCET_EDN_3 390
-#define WCET_EDN_4 56
-#define WCET_EDN_5 359
-#define WCET_EDN_6 2831
-#define WCET_EDN_7 526
-#define WCET_EDN_8 1932
-#define WCET_EDN_9 555
-#define WCET_EDN_10 84
-#define WCET_EDN_11 727
-#define WCET_EDN_12 224
-#define WCET_EDN_13 1175
-#define WCET_EDN_14 2912
-#define WCET_EDN_15 253
+// No monitoring: 35860
+#define WCET_EDN 130308*(WCET_SCALE-1)
+#define WCET_EDN_1 4366
+#define WCET_EDN_2 33
+#define WCET_EDN_3 143
+#define WCET_EDN_4 25
+#define WCET_EDN_5 135
+#define WCET_EDN_6 1118
+#define WCET_EDN_7 195
+#define WCET_EDN_8 765
+#define WCET_EDN_9 213
+#define WCET_EDN_10 39
+#define WCET_EDN_11 256
+#define WCET_EDN_12 87
+#define WCET_EDN_13 423
+#define WCET_EDN_14 1090
+#define WCET_EDN_15 90
 int edn(void);
 
 

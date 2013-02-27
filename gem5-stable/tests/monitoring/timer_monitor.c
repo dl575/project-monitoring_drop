@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
   int sum;
   int array[10];
 
-  START_TASK((int)((WCET_SCALE-1)*WCET));
+  START_TASK((WCET_SCALE-1)*WCET);
 
   START_SUBTASK(66);
   // Initialize array

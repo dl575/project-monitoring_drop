@@ -53,6 +53,9 @@ int
 insertsort()
 {
 
+    INIT_MONITOR;
+    while (!READ_FIFO_EMPTY);
+
     START_TASK(WCET_IS);
 
 	int             i, j, temp;

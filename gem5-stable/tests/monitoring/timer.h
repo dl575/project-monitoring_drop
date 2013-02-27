@@ -15,7 +15,7 @@
 #define TIMER_ADDR 0x30010000
 
 // Initialization
-volatile unsigned int *timer;
+volatile int *timer;
 #define INIT_TIMER timer = (int *)TIMER_ADDR;
 
 // start/end task

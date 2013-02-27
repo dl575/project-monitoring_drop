@@ -262,6 +262,9 @@ jpegdct(short *d, short *r)
 int
 edn(void)
 {
+    INIT_MONITOR;
+    while (!READ_FIFO_EMPTY);
+
     START_TASK(WCET_EDN);
     
     START_SUBTASK(WCET_EDN_1);

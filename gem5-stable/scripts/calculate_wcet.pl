@@ -2,6 +2,11 @@
 
 use warnings;
 use strict;
+use Getopt::Long;
+
+my $mon_time = 0;
+
+GetOptions( "drop_time|d=i" => \$mon_time );
 
 my %wcet;
 my %numwcet;
@@ -12,15 +17,17 @@ my @wcetorder;
 
 while (<>){
     if (/^\d+:.*?(\w+)\s*@\s*(\w+)\s*ET\s*=\s*(\d+)(?:\s*,\s*Packets\s*=\s*(\d+))?$/){
+        my $num_packets = $4 or 0;
+        my $wcet_time = $3 + $num_packets*$mon_time;
         if (!defined $wcet{$2}){
             push @wcetorder, $2;
-            $wcet{$2} = $3;
+            $wcet{$2} = $wcet_time;
             $tasktype{$2} = $1;
-            $maxwcet{$2} = $3;
+            $maxwcet{$2} = $wcet_time;
             $numwcet{$2} = 1;
         }else{
-            $wcet{$2} += $3;
-            $maxwcet{$2} = $3 if $3 > $maxwcet{$2};
+            $wcet{$2} += $wcet_time;
+            $maxwcet{$2} = $wcet_time if $wcet_time > $maxwcet{$2};
             $numwcet{$2}++;
         }
         if (defined $4){

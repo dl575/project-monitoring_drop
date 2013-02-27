@@ -132,7 +132,9 @@ icrc(unsigned short crc, unsigned long len,
 int 
 crc(void)
 {
-
+    INIT_MONITOR;
+    while (!READ_FIFO_EMPTY);
+    
 	unsigned short  i1, i2;
 	unsigned long   n;
 

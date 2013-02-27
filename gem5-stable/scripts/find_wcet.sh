@@ -1,4 +1,4 @@
-if [ $1 ] && [ $2 ]; then
+if [ $1 ] && [ $2 ] && [ $3 ]; then
     # gem5.debug --debug-flags=Task configs/example/slacktimer.py -c $1
     # gem5.debug --debug-flags=SlackTimer,Task configs/example/slacktimer.py -c $1
     echo "
@@ -9,10 +9,10 @@ tasks high enough so you don't get negative slack.
 "
 
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    gem5.debug --debug-flags=SlackTimer,Fifo,Task $GEM5/configs/example/wcet.py -c $2 --delay=$1 --cpu-type=atomic | tee $3 | $DIR/calculate_wcet.pl
-elif [ $1 ]; then
+    gem5.debug --debug-flags=SlackTimer,Fifo,Task $GEM5/configs/example/wcet.py -c $3 --delay=$1 --cpu-type=atomic | tee $4 | $DIR/calculate_wcet.pl -d $2
+elif [ $1 ] && [ $2 ]; then
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    $DIR/calculate_wcet.pl $1
+    $DIR/calculate_wcet.pl -d $1 $2
 else
     echo "usage: 
   find_wcet.sh drop_delay executable.arm [output.log]
