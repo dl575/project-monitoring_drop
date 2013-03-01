@@ -156,5 +156,5 @@ crc(void)
     
     END_TASK(FIFO_SIZE*MON_DROP_WCET);
     
-	return i2;
+	return 1;
 }

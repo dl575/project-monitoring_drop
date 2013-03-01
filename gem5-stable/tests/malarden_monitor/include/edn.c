@@ -319,6 +319,8 @@ edn(void)
 	/*
 	 * Declared as memory variable so it doesn't get optimized out
 	 */
+     
+    output[0] = 0;
 
 	vec_mpy1(a, b, c);
 	c = mac(a, b, (long int) c, (long int *) output);
@@ -333,5 +335,5 @@ edn(void)
     
     END_TASK(FIFO_SIZE*MON_DROP_WCET);
     
-	return d;
+	return c;
 }

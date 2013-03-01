@@ -18,7 +18,7 @@
 int insertsort();
 
 /** crc.c **/
-// No monitoring: 31245
+// No monitoring: 31246
 #define WCET_CRC 32765*(WCET_SCALE-1)
 #define WCET_CRC_1 67
 #define WCET_CRC_2 165
@@ -29,17 +29,17 @@ int insertsort();
 int crc(void);
 
 /** edn.c **/
-// No monitoring: 35860
-#define WCET_EDN 130308*(WCET_SCALE-1)
-#define WCET_EDN_1 4366
+// No monitoring: 35870
+#define WCET_EDN 130326*(WCET_SCALE-1)
+#define WCET_EDN_1 4379
 #define WCET_EDN_2 33
 #define WCET_EDN_3 143
 #define WCET_EDN_4 25
-#define WCET_EDN_5 135
+#define WCET_EDN_5 136
 #define WCET_EDN_6 1118
 #define WCET_EDN_7 195
 #define WCET_EDN_8 765
-#define WCET_EDN_9 213
+#define WCET_EDN_9 216
 #define WCET_EDN_10 39
 #define WCET_EDN_11 256
 #define WCET_EDN_12 87

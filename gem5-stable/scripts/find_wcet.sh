@@ -15,8 +15,8 @@ elif [ $1 ] && [ $2 ]; then
     $DIR/calculate_wcet.pl -d $1 $2
 else
     echo "usage: 
-  find_wcet.sh drop_delay executable.arm [output.log]
+  find_wcet.sh full_delay drop_delay executable.arm [output.log]
 OR
-  find_wcet.sh output.log (if you already have an output with debug Task flag)"
+  find_wcet.sh drop_delay output.log (if you already have an output with debug Task flag)"
 fi
 
