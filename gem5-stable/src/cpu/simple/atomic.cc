@@ -90,7 +90,7 @@ AtomicSimpleCPU::TickEvent::description() const
 void
 AtomicSimpleCPU::init()
 {
-    BaseCPU::init();
+    BaseSimpleCPU::init();
 
     // Initialise the ThreadContext's memory proxies
     tcBase()->initMemProxies(tcBase());
@@ -108,15 +108,6 @@ AtomicSimpleCPU::init()
     ifetch_req.setThreadContext(_cpuId, 0); // Add thread ID if we add MT
     data_read_req.setThreadContext(_cpuId, 0); // Add thread ID here too
     data_write_req.setThreadContext(_cpuId, 0); // Add thread ID here too
-
-    // Initialize monitoring variables
-    mp.init();
-    fed.clear();
-    fifoStall = false;
-    timerStalled = false;
-    fifoEmpty = false;
-    drops = 0;
-    not_drops = 0;
 }
 
 AtomicSimpleCPU::AtomicSimpleCPU(AtomicSimpleCPUParams *p)

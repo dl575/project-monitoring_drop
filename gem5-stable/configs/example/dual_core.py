@@ -62,9 +62,10 @@ from Caches import *
 from cpu2000 import *
 
 # Define the monitoring function used
-# monitor = "umc"
+#monitor = "umc"
 monitor = "umc_drop"
 # monitor = "lrc"
+# monitor = "lrc_drop"
 
 parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
@@ -94,9 +95,11 @@ MainCPUClass.timer_enabled = True
 if monitor == "umc" or monitor == "umc_drop":
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
-elif monitor == "lrc":
+elif monitor == "lrc" or monitor == "lrc_drop":
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
+else:
+  raise Exception("No monitoring filter defined for %s" % monitor)
 
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)

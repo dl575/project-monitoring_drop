@@ -730,6 +730,20 @@ BaseSimpleCPU::sendFifoPacket() {
   return success;
 }
 
+void BaseSimpleCPU::init() {
+
+  BaseCPU::init();
+
+  // Initialize monitoring variables
+  mp.init();
+  fed.clear();
+  fifoStall = false;
+  timerStalled = false;
+  fifoEmpty = false;
+  drops = 0;
+  not_drops = 0;
+}
+
 void
 BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags) {
     // use the CPU's statically allocated read request and packet objects
