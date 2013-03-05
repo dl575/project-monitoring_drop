@@ -13,8 +13,14 @@
 
 // Function attempts to overwrite link register
 void __attribute__((noinline)) hax() {
-  // 0x89a4 = 35236 is the address of the hax function
-  __asm__("ldr lr,=#35237"); 
+  // load function address
+  void (*func)() = hax;
+  // load address to link register
+  __asm__(
+    "mov lr, %0"
+    :
+    : "r" (func)
+  ); 
   return;
 }
 
@@ -52,7 +58,6 @@ void __attribute__((noinline)) outerloop(int (*array)[N]) {
 
 int main(int argc, char *argv[]) {
   INIT_MONITOR
-  INIT_BSS
   INIT_CODE
 
   int i, j;

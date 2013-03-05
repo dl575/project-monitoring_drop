@@ -43,7 +43,6 @@ void __attribute__((noinline)) outerloop(int (*array)[N]) {
 
 int main(int argc, char *argv[]) {
   INIT_MONITOR
-  INIT_BSS
   INIT_CODE
 
   int i, j;

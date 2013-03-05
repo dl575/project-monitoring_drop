@@ -10,8 +10,14 @@
 
 // Function attempts to overwrite link register
 void __attribute__((noinline)) hax() {
-  // 0x8998 = 35224 is the address of the hax function
-  __asm__("ldr lr,=#35225"); 
+  // load function address
+  void (*func)() = hax;
+  // load address to link register
+  __asm__(
+    "mov lr, %0"
+    :
+    : "r" (func)
+  ); 
   return;
 }
 
@@ -29,7 +35,6 @@ int __attribute__((noinline)) fib(int n) {
 
 int main(int argc, char *argv[]) {
   INIT_MONITOR
-  INIT_BSS
   INIT_CODE
 
   int i;
