@@ -7,7 +7,7 @@
 
 
 #ifndef WCET_SCALE
-    #define WCET_SCALE 5
+    #define WCET_SCALE 1
 #endif
 
 /** insertsort.c **/
@@ -60,13 +60,12 @@ int edn(void);
 int compress_main(void);
 
 /** fir.c **/
-// No monitoring: 7531
-#define WCET_FIR 17203*(WCET_SCALE-1)
+// No monitoring: 3208
+#define WCET_FIR 7120*(WCET_SCALE-1)
 #define WCET_FIR_1 93
 #define WCET_FIR_2 32
 #define WCET_FIR_3 26
-#define WCET_FIR_4 192
-#define WCET_FIR_5 14
+#define WCET_FIR_4 180
 int fir_main(void);
 
 /** jfdcint.c **/
@@ -79,6 +78,30 @@ int fir_main(void);
 #define WCET_JFDC_5 519
 #define WCET_JFDC_6 88
 int jfdc(void);
+
+/** nsichneu.c **/
+// No monitoring: 6157
+#define WCET_NSI 22052*(WCET_SCALE-1)
+#define WCET_NSI_1 4
+#define WCET_NSI_2 403
+#define WCET_NSI_3 1771
+#define WCET_NSI_4 1771
+#define WCET_NSI_5 1771
+#define WCET_NSI_6 1771
+#define WCET_NSI_7 1773
+#define WCET_NSI_8 1803
+int nsichneu();
+
+/** statemate.c **/
+// No monitoring: 1809
+#define WCET_STA 6649*(WCET_SCALE-1)
+#define WCET_STA_1 414
+#define WCET_STA_2 188
+#define WCET_STA_3 290
+#define WCET_STA_4 64
+#define WCET_STA_5 420
+#define WCET_STA_6 2417
+int statemate(void);
 
 #endif // __MALARDEN_H__
 
