@@ -14,7 +14,7 @@
 #define NBENCH 3
 
 // Array of benchmarks
-int (*benchmarks[NBENCH])() = {insertsort, crc, edn};
+int (*benchmarks[NBENCH])() = {insertsort, crc, edn}; //{compress_main, fir_main, jfdc};
 
 int main(int argc, char* argv[]) {
   
