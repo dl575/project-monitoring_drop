@@ -219,18 +219,11 @@ fir_main(void)
 	/* break; */
 	/* } */
     
-    int output_res = 0;
-    int i;
-    for (i = 0; i < OUTSIZE; i++){
-        ENDSTART_SUBTASK(WCET_FIR_5);
-        output_res += output[i];
-    }
-    
     END_SUBTASK;
     
     END_TASK(FIFO_SIZE*MON_DROP_WCET);
     
-	return output_res;
+	return 1;
 }
 
 /**************************************************************************
