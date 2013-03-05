@@ -101,6 +101,9 @@ class BaseSimpleCPU : public BaseCPU
     }
 
   public:
+
+    virtual void init();
+
     void wakeup();
 
     void zero_fill_64(Addr addr) {

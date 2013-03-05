@@ -24,7 +24,8 @@ TESTDIR="tests/monitoring/test_umc"
 MONDIR="tests/monitoring"
 
 CCFLAGS="-O2 -I $GEM5/$MONDIR"
-CONFIGFLAGS="--cpu-type=atomic"
+#CONFIGFLAGS="--cpu-type=atomic"
+CONFIGFLAGS="--cpu-type=timing"
 
 function makeall {
   cd $GEM5/$TESTDIR
