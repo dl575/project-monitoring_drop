@@ -13,6 +13,10 @@
 #include "monitoring.h"
 #include "timer.h"
 
+int __attribute__((noinline)) add(int a, int b) {
+  return a + b;
+}
+
 int main(int argc, char *argv[]) {
 
   INIT_MONITOR;
@@ -27,13 +31,15 @@ int main(int argc, char *argv[]) {
   
   for (i = 0; i < 100; ++i){
     arr[i] = i;
-    sum += arr[i];
+    //sum += arr[i];
+    sum = add(sum, arr[i]);
   }
   
   START_TASK(0);
   for (i = 0; i < 100; ++i){
     arr[i] = i;
-    sum += arr[i];
+    //sum += arr[i];
+    sum = add(sum, arr[i]);
   }
   END_TASK(100*200);
   

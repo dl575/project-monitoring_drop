@@ -15,7 +15,7 @@ import os
 
 import matplotlib.pyplot as plot
 
-program = 'timer_monitor'
+program = "timer_monitor2"
 
 # directory where simulation results are stored
 log_dir = os.environ["GEM5"] + "/m5out/%s/" % program
