@@ -225,7 +225,7 @@ jpeg_fdct_islow()
 		dataptr = data;
 	for (ctr = DCTSIZE - 1; ctr >= 0; ctr--) {
     
-        START_SUBTASK(WCET_JFDC_3);
+        ENDSTART_SUBTASK(WCET_JFDC_3);
     
 		tmp0 = dataptr[0] + dataptr[7];
 		tmp7 = dataptr[0] - dataptr[7];
@@ -291,7 +291,7 @@ jpeg_fdct_islow()
 		dataptr += DCTSIZE;	/* advance pointer to next row */
 	}
 
-    START_SUBTASK(WCET_JFDC_4);
+    ENDSTART_SUBTASK(WCET_JFDC_4);
     
 	/*
 	 * Pass 2: process columns. We remove the PASS1_BITS scaling, but
@@ -301,7 +301,7 @@ jpeg_fdct_islow()
 	dataptr = data;
 	for (ctr = DCTSIZE - 1; ctr >= 0; ctr--) {
     
-        START_SUBTASK(WCET_JFDC_5);
+        ENDSTART_SUBTASK(WCET_JFDC_5);
     
 		tmp0 = dataptr[DCTSIZE * 0] + dataptr[DCTSIZE * 7];
 		tmp7 = dataptr[DCTSIZE * 0] - dataptr[DCTSIZE * 7];
@@ -371,7 +371,7 @@ jpeg_fdct_islow()
 		dataptr++;	/* advance pointer to next column */
 	}
     
-    START_SUBTASK(WCET_JFDC_6);
+    ENDSTART_SUBTASK(WCET_JFDC_6);
     
 }
 
@@ -409,7 +409,7 @@ jfdc(void)
 		data[i] = seed;
 	}
     
-    START_SUBTASK(WCET_JFDC_2);
+    ENDSTART_SUBTASK(WCET_JFDC_2);
 
 	jpeg_fdct_islow();
     

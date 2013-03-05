@@ -219,11 +219,10 @@ fir_main(void)
 	/* break; */
 	/* } */
     
-    ENDSTART_SUBTASK(WCET_FIR_5);
-    
     int output_res = 0;
     int i;
     for (i = 0; i < OUTSIZE; i++){
+        ENDSTART_SUBTASK(WCET_FIR_5);
         output_res += output[i];
     }
     

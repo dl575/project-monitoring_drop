@@ -49,35 +49,35 @@ int crc(void);
 int edn(void);
 
 /** compress.c **/
-// No monitoring: 5453
-#define WCET_CMP 5453*(WCET_SCALE-1)
-#define WCET_CMP_1 703
-#define WCET_CMP_2 736
-#define WCET_CMP_3 61
-#define WCET_CMP_4 25
-#define WCET_CMP_5 17
-#define WCET_CMP_6 19
+// No monitoring: 5213
+#define WCET_CMP 18189*(WCET_SCALE-1)
+#define WCET_CMP_1 923
+#define WCET_CMP_2 3239
+#define WCET_CMP_3 222
+#define WCET_CMP_4 81
+#define WCET_CMP_5 50
+#define WCET_CMP_6 99
 int compress_main(void);
 
 /** fir.c **/
-// No monitoring: 6847
-#define WCET_FIR 6847*(WCET_SCALE-1)
-#define WCET_FIR_1 44
-#define WCET_FIR_2 16
-#define WCET_FIR_3 10
-#define WCET_FIR_4 109
-#define WCET_FIR_5 3602
+// No monitoring: 7531
+#define WCET_FIR 17203*(WCET_SCALE-1)
+#define WCET_FIR_1 93
+#define WCET_FIR_2 32
+#define WCET_FIR_3 26
+#define WCET_FIR_4 192
+#define WCET_FIR_5 14
 int fir_main(void);
 
 /** jfdcint.c **/
-// No monitoring: xx
-#define WCET_JFDC 0*(WCET_SCALE-1)
-#define WCET_JFDC_1 1000
-#define WCET_JFDC_2 1000
-#define WCET_JFDC_3 1000
-#define WCET_JFDC_4 1000
-#define WCET_JFDC_5 1000
-#define WCET_JFDC_6 1000
+// No monitoring: 3304
+#define WCET_JFDC 9760*(WCET_SCALE-1)
+#define WCET_JFDC_1 1202
+#define WCET_JFDC_2 190
+#define WCET_JFDC_3 575
+#define WCET_JFDC_4 12
+#define WCET_JFDC_5 519
+#define WCET_JFDC_6 88
 int jfdc(void);
 
 #endif // __MALARDEN_H__

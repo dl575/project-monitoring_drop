@@ -92,14 +92,14 @@ MainCPUClass.monitoring_enabled = False
 # Enable slack timer so it can write to it
 MainCPUClass.timer_enabled = True
 # Set up monitoring filter
-if monitor == "umc" or monitor == "umc_drop":
-  MainCPUClass.monitoring_filter_load = True
-  MainCPUClass.monitoring_filter_store = True
-elif monitor == "lrc" or monitor == "lrc_drop":
-  MainCPUClass.monitoring_filter_call = True
-  MainCPUClass.monitoring_filter_ret = True
-else:
-  raise Exception("No monitoring filter defined for %s" % monitor)
+# if monitor == "umc" or monitor == "umc_drop":
+  # MainCPUClass.monitoring_filter_load = True
+  # MainCPUClass.monitoring_filter_store = True
+# elif monitor == "lrc" or monitor == "lrc_drop":
+  # MainCPUClass.monitoring_filter_call = True
+  # MainCPUClass.monitoring_filter_ret = True
+# else:
+  # raise Exception("No monitoring filter defined for %s" % monitor)
 
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
@@ -110,6 +110,8 @@ MonCPUClass.fifo_enabled = True
 MonCPUClass.monitoring_enabled = False
 # Enable slack timer so it can read from it
 MonCPUClass.timer_enabled = True
+
+execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
 
 # Number of CPUs
 options.num_cpus = 2
