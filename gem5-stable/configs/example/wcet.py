@@ -64,7 +64,7 @@ from cpu2000 import *
 parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
-parser.add_option("--delay", action="store", type="string", dest="delay", help="cause the WCET monitor to stall for a delay")
+parser.add_option("--monitor", action="store", type="string", dest="monitor", help="monitor to use")
 
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
@@ -75,6 +75,12 @@ if args:
     print "Error: script doesn't take any positional arguments"
     sys.exit(1)
 
+
+if options.monitor:
+    monitor = options.monitor
+else:
+    parser.error('Error: monitor not defined')
+    
 # Number of threads per CPU
 numThreads = 1
 
@@ -95,6 +101,8 @@ MonCPUClass.fifo_enabled = True
 MonCPUClass.monitoring_enabled = False
 # Enable slack timer so it can read from it
 MonCPUClass.timer_enabled = True
+
+execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
 
 # Number of CPUs
 np = 2
@@ -131,8 +139,8 @@ process0.cmd = [options.cmd] + options.options.split()
 system.cpu[0].workload = process0
 process1 = LiveProcess()
 process1.executable = os.environ["GEM5"] + "/tests/monitoring/wcet_monitor.arm"
-if options.delay:
-  process1.cmd = [process1.executable] + [options.delay]
+if delay:
+  process1.cmd = [process1.executable] + [delay]
 else:
   process1.cmd = ""
 system.cpu[1].workload = process1

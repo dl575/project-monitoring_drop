@@ -71,7 +71,7 @@ using namespace TheISA;
 void
 TimingSimpleCPU::init()
 {
-    BaseCPU::init();
+    BaseSimpleCPU::init();
 
     // Initialise the ThreadContext's memory proxies
     tcBase()->initMemProxies(tcBase());
@@ -83,13 +83,6 @@ TimingSimpleCPU::init()
             TheISA::initCPU(tc, _cpuId);
         }
     }
-
-    // Initialize monitoring variables
-    mp.init();
-    fed.clear();
-    fifoStall = false;
-    timerStalled = false;
-    fifoEmpty = false;
 }
 
 void
@@ -433,13 +426,17 @@ TimingSimpleCPU::readMem(Addr addr, uint8_t *data,
       pkt2->dataStatic(data);
       pkt2->req->setFlags(Request::NO_ACCESS);
 
-      completeDataAccess(pkt2);
+      // Only return data if fifo was not empty
+      if (!fifoEmpty) {
+        completeDataAccess(pkt2);
+      }
 
-      return NoFault;
+      // Return a fault to rerun instruction if fifo was empty
+      return (fifoEmpty) ? (new ReExec()) : NoFault;  
     }
 
     // Read from timer
-    if (timer_enabled && addr == TIMER_ADDR) {
+    if (timer_enabled && (addr == TIMER_READ_SLACK || addr == TIMER_READ_DROP)) {
       // Read from timer into data
       readFromTimer(addr, data, size, flags);
 
@@ -699,9 +696,7 @@ TimingSimpleCPU::advanceInst(Fault fault)
         return;
     }
 
-    // If the fifo is empty when reading from it, don't advance PC and 
-    // reattempt read
-    if (!stayAtPC && !fifoEmpty)
+    if (!stayAtPC)
         advancePC(fault);
 
     if (_status == Running) {
@@ -741,6 +736,10 @@ TimingSimpleCPU::completeIfetch(PacketPtr pkt)
     }
 
     preExecute();
+
+    // set this so that we can check later if instruction was predicated
+    setPredicate(true);
+
     if (curStaticInst && curStaticInst->isMemRef()) {
         // load or store: just send to dcache
         Fault fault = curStaticInst->initiateAcc(this, traceData);

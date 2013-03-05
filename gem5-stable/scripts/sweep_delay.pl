@@ -13,7 +13,7 @@ use warnings;
 use strict;
 
 my @delays;
-my @range = 0..10;
+my @range = 0..3;
 
 my $gem5 = $ENV{'GEM5'};
 die "Could not locate GEM5 environment. Did you source 'setup.sh'?\n" unless defined $gem5 && -d $gem5;

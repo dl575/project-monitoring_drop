@@ -90,7 +90,7 @@ AtomicSimpleCPU::TickEvent::description() const
 void
 AtomicSimpleCPU::init()
 {
-    BaseCPU::init();
+    BaseSimpleCPU::init();
 
     // Initialise the ThreadContext's memory proxies
     tcBase()->initMemProxies(tcBase());
@@ -108,13 +108,6 @@ AtomicSimpleCPU::init()
     ifetch_req.setThreadContext(_cpuId, 0); // Add thread ID if we add MT
     data_read_req.setThreadContext(_cpuId, 0); // Add thread ID here too
     data_write_req.setThreadContext(_cpuId, 0); // Add thread ID here too
-
-    // Initialize monitoring variables
-    mp.init();
-    fed.clear();
-    fifoStall = false;
-    timerStalled = false;
-    fifoEmpty = false;
 }
 
 AtomicSimpleCPU::AtomicSimpleCPU(AtomicSimpleCPUParams *p)
@@ -269,11 +262,11 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
     // Read from fifo
     if (fifo_enabled && addr >= FIFO_ADDR_START && addr <= FIFO_ADDR_END) {
       readFromFifo(addr, data, size, flags);
-      return NoFault;   
+      return (fifoEmpty)? (new ReExec()) : NoFault;  
     }
 
     // Read from timer
-    if (timer_enabled && addr == TIMER_ADDR) {
+    if (timer_enabled && (addr == TIMER_READ_SLACK || addr == TIMER_READ_DROP)) {
       readFromTimer(addr, data, size, flags);
       return NoFault;
     }
@@ -551,6 +544,7 @@ AtomicSimpleCPU::tick()
 
             if (curStaticInst) {
 
+                setPredicate(true);
                 fault = curStaticInst->execute(this, traceData);
 
                 // keep an instruction count
@@ -593,7 +587,7 @@ AtomicSimpleCPU::tick()
             }
 
         }
-        if(fault != NoFault || (!stayAtPC && !fifoEmpty))
+        if(fault != NoFault || !stayAtPC)
             advancePC(fault);
     }
 
@@ -605,6 +599,10 @@ AtomicSimpleCPU::tick()
         if (fifoStall) {
             DPRINTF(Fifo, "Rescheduling...\n");
             schedule(fifoEvent, curTick() + latency);
+        #ifdef DEBUG
+            // Count how many packets cause a stall
+            num_packets++;
+        #endif
             // Store start of stall time
             fifoStallTicks = curTick();
         } else {
@@ -645,8 +643,12 @@ void AtomicSimpleCPU::handleFifoEvent() {
 
     schedule(tickEvent, curTick() + ticks(1));
     
-    DPRINTF(Fifo, "Success, stalled for %d\n", curTick() - fifoStallTicks);
-    DPRINTF(FifoStall, "Fifo caused stall for %d ticks\n", curTick() - fifoStallTicks);
+  #ifdef DEBUG
+    unsigned stall_amt = curTick()-fifoStallTicks;
+    DPRINTF(Fifo, "Success, stalled for %d\n", stall_amt/ticks(1));
+    num_stalls += stall_amt;
+    DPRINTF(FifoStall, "Fifo caused stall for %d ticks\n", stall_amt);
+  #endif
   } else {
     // Failed
     // Retry on next cycle

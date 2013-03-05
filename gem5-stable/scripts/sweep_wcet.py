@@ -11,7 +11,7 @@ import os
 program = 'timer_monitor'
 
 # WCET per task to try (in cycles)
-wcets = [i for i in range(50, 100, 10) + range(100, 501, 20)]
+wcets = [i for i in range(50, 100, 10) + range(100, 401, 20)]
 # directory where simulation results are stored
 log_dir = os.environ["GEM5"] + "/m5out/%s/" % program
 compile_dir = os.environ["GEM5"] + "/tests/monitoring"

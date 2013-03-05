@@ -57,14 +57,20 @@
 #define TIMER_ADDR_START TIMER_ADDR
 #define TIMER_ADDR_END   TIMER_ADDR + 0x0000ffff
 
+// read registers
+#define TIMER_READ_SLACK       (TIMER_ADDR + 0x00)
+#define TIMER_READ_DROP        (TIMER_ADDR + 0x04)
+
 // write registers
 #define TIMER_START_TASK       (TIMER_ADDR + 0x00)
 #define TIMER_END_TASK         (TIMER_ADDR + 0x04)
 #define TIMER_START_SUBTASK    (TIMER_ADDR + 0x08)
 #define TIMER_END_SUBTASK      (TIMER_ADDR + 0x0c)
 #define TIMER_ENDSTART_SUBTASK (TIMER_ADDR + 0x10)
-#define TIMER_START_DECREMENT  (TIMER_ADDR + 0x14)
-#define TIMER_END_DECREMENT    (TIMER_ADDR + 0x18)
+#define TIMER_SET_THRES        (TIMER_ADDR + 0x14)
+// hidden write registers (should not be used by the program)
+#define TIMER_START_DECREMENT  (TIMER_ADDR + 0x100)
+#define TIMER_END_DECREMENT    (TIMER_ADDR + 0x104)
 
 // Packet that is written to timer
 class timerPacket {
@@ -83,8 +89,7 @@ class timerPacket {
     Tick decrementStart;
     // WCET end time
     Tick WCET_end;
-
-
+    
     // Reset all variables
     void init() {
       intask = false;
@@ -131,6 +136,8 @@ class Timer : public AbstractMemory
     Tick lat_var;
 
     timerPacket stored_tp;
+    // Drop threshold for monitor
+    int drop_thres;
 
   public:
 

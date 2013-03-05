@@ -19,7 +19,7 @@ print <<END;
 ---------------------------------------------------------
 Make sure you set your monitor in the dual_core.py
 configuration script. This will run a program to test
-the WCET for the monitor with an without dropping.
+the WCET for the monitor with and without dropping.
 ---------------------------------------------------------
 
 END

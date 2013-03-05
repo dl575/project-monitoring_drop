@@ -101,6 +101,9 @@ class BaseSimpleCPU : public BaseCPU
     }
 
   public:
+
+    virtual void init();
+
     void wakeup();
 
     void zero_fill_64(Addr addr) {
@@ -468,6 +471,8 @@ class BaseSimpleCPU : public BaseCPU
     bool fifoEmpty;
     // Amount of time spent stalled
     int fifoStallTicks;
+    // Count number of drops and non-drops
+    unsigned drops, not_drops;
 
     // Data structure for handling fifo event
     class fifoEventDetails {
@@ -503,12 +508,6 @@ class BaseSimpleCPU : public BaseCPU
 
     // Monitoring packet that is written to fifo
     monitoringPacket mp;
-    // Buffer for reading from Fifo
-    // Since reading form Fifo is destructive, need to buffer if multiple bytes
-    monitoringPacket read_mp;
-
-    // Packet that is written to timer
-    timerPacket write_tp;
 
 #ifdef DEBUG
     // Start time of task
@@ -519,9 +518,13 @@ class BaseSimpleCPU : public BaseCPU
     Addr subtask_addr;
     // Count number of packets
     unsigned num_packets;
+    unsigned last_packets;
+    // Count cycles due to FifoStall
+    unsigned num_stalls;
+    unsigned last_stalls;
 #endif
 
-    // Function that performs monitoring operatino during postExecute
+    // Function that performs monitoring operation during postExecute
     void performMonitoring();
     // Requests for reading/writing to fifo/timer
     Request data_read_req;
@@ -539,6 +542,8 @@ class BaseSimpleCPU : public BaseCPU
     // Write to timer
     void writeToTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
 
+    // Checks whether the head packet has the done flag asserted
+    bool isFifoDone();
     // Checks whether fifo is empty
     bool isFifoEmpty();
     // Send monitoring packet to fifo

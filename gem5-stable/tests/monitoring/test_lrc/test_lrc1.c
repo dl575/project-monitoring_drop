@@ -1,6 +1,6 @@
 
 /*
- * No funny business. This test should pass.
+ * Link register is overwritten by error function. This test should fail.
  */
 
 #include <stdio.h>
@@ -21,15 +21,19 @@ int __attribute__((noinline)) mult(int a, int b) {
 
 // Error function attempts to overwrite link register
 void __attribute__((noinline)) error() {
-  // 0x89c0 = 35264 is the address of the add function
-  // On bxl, return address + 1 seems to be saved, so using 35265
-  __asm__("ldr lr,=#35265"); 
+  // load function address
+  int (*func)() = add;
+  // load address to link register
+  __asm__(
+    "mov lr, %0"
+    :
+    : "r" (func)
+  ); 
   return;
 }
 
 int main(int argc, char *argv[]) {
   INIT_MONITOR
-  INIT_BSS
   INIT_CODE
 
   int i;
@@ -50,7 +54,7 @@ int main(int argc, char *argv[]) {
     sum = sub(sum, array[i]);
     sum = mult(sum, array[i]);
   }
-  //error();
+  error();
 
   // Main core finished
   DISABLE_MONITOR;

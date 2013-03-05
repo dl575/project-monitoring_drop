@@ -104,9 +104,6 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 
     bool fastmem;
     Request ifetch_req;
-    // Added to base.hh
-    // Request data_read_req;
-    // Request data_write_req;
 
     bool dcache_access;
     Tick dcache_latency;

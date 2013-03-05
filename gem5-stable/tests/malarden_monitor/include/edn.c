@@ -262,6 +262,9 @@ jpegdct(short *d, short *r)
 int
 edn(void)
 {
+    INIT_MONITOR;
+    while (!READ_FIFO_EMPTY);
+
     START_TASK(WCET_EDN);
     
     START_SUBTASK(WCET_EDN_1);
@@ -316,6 +319,8 @@ edn(void)
 	/*
 	 * Declared as memory variable so it doesn't get optimized out
 	 */
+     
+    output[0] = 0;
 
 	vec_mpy1(a, b, c);
 	c = mac(a, b, (long int) c, (long int *) output);
@@ -330,5 +335,5 @@ edn(void)
     
     END_TASK(FIFO_SIZE*MON_DROP_WCET);
     
-	return d;
+	return c;
 }

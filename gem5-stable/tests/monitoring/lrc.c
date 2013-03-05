@@ -53,11 +53,6 @@ int main(int argc, char *argv[]) {
 #endif
     }
 
-    // Exit if done
-    if (temp = READ_FIFO_DONE) {
-      printf("Finished monitoring\n");
-      return 0;
-    }
     // Next entry
     POP_FIFO;
   } // while(1)

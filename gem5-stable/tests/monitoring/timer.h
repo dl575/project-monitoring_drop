@@ -26,7 +26,12 @@ volatile int *timer;
 #define END_SUBTASK            *(timer + 3) = 1;
 // end subtask and start a new one
 #define ENDSTART_SUBTASK(WCET) *(timer + 4) = WCET;
+// define drop threshold for monitor
+#define SET_THRES(WCET)        *(timer + 5) = WCET;
+
 // read from slack timer
-#define READ_SLACK             *timer
+#define READ_SLACK             *(timer)
+// read if drop from slack timer
+#define READ_SLACK_DROP        *(timer + 1)
 
 #endif // __SLACKTIMER_H__

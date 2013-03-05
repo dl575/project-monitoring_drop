@@ -4,8 +4,8 @@
 #include "timer.h"
 #include "monitoring.h"
 
-#define WCET_CYCLES 14
-#define WCET 155
+#define WCET_CYCLES 12
+#define WCET 153
 
 #ifndef WCET_SCALE
   #define WCET_SCALE 1

@@ -131,7 +131,20 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
             uint64_t send_data = 0;
             //This is the monitoring packet we will read
             monitoringPacket mp = invalidPacket;
-            if (!empty()) { mp = fifo_array[tail_pointer]; }
+            //if (!empty()) { mp = fifo_array[tail_pointer]; }
+            
+            //Skip invalid packets
+            while (!empty() && !mp.valid) {
+                if (fifo_array[tail_pointer].valid){
+                    mp = fifo_array[tail_pointer];
+                }else{
+                    // Update tail_pointer
+                    tail_pointer++;
+                    tail_pointer %= FIFO_SIZE;
+
+                    DPRINTF(Fifo, "Skipped invalid fifo packet, now head at %d, tail is at %d\n", head_pointer, tail_pointer);
+                }
+            }
             
             //Set data based on address
             if (read_addr == FIFO_VALID) { send_data = mp.valid; }

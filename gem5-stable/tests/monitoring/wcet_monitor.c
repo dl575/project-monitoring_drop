@@ -31,14 +31,13 @@ int main(int argc, char *argv[]) {
   }
 
   // Main loop, loop until main core signals done
-  while(!READ_FIFO_DONE || !READ_FIFO_VALID) {
+  while(READ_FIFO_VALID) {
     //Delays monitor to emulate real monitor
     for (i = delay; i > 0; i--){
         j = 0; j = 0; //Just takes some cycles to get a better multiple
     }
     POP_FIFO; //It takes 8 cycles to get here
   }
-
-  printf("Finished\n");
-  return 0;
+  
+  return 1;
 }
