@@ -10,6 +10,9 @@
 #ifdef UMC
     #include "umc_timing.h"
 #endif
+#ifdef LRC
+    #include "lrc_timing.h"
+#endif
 
 // Timer base address
 #define TIMER_ADDR 0x30010000

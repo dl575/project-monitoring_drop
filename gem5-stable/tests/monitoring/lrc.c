@@ -1,6 +1,6 @@
 
 /*
- * umc.c
+ * lrc.c
  *
  * Link register check. Check that the link register on a call
  * matches the value on the return.
@@ -14,7 +14,7 @@
 
 #include "monitoring.h"
 
-#undef DEBUG
+#define DEBUG
 
 // Stack to store link registers
 int lr[256];

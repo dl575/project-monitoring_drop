@@ -63,9 +63,9 @@ from cpu2000 import *
 
 # Define the monitoring function used
 #monitor = "umc"
-monitor = "umc_drop"
-# monitor = "lrc"
-# monitor = "lrc_drop"
+#monitor = "umc_drop"
+#monitor = "lrc"
+monitor = "lrc_drop"
 
 parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
@@ -91,15 +91,6 @@ MainCPUClass.fifo_enabled = True
 MainCPUClass.monitoring_enabled = False
 # Enable slack timer so it can write to it
 MainCPUClass.timer_enabled = True
-# Set up monitoring filter
-# if monitor == "umc" or monitor == "umc_drop":
-  # MainCPUClass.monitoring_filter_load = True
-  # MainCPUClass.monitoring_filter_store = True
-# elif monitor == "lrc" or monitor == "lrc_drop":
-  # MainCPUClass.monitoring_filter_call = True
-  # MainCPUClass.monitoring_filter_ret = True
-# else:
-  # raise Exception("No monitoring filter defined for %s" % monitor)
 
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
@@ -111,6 +102,7 @@ MonCPUClass.monitoring_enabled = False
 # Enable slack timer so it can read from it
 MonCPUClass.timer_enabled = True
 
+# Set up monitoring filter
 execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
 
 # Number of CPUs

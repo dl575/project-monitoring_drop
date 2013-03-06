@@ -7,9 +7,6 @@
 #ifndef __MONITORING_H__
 #define __MONITORING_H__
 
-// #include <stdbool.h>
-// #include <stdint.h>
-
 #define MAXNUMSRCREGS 27
 #define PCREG 0xf
 
