@@ -193,7 +193,7 @@ char            buf[BITS];
 
 /*----------------------------------------- Prototypes */
 void            initbuffer(void);
-long int        compress(void);
+long int        compress_sub(void);
 void            cl_hash(count_int hsize);	/* reset code table */
 unsigned int    getbyte(void);
 void            putbyte(char c);
@@ -202,7 +202,7 @@ void            output(code_int code);
 void            writebytes(char *buf, int n);
 
 int 
-compress_main(void)
+compress(void)
 {
 
     INIT_MONITOR;
@@ -231,7 +231,7 @@ compress_main(void)
 
     ENDSTART_SUBTASK(WCET_CMP_2);
     
-	int result = compress();
+	int result = compress_sub();
     
     END_SUBTASK;
     
@@ -268,7 +268,7 @@ long int        out_count = 0;	/* # of codes output (for debugging) */
 
 
 long int 
-compress(void)
+compress_sub(void)
 {
 	register long   fcode;
 	register code_int i = 0;

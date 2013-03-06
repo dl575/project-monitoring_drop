@@ -22,7 +22,7 @@
 
 void            vec_mpy1(short y[], const short x[], short scaler);
 long int        mac(const short *a, const short *b, long int sqr, long int *sum);
-void            fir(const short array1[], const short coeff[], long int output[]);
+void            fir_sub(const short array1[], const short coeff[], long int output[]);
 void            fir_no_red_ld(const short x[], const short h[], long int y[]);
 long int        latsynth(short b[], const short k[], long int n, long int f);
 void            iir1(const short *coefs, const short *input, long int *optr, long int *state);
@@ -73,7 +73,7 @@ mac(const short *a, const short *b, long int sqr, long int *sum)
 *		FIR Filter		     *
 *****************************************************/
 void
-fir(const short array1[], const short coeff[], long int output[])
+fir_sub(const short array1[], const short coeff[], long int output[])
 {
 	long int        i, j, sum;
 
@@ -324,7 +324,7 @@ edn(void)
 
 	vec_mpy1(a, b, c);
 	c = mac(a, b, (long int) c, (long int *) output);
-	fir(a, b, output);
+	fir_sub(a, b, output);
 	fir_no_red_ld(a, b, output);
 	d = latsynth(a, b, N, d);
 	iir1(a, b, &output[100], output);

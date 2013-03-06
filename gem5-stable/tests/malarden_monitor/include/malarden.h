@@ -57,7 +57,7 @@ int edn(void);
 #define WCET_CMP_4 81
 #define WCET_CMP_5 50
 #define WCET_CMP_6 99
-int compress_main(void);
+int compress(void);
 
 /** fir.c **/
 // No monitoring: 3208
@@ -66,9 +66,9 @@ int compress_main(void);
 #define WCET_FIR_2 32
 #define WCET_FIR_3 26
 #define WCET_FIR_4 180
-int fir_main(void);
+int fir(void);
 
-/** jfdcint.c **/
+/** jfdc.c **/
 // No monitoring: 3304
 #define WCET_JFDC 9760*(WCET_SCALE-1)
 #define WCET_JFDC_1 1202

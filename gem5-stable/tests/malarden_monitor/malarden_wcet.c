@@ -14,7 +14,7 @@
 #define NBENCH 8
 
 // Array of benchmarks
-int (*benchmarks[NBENCH])() = {insertsort, crc, edn, nsichneu, statemate, compress_main, fir_main, jfdc};
+int (*benchmarks[NBENCH])() = {insertsort, crc, edn, compress, fir_main, jfdc, nsichneu, statemate};
 
 int main(int argc, char* argv[]) {
   

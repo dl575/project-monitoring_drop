@@ -19,7 +19,7 @@ if not os.path.isdir(gen_dir):
 input_filename = src_dir + "malarden_template.c"
 
 # Malarden functions
-funcs = ["insertsort", "crc", "edn"]
+funcs = ['insertsort', 'crc', 'edn', 'compress', 'fir', 'jfdc', 'nsichneu', 'statemate']
 # Number of different benchmark functions
 nfuncs = len(funcs)
 

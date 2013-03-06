@@ -196,7 +196,7 @@ fir_filter_int(long *in, long *out, long in_len,
  *--- Main Function
  *--------------------------------------------------*/
 int 
-fir_main(void)
+fir(void)
 {
 	
     INIT_MONITOR;
