@@ -62,6 +62,7 @@ class CheckerCPU;
 class FastCPU;
 class AtomicSimpleCPU;
 class TimingSimpleCPU;
+class WCETSimpleCPU;
 class InorderCPU;
 class SymbolTable;
 

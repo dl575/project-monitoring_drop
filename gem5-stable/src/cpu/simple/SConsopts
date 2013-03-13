@@ -34,6 +34,10 @@ CpuModel('AtomicSimpleCPU', 'atomic_simple_cpu_exec.cc',
          '#include "cpu/simple/atomic.hh"',
          { 'CPU_exec_context': 'AtomicSimpleCPU' },
          default=True)
+CpuModel('WCETSimpleCPU', 'wcet_simple_cpu_exec.cc',
+         '#include "cpu/simple/wcet.hh"',
+         { 'CPU_exec_context': 'WCETSimpleCPU' },
+         default=True)
 CpuModel('TimingSimpleCPU', 'timing_simple_cpu_exec.cc',
          '#include "cpu/simple/timing.hh"',
          { 'CPU_exec_context': 'TimingSimpleCPU' },

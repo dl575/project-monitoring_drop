@@ -56,6 +56,9 @@ def setCPUClass(options):
             print "InOrder CPU must be used with caches"
             sys.exit(1)
         class TmpClass(InOrderCPU): pass
+    elif options.cpu_type == "wcet":
+        class TmpClass(WCETSimpleCPU): pass
+        atomic = True
     else:
         class TmpClass(AtomicSimpleCPU): pass
         atomic = True

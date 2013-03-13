@@ -86,12 +86,14 @@ numThreads = 1
 
 # Create new CPU type for main core
 (MainCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
-MainCPUClass.clock = '250MHz'
+MainCPUClass.clock = '2GHz'
 MainCPUClass.numThreads = numThreads;
 MainCPUClass.fifo_enabled = True
 MainCPUClass.monitoring_enabled = False
 # Enable slack timer so it can write to it
 MainCPUClass.timer_enabled = True
+# Use WCET core for 'monitoring'
+options.cpu_type = 'wcet'
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 MonCPUClass.clock = '2GHz'
@@ -99,10 +101,12 @@ MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True
 MonCPUClass.monitoring_enabled = False
-# Enable slack timer so it can read from it
-MonCPUClass.timer_enabled = True
+MonCPUClass.timer_enabled = False
 
 execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
+
+# Set simulation delay for the core
+MonCPUClass.delay = delay
 
 # Number of CPUs
 np = 2
@@ -138,11 +142,8 @@ process0.executable = options.cmd
 process0.cmd = [options.cmd] + options.options.split()
 system.cpu[0].workload = process0
 process1 = LiveProcess()
-process1.executable = os.environ["GEM5"] + "/tests/monitoring/wcet_monitor.arm"
-if delay:
-  process1.cmd = [process1.executable] + [delay]
-else:
-  process1.cmd = ""
+process1.executable = options.cmd
+process1.cmd = ""
 system.cpu[1].workload = process1
 
 # Connect system to the bus

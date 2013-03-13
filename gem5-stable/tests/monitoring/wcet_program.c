@@ -13,6 +13,8 @@
 #include "monitoring.h"
 #include "timer.h"
 
+#define ARRSIZE 1000
+
 int __attribute__((noinline)) add(int a, int b) {
   return a + b;
 }
@@ -25,23 +27,23 @@ int main(int argc, char *argv[]) {
   
   ENABLE_MONITOR;
   
-  unsigned volatile int arr[100];
+  unsigned volatile int arr[ARRSIZE];
   unsigned int i;
   register sum = 0;
   
-  for (i = 0; i < 100; ++i){
+  for (i = 0; i < ARRSIZE; ++i){
     arr[i] = i;
     //sum += arr[i];
     sum = add(sum, arr[i]);
   }
   
   START_TASK(0);
-  for (i = 0; i < 100; ++i){
+  for (i = 0; i < ARRSIZE; ++i){
     arr[i] = i;
     //sum += arr[i];
     sum = add(sum, arr[i]);
   }
-  END_TASK(100*200);
+  END_TASK(ARRSIZE*200);
   
   DISABLE_MONITOR;
 
