@@ -8,6 +8,7 @@ import glob
 import re
 import subprocess
 import os
+import math
 
 import matplotlib.pyplot as plot
 
@@ -22,12 +23,15 @@ drops = {}
 not_drops = {}
 ticks = {}
 
+# Ticks per cycle to convert execution time into cycles
+TICKS_PER_CYCLE = 500
+
 # For each log file
 for filename in glob.glob(os.path.join(log_dir, "wcet*.log")):
   # Parse filename to determine benchmark and wcet
   parse_filename = re.search("wcet_([\w_]*)_([\d]*).log", filename)
   benchmark = parse_filename.group(1)
-  # Store benchmark name and WCET
+  # Store benchmark name and WCET 
   if benchmark not in benchmarks:
     benchmarks.append(benchmark)
     wcets[benchmark] = [int(parse_filename.group(2))]
@@ -61,11 +65,21 @@ print drops
 print not_drops
 print ticks
 
-# Plot all the drops vs. WCET and execution time vs. WCET plots 
-# using subplots on one figure.
+# Convert ticks to cycles
+for bench_ticks in ticks.values():
+  for i in range(len(bench_ticks)):
+    bench_ticks[i] /= TICKS_PER_CYCLE
+
+###
+# Plot all the drops vs. WCET using subplots on one figure.
+# Number of rows/cols of subplots
+sp_rows = math.ceil(math.sqrt(len(benchmarks)))
+# Create new figures
+fig1 = plot.figure()
+fig2 = plot.figure()
 
 # For each set of benchmarks
-for benchmark in benchmarks:
+for (i, benchmark) in enumerate(benchmarks):
 
   # Data for this benchmark set
   pwcets = wcets[benchmark]
@@ -73,24 +87,25 @@ for benchmark in benchmarks:
   pnot_drops = not_drops[benchmark]
   pticks = ticks[benchmark]
 
-  fig = plot.figure()
   
   # Plot drops vs. WCET
-  ax1 = plot.subplot(211)
+  ax1 = fig1.add_subplot(sp_rows, sp_rows, i+1)
   ax1.scatter(pwcets, pdrops)
   ax1.scatter(pwcets, pnot_drops, c='r')
-  plot.title(benchmark)
-  plot.xlabel("WCET")
-  plot.ylabel("Drops")
-  plot.grid(True)
+  ax1.set_title(benchmark)
+  ax1.set_xlabel("WCET")
+  ax1.set_ylabel("Drops")
+  ax1.grid(True)
   #plot.legend(("Dropped", "Not dropped"), loc="best")
 
   # Plot execution time vs. WCET
-  plot.subplot(212)
-  plot.scatter(pwcets, pticks)
-  plot.xlabel("WCET")
-  plot.ylabel("Execution time")
-  plot.grid(True)
+  #fig2.subplot(212)
+  ax2 = fig2.add_subplot(sp_rows, sp_rows, i+1)
+  ax2.scatter(pwcets, pticks)
+  ax2.set_title(benchmark)
+  ax2.set_xlabel("WCET")
+  ax2.set_ylabel("Execution time")
+  ax2.grid(True)
 
 
 plot.show()
