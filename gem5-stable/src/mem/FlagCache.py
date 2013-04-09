@@ -42,9 +42,8 @@
 from m5.params import *
 from AbstractMemory import *
 
-class Fifo(AbstractMemory):
-    type = 'Fifo'
+class FlagCache(AbstractMemory):
+    type = 'FlagCache'
     port = VectorSlavePort("Slave ports")
     latency = Param.Latency('30ns', "Request to response latency")
     latency_var = Param.Latency('0ns', "Request to response latency variance")
-    fifo_size = Param.Unsigned(16, "Fifo size")

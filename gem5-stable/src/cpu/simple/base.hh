@@ -59,8 +59,16 @@
 #include "sim/full_system.hh"
 #include "sim/system.hh"
 
+#include "debug/Fifo.hh"
+#include "debug/FifoStall.hh"
+#include "debug/Monitoring.hh"
+#include "debug/SlackTimer.hh"
+#include "debug/Task.hh"
+#include "debug/Invalidation.hh"
+
 #include "mem/fifo.hh"
 #include "mem/timer.hh"
+#include "mem/flag_cache.hh"
 
 // forward declarations
 class Checkpoint;
@@ -441,6 +449,17 @@ class BaseSimpleCPU : public BaseCPU
     bool fifo_enabled;
     // Enable timer for slack tracking
     bool timer_enabled;
+    // Enable flag cache
+    bool flagcache_enabled;
+    
+    enum instType { 
+        inst_undef,       // Unknown instruction
+        inst_load,        // Load instruction
+        inst_store,       // Store instruction
+        inst_call,        // Call instruction
+        inst_ret,         // Return instruction
+        num_inst_types    // Number of instruction types
+    };
 
   private:
     class FifoPort : public CpuPort
@@ -456,12 +475,34 @@ class BaseSimpleCPU : public BaseCPU
           return true;
         }
     };
+    
+    class InvalidationTable
+    {
+      public:
+        std::string sel1[num_inst_types];
+        std::string sel2[num_inst_types];
+        std::string aluop[num_inst_types];
+        int constant[num_inst_types];
+        std::string action[num_inst_types];
+        bool initialized;
+        
+        bool initTable(const char * file_name);
+        
+      private:
+      
+        instType parseInstType(const char * inst_type);
+    
+    };
 
   protected:
     // Port for monitoring fifo
     FifoPort fifoPort;
     // Port for accessing timer
     CpuPort timerPort;
+    // Port for accessing flag cache
+    CpuPort fcPort;
+    // Invalidation table object
+    InvalidationTable invtab;
 
     // Stall because need to write to fifo but fifo is full
     bool fifoStall;
@@ -471,8 +512,6 @@ class BaseSimpleCPU : public BaseCPU
     bool fifoEmpty;
     // Amount of time spent stalled
     int fifoStallTicks;
-    // Count number of drops and non-drops
-    unsigned drops, not_drops;
 
     // Data structure for handling fifo event
     class fifoEventDetails {
@@ -533,14 +572,26 @@ class BaseSimpleCPU : public BaseCPU
       panic("endTask not implemented\n");
     }
 
+    Fault ReExecFault;
+    
     // Read from fifo into data
-    void readFromFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+    Fault readFromFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     // Read from slack timer into data
-    void readFromTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+    Fault readFromTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags);
+    // Read from flag cache into data
+    Fault readFromFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
+    // Get the type of instruction from fifo entry
+    instType readFifoInstType();
+    // Perform an ALU operation
+    Addr performOp(std::string &op, Addr a, Addr b);
+    // Select the a value for the ALU operation
+    Addr selectValue(std::string &select, Addr c);
     // Write to fifo
-    void writeToFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+    Fault writeToFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     // Write to timer
-    void writeToTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags); 
+    Fault writeToTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags);
+    // Write to flag cache
+    Fault writeToFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
 
     // Checks whether the head packet has the done flag asserted
     bool isFifoDone();

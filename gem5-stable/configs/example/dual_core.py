@@ -63,9 +63,9 @@ from cpu2000 import *
 
 # Define the monitoring function used
 #monitor = "umc"
-#monitor = "umc_drop"
+monitor = "umc_drop"
 #monitor = "lrc"
-monitor = "lrc_drop"
+# monitor = "lrc_drop"
 
 parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
@@ -91,6 +91,8 @@ MainCPUClass.fifo_enabled = True
 MainCPUClass.monitoring_enabled = False
 # Enable slack timer so it can write to it
 MainCPUClass.timer_enabled = True
+# Don't need flag cache for main core
+MainCPUClass.flagcache_enabled = False
 
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
@@ -101,6 +103,8 @@ MonCPUClass.fifo_enabled = True
 MonCPUClass.monitoring_enabled = False
 # Enable slack timer so it can read from it
 MonCPUClass.timer_enabled = True
+# Need flag cache for monitoring core
+MonCPUClass.flagcache_enabled = True
 
 # Set up monitoring filter
 execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
@@ -115,23 +119,25 @@ system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
 
 # Create a "fifo" memory
 fifo = Fifo(range=AddrRange(start=0x30000000, size="64kB")) 
+# fifo.fifo_size = 32
 system.fifo = fifo
-# Connect CPU to fifo
-if system.cpu[0].fifo_enabled:
-  system.cpu[0].fifo_port = system.fifo.port
-# Connect CPU to fifo
-if system.cpu[1].fifo_enabled:
-  system.cpu[1].fifo_port = system.fifo.port
-
 # Create timer
 timer = Timer(range=AddrRange(start=0x30010000, size="64kB"))
 system.timer = timer
-# Connect cpu 0
-if system.cpu[0].timer_enabled:
-  system.cpu[0].timer_port = system.timer.port
-# Connect cpu 1
-if system.cpu[1].timer_enabled:
-  system.cpu[1].timer_port = system.timer.port
+# Create flag cache
+flagcache = FlagCache(range=AddrRange(start=0x30020000, size="64kB"))
+system.flagcache = flagcache
+
+for i in range(options.num_cpus):
+  # Connect CPU to fifo
+  if system.cpu[i].fifo_enabled:
+    system.cpu[i].fifo_port = system.fifo.port
+  # Connect CPU to timer
+  if system.cpu[i].timer_enabled:
+    system.cpu[i].timer_port = system.timer.port
+  # Connect CPU to flag cache
+  if system.cpu[i].flagcache_enabled:
+    system.cpu[i].flagcache_port = system.flagcache.port
 
 # Assign programs
 process0 = LiveProcess()

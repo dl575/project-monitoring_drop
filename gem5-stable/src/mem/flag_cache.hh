@@ -43,65 +43,48 @@
 
 /**
  * @file
- * SimpleMemory declaration
+ * Flag Cache declaration
  */
 
-#ifndef __TIMER_HH__
-#define __TIMER_HH__
+#ifndef __FLAG_CACHE_HH__
+#define __FLAG_CACHE_HH__
 
 #include "mem/abstract_mem.hh"
 #include "mem/tport.hh"
-#include "params/Timer.hh"
+#include "params/FlagCache.hh"
 
-#define TIMER_ADDR 0x30010000
-#define TIMER_ADDR_START TIMER_ADDR
-#define TIMER_ADDR_END   TIMER_ADDR + 0x0000ffff
+// Number of entries in cache
+#define FC_IDX_WIDTH 8
+#define FC_SIZE (1 << FC_IDX_WIDTH)
+#define FA_SIZE 16
+// Number of ways
+#define FC_NUM_WAYS 1
+// Flag Cache device address
+#define FLAG_CACHE_ADDR 0x30020000
+#define FLAG_CACHE_ADDR_START FLAG_CACHE_ADDR
+#define FLAG_CACHE_ADDR_END   FLAG_CACHE_ADDR + 0x0000ffff
 
-// read registers
-#define TIMER_READ_SLACK       (TIMER_ADDR + 0x00)
-#define TIMER_READ_DROP        (TIMER_ADDR + 0x04)
-// hidden read registers (should not be used by the program)
-#define TIMER_DROPS            (TIMER_ADDR + 0x100)
-#define TIMER_NOT_DROPS        (TIMER_ADDR + 0x104)
+// read values
+#define FC_GET_ADDR            (FLAG_CACHE_ADDR + 0x00)
+#define FC_GET_FLAG_A          (FLAG_CACHE_ADDR + 0x04)
+#define FC_GET_FLAG_C          (FLAG_CACHE_ADDR + 0x08)
 
 // write registers
-#define TIMER_START_TASK       (TIMER_ADDR + 0x00)
-#define TIMER_END_TASK         (TIMER_ADDR + 0x04)
-#define TIMER_START_SUBTASK    (TIMER_ADDR + 0x08)
-#define TIMER_END_SUBTASK      (TIMER_ADDR + 0x0c)
-#define TIMER_ENDSTART_SUBTASK (TIMER_ADDR + 0x10)
-#define TIMER_SET_THRES        (TIMER_ADDR + 0x14)
-// hidden write registers (should not be used by the program)
-#define TIMER_START_DECREMENT  (TIMER_ADDR + 0x100)
-#define TIMER_END_DECREMENT    (TIMER_ADDR + 0x104)
+#define FC_SET_ADDR            (FLAG_CACHE_ADDR + 0x00)
+#define FC_SET_FLAG            (FLAG_CACHE_ADDR + 0x04)
+#define FC_CLEAR_FLAG          (FLAG_CACHE_ADDR + 0x08)
 
-// Packet that is written to timer
-class timerPacket {
+// A single cache line
+class cacheLine {
   public:
-    // Start time of subtask
-    Tick subtaskStart;
-    // WCET of current subtask
-    int subtaskWCET;
-    // Accumulated slack
-    int slack;
-    // currently executing a task
-    bool intask;
-    // currently decrementing slack
-    bool isDecrement;
-    // decrement start time
-    Tick decrementStart;
-    // WCET end time
-    Tick WCET_end;
-    
-    // Reset all variables
+    Addr tags [FC_NUM_WAYS];   // address tags in the line
+    unsigned num_valid;        // the number of ways that are valid
+    bool aliased;              // the line is aliased
+
+    // Clear all variables
     void init() {
-      intask = false;
-      isDecrement = false;
-      subtaskStart = 0;
-      subtaskWCET = 0;
-      slack = 0;
-      decrementStart = 0;
-      WCET_end = 0;
+      num_valid = 0;
+      aliased = false;
     }
 };
 
@@ -110,24 +93,25 @@ class timerPacket {
  * throughput and a fixed latency, potentially with a variance added
  * to it. It uses a SimpleTimingPort to implement the timing accesses.
  */
-class Timer : public AbstractMemory
+class FlagCache : public AbstractMemory
 {
 
   private:
 
     class MemoryPort : public SimpleTimingPort
     {
-        Timer& memory;
+        FlagCache& memory;
 
       public:
 
-        MemoryPort(const std::string& _name, Timer& _memory);
+        MemoryPort(const std::string& _name, FlagCache& _memory);
 
       protected:
 
         virtual Tick recvAtomic(PacketPtr pkt);
 
         virtual void recvFunctional(PacketPtr pkt);
+        virtual bool recvTimingReq(PacketPtr pkt);
 
         virtual AddrRangeList getAddrRanges();
 
@@ -138,17 +122,11 @@ class Timer : public AbstractMemory
     Tick lat;
     Tick lat_var;
 
-    timerPacket stored_tp;
-    // Drop threshold for monitor
-    int drop_thres;
-    // Drop Statistics
-    unsigned drops, not_drops;
-
   public:
 
-    typedef TimerParams Params;
-    Timer(const Params *p);
-    virtual ~Timer() { }
+    typedef FlagCacheParams Params;
+    FlagCache(const Params *p);
+    virtual ~FlagCache() { }
 
     unsigned int drain(Event* de);
 
@@ -167,6 +145,23 @@ class Timer : public AbstractMemory
     void doFunctionalAccess(PacketPtr pkt);
     virtual Tick calculateLatency(PacketPtr pkt);
 
+  private:
+    
+    // Cache Array
+    cacheLine cache_array[FC_SIZE];
+    // Flag Array
+    bool flag_array[FA_SIZE];
+    // Address Register
+    Addr addr;
+    
+    Addr cacheAddr (Addr fullAddr){
+        return fullAddr % FC_SIZE;
+    }
+    
+    Addr arrayAddr (Addr fullAddr){
+        return fullAddr % FA_SIZE;
+    }
+
 };
 
-#endif //__TIMER_HH__
+#endif //__FLAG_CACHE_HH__

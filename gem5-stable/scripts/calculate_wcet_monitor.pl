@@ -25,18 +25,25 @@ the WCET for the monitor with and without dropping.
 END
 
 open my $ex, "-|", "gem5.debug --debug-flags=SlackTimer,Fifo $gem5/configs/example/dual_core.py -c $gem5/tests/monitoring/wcet_program.arm --cpu-type=atomic" or die "Failed to run gem5\n";
+# open my $ex, "-|", "gem5.debug --debug-flags=SlackTimer,Fifo $gem5/configs/example/dual_core.py -c $gem5/tests/monitoring/wcet_program.arm --cpu-type=timing --caches" or die "Failed to run gem5\n";
 
 my $intask = 0;
-my $isvalid = 0;
+my $stall_start;
+my $stall_time = 0;
 
 my $last_pop;
 my $max_delay_full;
 my $max_delay_drop;
 
 while (<$ex>){
-    $isvalid = 1 if (/Check if Fifo empty: 0/);
-    if (/Check if Fifo empty: 1/){
-        $isvalid = 0;
+    if (/^(\d+).*?Check if Fifo empty: 0/){
+        $stall_time = (defined $stall_start)? ($1 - $stall_start) : 0;
+        undef $stall_start;
+    }
+    if (/^(\d+).*?Check if Fifo empty: 1/){
+        $stall_start = $1;
+    }
+    if (/Creating custom packet/){
         undef $last_pop;
     }
     if (/Written to timer: task start/){
@@ -48,11 +55,11 @@ while (<$ex>){
         undef $last_pop;
     }
     
-    if ($isvalid && /^(\d+).*?Pop fifo/){
+    if (/^(\d+).*?Pop fifo/){
         if (!defined $last_pop){
             $last_pop = $1;
         }else{
-            my $delay = $1 - $last_pop;
+            my $delay = $1 - $last_pop - $stall_time;
             $last_pop = $1;
             if ($intask){
                 unless (defined $max_delay_drop && $max_delay_drop > $delay){
@@ -64,6 +71,7 @@ while (<$ex>){
                 }
             }
         }
+        $stall_time = 0;
     }
 }
 close $ex;

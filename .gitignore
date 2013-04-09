@@ -5,6 +5,7 @@ gem5-stable/build
 gem5-stable/m5out
 gem5-stable/parser.out
 gem5-stable/parsetab.py
+gem5-stable/tests/malarden_monitor/generated
 
 # Mercurial files
 .hg

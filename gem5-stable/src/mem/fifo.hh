@@ -53,31 +53,29 @@
 #include "mem/tport.hh"
 #include "params/Fifo.hh"
 
-// Number of entries in FIFO
-#define FIFO_SIZE 16
-// Space between fifo entries
-#define FIFO_ENTRY_SIZE 0x100
 // FIFO device address
 #define FIFO_ADDR 0x30000000
 #define FIFO_ADDR_START FIFO_ADDR
 #define FIFO_ADDR_END   FIFO_ADDR + 0x0000ffff
 
 // Addresses used for parts of monitoring packet
-#define FIFO_VALID         FIFO_ADDR          // valid packet
-#define FIFO_INSTADDR      (FIFO_ADDR + 0x04) // program counter
-#define FIFO_MEMADDR       (FIFO_ADDR + 0x08) // memory address
-#define FIFO_MEMEND        (FIFO_ADDR + 0x0c) // memory end range
-#define FIFO_DATA          (FIFO_ADDR + 0x10) // load/store data
-#define FIFO_STORE         (FIFO_ADDR + 0x14) // store flag
-#define FIFO_DONE          (FIFO_ADDR + 0x18) // main core done
-#define FIFO_NUMSRCREGS    (FIFO_ADDR + 0x1c) // number of source registers
-#define FIFO_SRCREGS_START (FIFO_ADDR + 0x20) // first source register
-#define FIFO_SRCREGS_END   (FIFO_ADDR + 0x8c) // last source register
-#define FIFO_CONTROL       (FIFO_ADDR + 0x90) // control flag
-#define FIFO_CALL          (FIFO_ADDR + 0x94) // call flag
-#define FIFO_RET           (FIFO_ADDR + 0x98) // return flag
-#define FIFO_LR            (FIFO_ADDR + 0x9c) // link register
-#define FIFO_NEXTPC        (FIFO_ADDR + 0xa0) // next instruction address
+#define FIFO_VALID         FIFO_ADDR                // valid packet
+#define FIFO_INSTADDR      (FIFO_ADDR + 0x04)       // program counter
+#define FIFO_MEMADDR       (FIFO_ADDR + 0x08)       // memory address
+#define FIFO_MEMEND        (FIFO_ADDR + 0x0c)       // memory end range
+#define FIFO_DATA          (FIFO_ADDR + 0x10)       // load/store data
+#define FIFO_STORE         (FIFO_ADDR + 0x14)       // store flag
+#define FIFO_DONE          (FIFO_ADDR + 0x18)       // main core done
+#define FIFO_NUMSRCREGS    (FIFO_ADDR + 0x1c)       // number of source registers
+#define FIFO_SRCREGS_START (FIFO_ADDR + 0x20)       // first source register
+#define FIFO_SRCREG(x)     (FIFO_ADDR + 0x20 + 4*x) // source register x
+#define FIFO_SRCREGS_END   (FIFO_ADDR + 0x8c)       // last source register
+#define FIFO_CONTROL       (FIFO_ADDR + 0x90)       // control flag
+#define FIFO_CALL          (FIFO_ADDR + 0x94)       // call flag
+#define FIFO_RET           (FIFO_ADDR + 0x98)       // return flag
+#define FIFO_LR            (FIFO_ADDR + 0x9c)       // link register
+#define FIFO_NEXTPC        (FIFO_ADDR + 0xa0)       // next instruction address
+#define FIFO_LOAD          (FIFO_ADDR + 0xa4)       // load flag
 
 // Fifo registers
 #define FIFO_REG_START (FIFO_ADDR + 0x1000) 
@@ -99,7 +97,8 @@ class monitoringPacket {
     Addr memAddr;         // address of memory access
     Addr memEnd;          // range of memory address
     uint64_t data;        // data for memory access
-    bool store;           // true if store instruction, false if load
+    bool store;           // true if store instruction
+    bool load;            // true if load instruction
     bool done;            // indicates that the main core program has finished
     uint8_t numsrcregs;   // indicates the number of source registers used for this instruction
     uint8_t srcregs[27];  // the actual source registers for the instruction
@@ -117,6 +116,7 @@ class monitoringPacket {
       memEnd = 0;
       data = 0;
       store = false;
+      load = false;
       done = false;
       numsrcregs = 0;
       for (unsigned i = 0; i < 27; ++i){
@@ -168,7 +168,7 @@ class Fifo : public AbstractMemory
 
     typedef FifoParams Params;
     Fifo(const Params *p);
-    virtual ~Fifo() { }
+    virtual ~Fifo();
 
     unsigned int drain(Event* de);
 
@@ -192,8 +192,11 @@ class Fifo : public AbstractMemory
     int head_pointer;
     int tail_pointer;
     
+    // Fifo size
+    unsigned fifo_size;
+    
     // Fifo Array
-    monitoringPacket fifo_array[FIFO_SIZE];
+    monitoringPacket * fifo_array;
     
     // invalid packet
     monitoringPacket invalidPacket;
@@ -203,7 +206,7 @@ class Fifo : public AbstractMemory
       return (head_pointer == tail_pointer);
     }
     bool full() {
-      return (((head_pointer + 1) % FIFO_SIZE) == tail_pointer);
+      return (((head_pointer + 1) % fifo_size) == tail_pointer);
     }
 
 };

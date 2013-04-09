@@ -67,7 +67,10 @@ Fifo::Fifo(const Params* p) :
         ports.push_back(new MemoryPort(csprintf("%s-port-%d", name(), i),
                                        *this));
     }
-
+    
+    // Get fifo size
+    fifo_size = p->fifo_size;
+    if (fifo_size < 2) { fifo_size = 2; }
 }
 
 void
@@ -83,9 +86,18 @@ Fifo::init()
     }
 
     // Initialize head/tail pointers
-    head_pointer = 0;
+    head_pointer = 1;
     tail_pointer = 0;
     invalidPacket.init();
+    
+    fifo_array = new monitoringPacket[fifo_size];
+    fifo_array[0].init();
+
+}
+
+Fifo::~Fifo()
+{
+    delete [] fifo_array;
 }
 
 Tick
@@ -129,42 +141,46 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
             Addr read_addr = pkt->getAddr();
             //This is the data we will send
             uint64_t send_data = 0;
-            //This is the monitoring packet we will read
-            monitoringPacket mp = invalidPacket;
-            //if (!empty()) { mp = fifo_array[tail_pointer]; }
             
-            //Skip invalid packets
-            while (!empty() && !mp.valid) {
-                if (fifo_array[tail_pointer].valid){
-                    mp = fifo_array[tail_pointer];
-                }else{
-                    // Update tail_pointer
-                    tail_pointer++;
-                    tail_pointer %= FIFO_SIZE;
-
-                    DPRINTF(Fifo, "Skipped invalid fifo packet, now head at %d, tail is at %d\n", head_pointer, tail_pointer);
-                }
-            }
-            
-            //Set data based on address
-            if (read_addr == FIFO_VALID) { send_data = mp.valid; }
-            else if (read_addr == FIFO_INSTADDR) { send_data = mp.instAddr; }
-            else if (read_addr == FIFO_MEMADDR) { send_data = mp.memAddr; }
-            else if (read_addr == FIFO_MEMEND) { send_data = mp.memEnd; }
-            else if (read_addr == FIFO_DATA) { send_data = mp.data; }
-            else if (read_addr == FIFO_STORE) { send_data = mp.store; }
-            else if (read_addr == FIFO_DONE) { send_data = mp.done; }
-            else if (read_addr == FIFO_NUMSRCREGS) { send_data = mp.numsrcregs; }
-            else if (read_addr >= FIFO_SRCREGS_START && read_addr < FIFO_SRCREGS_END) { send_data = mp.srcregs[(read_addr - FIFO_SRCREGS_START) >> 2]; }
-            else if (read_addr == FIFO_CONTROL) { send_data = mp.control; }
-            else if (read_addr == FIFO_CALL) { send_data = mp.call; }
-            else if (read_addr == FIFO_RET) { send_data = mp.ret; }
-            else if (read_addr == FIFO_LR) { send_data = mp.lr; }
-            else if (read_addr == FIFO_NEXTPC) { send_data = mp.nextpc; }
-            else if (read_addr == FIFO_FULL) { send_data = full(); }
+            if (read_addr == FIFO_FULL) { send_data = full(); }
             else if (read_addr == FIFO_EMPTY) { send_data = empty(); }
             else {
-              warn("Unrecognized read from fifo address %x\n", read_addr);
+                //This is the monitoring packet we will read
+                monitoringPacket mp = invalidPacket;
+                //if (!empty()) { mp = fifo_array[tail_pointer]; }
+                
+                //Skip invalid packets
+                while (!empty() && !mp.valid) {
+                    if (fifo_array[tail_pointer].valid){
+                        mp = fifo_array[tail_pointer];
+                    }else{
+                        // Update tail_pointer
+                        tail_pointer++;
+                        tail_pointer %= fifo_size;
+
+                        DPRINTF(Fifo, "Skipped invalid fifo packet, now head at %d, tail is at %d\n", head_pointer, tail_pointer);
+                    }
+                }
+                
+                //Set data based on address
+                if (read_addr == FIFO_VALID) { send_data = mp.valid; }
+                else if (read_addr == FIFO_INSTADDR) { send_data = mp.instAddr; }
+                else if (read_addr == FIFO_MEMADDR) { send_data = mp.memAddr; }
+                else if (read_addr == FIFO_MEMEND) { send_data = mp.memEnd; }
+                else if (read_addr == FIFO_DATA) { send_data = mp.data; }
+                else if (read_addr == FIFO_STORE) { send_data = mp.store; }
+                else if (read_addr == FIFO_DONE) { send_data = mp.done; }
+                else if (read_addr == FIFO_NUMSRCREGS) { send_data = mp.numsrcregs; }
+                else if (read_addr >= FIFO_SRCREGS_START && read_addr < FIFO_SRCREGS_END) { send_data = mp.srcregs[(read_addr - FIFO_SRCREGS_START) >> 2]; }
+                else if (read_addr == FIFO_CONTROL) { send_data = mp.control; }
+                else if (read_addr == FIFO_CALL) { send_data = mp.call; }
+                else if (read_addr == FIFO_RET) { send_data = mp.ret; }
+                else if (read_addr == FIFO_LR) { send_data = mp.lr; }
+                else if (read_addr == FIFO_NEXTPC) { send_data = mp.nextpc; }
+                else if (read_addr == FIFO_LOAD) { send_data = mp.load; }
+                else {
+                  warn("Unrecognized read from fifo address %x\n", read_addr);
+                }
             }
             //Send data
             pkt->setData((uint8_t *)&send_data);
@@ -177,7 +193,7 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
             if (!empty() && pkt->getAddr() == FIFO_NEXT){
                 // Update tail_pointer
                 tail_pointer++;
-                tail_pointer %= FIFO_SIZE;
+                tail_pointer %= fifo_size;
                 
                 DPRINTF(Fifo, "Pop fifo, now head at %d, tail is at %d\n", head_pointer, tail_pointer);
             // If there is space in the fifo
@@ -186,7 +202,7 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
                 pkt->writeData((uint8_t *)(fifo_array + head_pointer));
                 // Update head_pointer
                 head_pointer++;
-                head_pointer %= FIFO_SIZE;
+                head_pointer %= fifo_size;
 
                 DPRINTF(Fifo, "Write at head %d, tail is at %d\n", head_pointer, tail_pointer);
             } else if (empty()){

@@ -61,4 +61,6 @@ DebugFlag('FifoStall')
 DebugFlag('SlackTimer')
 DebugFlag('Monitoring')
 DebugFlag('Task')
+DebugFlag('FlagCache')
+DebugFlag('Invalidation')
 

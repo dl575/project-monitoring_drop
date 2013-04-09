@@ -57,13 +57,9 @@
 #include "sim/full_system.hh"
 #include "sim/system.hh"
 
-#include "debug/Fifo.hh"
-#include "debug/FifoStall.hh"
-#include "debug/SlackTimer.hh"
-#include "debug/Task.hh"
-
 #include "mem/fifo.hh"
 #include "mem/timer.hh"
+#include "mem/flag_cache.hh"
 
 using namespace std;
 using namespace TheISA;
@@ -413,7 +409,7 @@ TimingSimpleCPU::readMem(Addr addr, uint8_t *data,
     // Read from fifo
     if (fifo_enabled && addr >= FIFO_ADDR_START && addr <= FIFO_ADDR_END) {
       // Read from fifo into data
-      readFromFifo(addr, data, size, flags);
+      Fault result = readFromFifo(addr, data, size, flags);
 
       // Create packet and request to be used in completeDataAccess
       const int asid = 0;
@@ -426,19 +422,18 @@ TimingSimpleCPU::readMem(Addr addr, uint8_t *data,
       pkt2->dataStatic(data);
       pkt2->req->setFlags(Request::NO_ACCESS);
 
-      // Only return data if fifo was not empty
-      if (!fifoEmpty) {
+      // Only return data if no fault
+      if (result == NoFault) {
         completeDataAccess(pkt2);
       }
 
-      // Return a fault to rerun instruction if fifo was empty
-      return (fifoEmpty) ? (new ReExec()) : NoFault;  
+      return result;  
     }
 
     // Read from timer
     if (timer_enabled && (addr == TIMER_READ_SLACK || addr == TIMER_READ_DROP)) {
       // Read from timer into data
-      readFromTimer(addr, data, size, flags);
+      Fault result = readFromTimer(addr, data, size, flags);
 
       // Create packet and request to be used in completeDataAccess
       const int asid = 0;
@@ -451,9 +446,36 @@ TimingSimpleCPU::readMem(Addr addr, uint8_t *data,
       pkt2->dataStatic(data);
       pkt2->req->setFlags(Request::NO_ACCESS);
 
-      completeDataAccess(pkt2);
+      // Only return data if no fault
+      if (result == NoFault){
+        completeDataAccess(pkt2);
+      }
 
-      return NoFault;
+      return result;
+    }
+    
+    // Read from flag cache
+    if (flagcache_enabled && (addr >= FLAG_CACHE_ADDR_START && addr <= FLAG_CACHE_ADDR_END)) {
+      // Read from flag cache into data
+      Fault result = readFromFlagCache(addr, data, size, flags);
+
+      // Create packet and request to be used in completeDataAccess
+      const int asid = 0;
+      const ThreadID tid = 0;
+      const Addr pc = thread->instAddr();
+      RequestPtr req2  = new Request(asid, addr, size,
+                                    flags, dataMasterId(), pc, _cpuId, tid);
+      MemCmd cmd2 = MemCmd::ReadReq;
+      PacketPtr pkt2 = new Packet(req2, cmd2);
+      pkt2->dataStatic(data);
+      pkt2->req->setFlags(Request::NO_ACCESS);
+
+      // Only return data if no fault
+      if (result == NoFault){
+        completeDataAccess(pkt2);
+      }
+
+      return result;
     }
 
     Fault fault;
@@ -542,16 +564,16 @@ TimingSimpleCPU::writeMem(uint8_t *data, unsigned size,
     // Used to handle fifo control (writing data to fifo is done 
     // automatically by monitoring)
     if (fifo_enabled && (addr >= FIFO_OP_RANGE_START && addr < FIFO_OP_RANGE_END)) {
-      writeToFifo(addr, data, size, flags);
-      return NoFault;
+        return writeToFifo(addr, data, size, flags);
     }
-
     // Timer
-    if (timer_enabled) { 
-      if (addr >= TIMER_ADDR_START && addr <= TIMER_ADDR_END) {
-        writeToTimer(addr, data, size, flags);
-        return NoFault;
-      }
+    if (timer_enabled && (addr >= TIMER_ADDR_START && addr <= TIMER_ADDR_END)) { 
+        return writeToTimer(addr, data, size, flags);
+    }
+    
+    // Write to flag cache
+    if (flagcache_enabled && (addr >= FLAG_CACHE_ADDR_START && addr <= FLAG_CACHE_ADDR_END)) {
+        return writeToFlagCache(addr, data, size, flags);
     }
 
     RequestPtr req = new Request(asid, addr, size,
@@ -811,6 +833,14 @@ TimingSimpleCPU::stallFromFifo() {
   stayAtPC = true;
   // Schedule packet to be resent
   schedule(fifoEvent, curTick() + ticks(1));
+  
+  DPRINTF(Fifo, "Rescheduling...\n");
+#ifdef DEBUG
+  // Count how many packets cause a stall
+  num_packets++;
+#endif
+  // Store start of stall time
+  fifoStallTicks = curTick(); 
 }
 
 // Retry sending fifo packet
@@ -819,8 +849,6 @@ void TimingSimpleCPU::handleFifoEvent() {
   // Try again
   if (sendFifoPacket()) {
     // Successful
-    DPRINTF(Fifo, "Success, stalled for %d\n", curTick() - fifoStallTicks);
-    DPRINTF(FifoStall, "Fifo caused stall for %d ticks\n", curTick() - fifoStallTicks);
 
     // Finish decrementing timer
     Request *req = &data_write_req;
@@ -841,6 +869,14 @@ void TimingSimpleCPU::handleFifoEvent() {
     _status = Running;
     stayAtPC = false;
     advanceInst(NoFault);
+    
+  #ifdef DEBUG
+    unsigned stall_amt = curTick()-fifoStallTicks;
+    DPRINTF(Fifo, "Success, stalled for %d\n", stall_amt/ticks(1));
+    num_stalls += stall_amt;
+    DPRINTF(FifoStall, "Fifo caused stall for %d ticks\n", stall_amt);
+  #endif
+    
   } else {
     // Failed
     // Retry on next cycle

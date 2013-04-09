@@ -62,6 +62,7 @@ struct monitoring_packet {
   int ret;     // Flag for return instruction
   int lr;      // Link register value
   int pcreg;   // Program counter register value
+  int load;
 };
 
 // Read from fifo into x (which should be struct monitoring_packet)
@@ -81,6 +82,7 @@ struct monitoring_packet {
 #define READ_FIFO_RET         *(fifo + 38)
 #define READ_FIFO_LR          *(fifo + 39)
 #define READ_FIFO_NEXTPC      *(fifo + 40)
+#define READ_FIFO_LOAD        *(fifo + 41)
 
 // Fifo flags
 #define READ_FIFO_FULL    *(fifo + 0x400)

@@ -39,6 +39,8 @@ class BaseSimpleCPU(BaseCPU):
     fifo_enabled = Param.Bool(False, "monitoring fifo port enabled")
     monitoring_enabled = Param.Bool(False, "monitoring enabled")
     timer_enabled = Param.Bool(False, "timer enabled")
+    flagcache_enabled = Param.Bool(False, "flag cache enabled")
+    invalidation_file = Param.String("", "invalidation file name")
     # Monitoring filter parameters
     monitoring_filter_load = Param.Bool(False, "monitoring load instructions")
     monitoring_filter_store = Param.Bool(False, "monitoring store instructions")
@@ -50,6 +52,9 @@ class BaseSimpleCPU(BaseCPU):
 
     if timer_enabled:
       timer_port = MasterPort("Timer Port")
+    
+    if flagcache_enabled:
+      flagcache_port = MasterPort("Flagcache Port")
 
     def addCheckerCpu(self):
         if buildEnv['TARGET_ISA'] in ['arm']:

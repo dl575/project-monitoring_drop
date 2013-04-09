@@ -78,6 +78,8 @@ Timer::init()
     // Initialize stored_tp
     stored_tp.init();
     drop_thres = 0;
+    drops = 0;
+    not_drops = 0;
 }
 
 Tick
@@ -138,6 +140,14 @@ Timer::doFunctionalAccess(PacketPtr pkt)
             } else if (read_addr == TIMER_READ_DROP) {
                 int drop_status = (slack >= drop_thres);
                 pkt->setData((uint8_t *)&drop_status);
+                if (stored_tp.intask || curTick() < stored_tp.WCET_end){
+                    if (drop_status) { not_drops++; }
+                    else { drops++; }
+                }
+            } else if (read_addr == TIMER_DROPS){
+                pkt->setData((uint8_t *)&drops);
+            } else if (read_addr == TIMER_NOT_DROPS){
+                pkt->setData((uint8_t *)&not_drops);
             }
         }
         //TRACE_PACKET("Read");

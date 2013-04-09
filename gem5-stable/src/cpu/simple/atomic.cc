@@ -57,14 +57,9 @@
 #include "sim/system.hh"
 #include "sim/full_system.hh"
 
-#include "debug/Fifo.hh"
-#include "debug/FifoStall.hh"
-#include "debug/Monitoring.hh"
-#include "debug/SlackTimer.hh"
-#include "debug/Task.hh"
-
 #include "mem/fifo.hh"
 #include "mem/timer.hh"
+#include "mem/flag_cache.hh"
 
 using namespace std;
 using namespace TheISA;
@@ -261,14 +256,17 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
 
     // Read from fifo
     if (fifo_enabled && addr >= FIFO_ADDR_START && addr <= FIFO_ADDR_END) {
-      readFromFifo(addr, data, size, flags);
-      return (fifoEmpty)? (new ReExec()) : NoFault;  
+      return readFromFifo(addr, data, size, flags);
     }
 
     // Read from timer
     if (timer_enabled && (addr == TIMER_READ_SLACK || addr == TIMER_READ_DROP)) {
-      readFromTimer(addr, data, size, flags);
-      return NoFault;
+      return readFromTimer(addr, data, size, flags);
+    }
+    
+    // Read from flag cache
+    if (flagcache_enabled && (addr >= FLAG_CACHE_ADDR_START && addr <= FLAG_CACHE_ADDR_END)){
+        return readFromFlagCache(addr, data, size, flags);
     }
 
     //The block size of our peer.
@@ -375,15 +373,16 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
     // Used to handle fifo control (writing data to fifo is done 
     // automatically by monitoring)
     if (fifo_enabled && (addr >= FIFO_OP_RANGE_START && addr < FIFO_OP_RANGE_END)) {
-      writeToFifo(addr, data, size, flags);
-      return NoFault;
+        return writeToFifo(addr, data, size, flags);
     }
     // Timer
-    if (timer_enabled) { 
-      if (addr >= TIMER_ADDR_START && addr <= TIMER_ADDR_END) {
-        writeToTimer(addr, data, size, flags);
-        return NoFault;
-      }
+    if (timer_enabled && (addr >= TIMER_ADDR_START && addr <= TIMER_ADDR_END)) { 
+        return writeToTimer(addr, data, size, flags);
+    }
+    
+    // Write to flag cache
+    if (flagcache_enabled && (addr >= FLAG_CACHE_ADDR_START && addr <= FLAG_CACHE_ADDR_END)) {
+        return writeToFlagCache(addr, data, size, flags);
     }
 
     // use the CPU's statically allocated write request and packet objects

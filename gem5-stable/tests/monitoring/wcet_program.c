@@ -27,21 +27,26 @@ int main(int argc, char *argv[]) {
   
   ENABLE_MONITOR;
   
-  unsigned volatile int arr[ARRSIZE];
+  unsigned volatile int arr0[ARRSIZE];
+  unsigned volatile int arr1[ARRSIZE];
   unsigned int i;
   register sum = 0;
   
   for (i = 0; i < ARRSIZE; ++i){
-    arr[i] = i;
+    arr0[i] = i;
+  }
+  for (i = 0; i < ARRSIZE; ++i){
     //sum += arr[i];
-    sum = add(sum, arr[i]);
+    sum = add(sum, arr0[i]);
   }
   
   START_TASK(0);
   for (i = 0; i < ARRSIZE; ++i){
-    arr[i] = i;
+    arr1[i] = i;
+  }
+  for (i = 0; i < ARRSIZE; ++i){
     //sum += arr[i];
-    sum = add(sum, arr[i]);
+    sum = add(sum, arr1[i]);
   }
   END_TASK(ARRSIZE*200);
   

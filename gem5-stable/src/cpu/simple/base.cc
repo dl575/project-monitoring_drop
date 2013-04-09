@@ -67,7 +67,6 @@
 #include "cpu/thread_context.hh"
 #include "debug/Decode.hh"
 #include "debug/Fetch.hh"
-#include "debug/Fifo.hh"
 #include "debug/Quiesce.hh"
 #include "mem/mem_object.hh"
 #include "mem/packet.hh"
@@ -83,27 +82,42 @@
 #include "sim/system.hh"
 #include "sim/sim_exit.hh"
 
-#include "debug/SlackTimer.hh"
-#include "debug/Task.hh"
-
 using namespace std;
 using namespace TheISA;
 
 BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     : BaseCPU(p), traceData(NULL), thread(NULL),
     fifoPort(name() + "-iport", this),
-    timerPort(name() + "-iport", this)
+    timerPort(name() + "-iport", this),
+    fcPort(name() + "-iport", this),
+    fifoStall(false), timerStalled(false),
+    fifoEmpty(false)
 {
     // Store monitoring parameters
     fifo_enabled = p->fifo_enabled;
     monitoring_enabled = p->monitoring_enabled;
     timer_enabled = p->timer_enabled;
-
+    flagcache_enabled = p->flagcache_enabled;
     // Monitoring filter parameters
     mf.load = p->monitoring_filter_load;
     mf.store = p->monitoring_filter_store;
     mf.call = p->monitoring_filter_call;
     mf.ret = p->monitoring_filter_ret;
+    
+    // Initialize table if specified
+    if (p->invalidation_file.size()){
+        invtab.initTable(p->invalidation_file.data());
+    #ifdef DEBUG
+        if (invtab.initialized){
+            if (DTRACE(Invalidation)){
+                printf("Invalidation table:\n");
+                for (int i = 0; i < num_inst_types; ++i){
+                    printf("%2d: %10s %10s %6s %3d %15s\n", i, invtab.sel1[i].data(), invtab.sel2[i].data(), invtab.aluop[i].data(), invtab.constant[i], invtab.action[i].data());
+                }
+            }
+        }
+    #endif
+    }
 
     if (FullSystem)
         thread = new SimpleThread(this, 0, p->system, p->itb, p->dtb);
@@ -537,22 +551,6 @@ BaseSimpleCPU::performMonitoring() {
         }
     }
 
-    /* Check if next FIFO packet has the done flag and
-     * exit.
-     */
-    if (fifo_enabled && curStaticInst->isLoad()
-        && fed.memAddr >= FIFO_ADDR_START && fed.memAddr <= FIFO_ADDR_END
-        && !fifoEmpty && isFifoDone()) {
-
-        // Had some dropping event
-        if (drops || not_drops){
-            printf("Drops = %d, Non-drops = %d\n", drops, not_drops);
-        }
-
-        exitSimLoop("fifo done flag received");
-
-    }
-
     /* Send FIFO Packet */
     // On store to FIFO_END_CUSTOM, we will generate 
     // a packet to be sent
@@ -590,8 +588,12 @@ BaseSimpleCPU::performMonitoring() {
         (curStaticInst->isReturn() && mf.ret)
        )
        &&
-       ((fed.memAddr < FIFO_ADDR_START) || (fed.memAddr > TIMER_ADDR_END)) )
-      ) ) {
+       !(
+        ((fed.memAddr >= FIFO_ADDR_START) && (fed.memAddr <= FIFO_ADDR_END)) ||
+        (timer_enabled && (fed.memAddr >= TIMER_ADDR_START) && (fed.memAddr <= TIMER_ADDR_END)) ||
+        (flagcache_enabled && (fed.memAddr >= FLAG_CACHE_ADDR_START) && (fed.memAddr <= FLAG_CACHE_ADDR_END))
+       )
+      ) ) ) {
 
         DPRINTF(Fifo, "Monitoring event at %d, PC: %x\n", 
             curTick(), tc->instAddr());
@@ -607,11 +609,8 @@ BaseSimpleCPU::performMonitoring() {
           mp.srcregs[i] = curStaticInst->srcRegIdx(i);
         }
         // load/store flag
-        if (curStaticInst->isStore()) {
-          mp.store = true;
-        } else if (curStaticInst->isLoad()) {
-          mp.store = false;
-        }
+        mp.store = curStaticInst->isStore();
+        mp.load = curStaticInst->isLoad();
         // Control instruction information
         mp.control = curStaticInst->isControl(); // control inst
         mp.call    = curStaticInst->isCall();    // call inst
@@ -737,15 +736,114 @@ void BaseSimpleCPU::init() {
   // Initialize monitoring variables
   mp.init();
   fed.clear();
-  fifoStall = false;
-  timerStalled = false;
-  fifoEmpty = false;
-  drops = 0;
-  not_drops = 0;
+  ReExecFault = new ReExec();
+  
 }
 
-void
-BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags) {
+BaseSimpleCPU::instType
+BaseSimpleCPU::readFifoInstType()
+{
+    bool is_type = false;
+    readFromFifo(FIFO_LOAD, (uint8_t *)&is_type, sizeof(is_type), ArmISA::TLB::AllowUnaligned);
+    if (is_type) { 
+        DPRINTF(Invalidation, "Fifo entry instruction type is LOAD\n");
+        return inst_load; 
+    }
+    readFromFifo(FIFO_STORE, (uint8_t *)&is_type, sizeof(is_type), ArmISA::TLB::AllowUnaligned);
+    if (is_type) { 
+        DPRINTF(Invalidation, "Fifo entry instruction type is STORE\n");
+        return inst_store; 
+    }
+    readFromFifo(FIFO_CALL, (uint8_t *)&is_type, sizeof(is_type), ArmISA::TLB::AllowUnaligned);
+    if (is_type) {
+        DPRINTF(Invalidation, "Fifo entry instruction type is CALL\n");
+        return inst_call;
+    }
+    readFromFifo(FIFO_RET, (uint8_t *)&is_type, sizeof(is_type), ArmISA::TLB::AllowUnaligned);
+    if (is_type) {
+        DPRINTF(Invalidation, "Fifo entry instruction type is RET\n");
+        return inst_ret;
+    }
+    DPRINTF(Invalidation, "Fifo entry instruction type is unknown\n");
+    return inst_undef;
+}
+
+Addr
+BaseSimpleCPU::performOp(std::string &op, Addr a, Addr b)
+{
+    Addr result = 0;
+    if (op == "shftr"){
+       result = a >> b;
+    } else if (op == "shftl"){
+        result = a << b;
+    } else if (op == "add"){
+        result = a + b;
+    } else if (op == "sub"){
+        result = a - b;
+    } else {
+        warn("Unknown ALU operation \"%s\"\n", op.data());
+    }
+    return result;
+}
+
+Addr
+BaseSimpleCPU::selectValue(std::string &select, Addr c)
+{
+    Addr value = 0;
+    if (select == "c") { value = c; }
+    else if (select == "prev_addr") {
+        readFromFlagCache(FC_GET_ADDR, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (select == "MEMADDR") {
+        readFromFifo(FIFO_MEMADDR, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (select == "INSTADDR") {
+        readFromFifo(FIFO_INSTADDR, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (select == "NEXTPC") {
+        readFromFifo(FIFO_NEXTPC, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (select == "LR") {
+        readFromFifo(FIFO_LR, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (select == "DATA") {
+        readFromFifo(FIFO_DATA, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else {
+        warn("Unknown select \"%s\"\n", select.data());
+    }
+    return value;
+}
+
+Fault
+BaseSimpleCPU::readFromFlagCache(Addr addr, uint8_t * data,
+                         unsigned size, unsigned flags)
+{
+    // use the CPU's statically allocated read request and packet objects
+    Request *req = &data_read_req;
+    req->setPhys(addr, size, flags, dataMasterId());
+    // Read command
+    MemCmd cmd = MemCmd::ReadReq;
+    // Create packet
+    PacketPtr pkt = new Packet(req, cmd);
+    // Point packet to monitoring packet
+    pkt->dataStatic(data);
+
+    // Send read request
+    fcPort.sendFunctional(pkt);
+
+    // Clean up
+    delete pkt;
+
+    return NoFault;
+}
+
+Fault
+BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
+                         unsigned size, unsigned flags)
+{
+    
+    if (addr == TIMER_READ_DROP){
+        // Pop the fifo entry
+        bool pop = true;
+        Fault result = writeToFifo(FIFO_NEXT, (uint8_t *)&pop, sizeof(pop), ArmISA::TLB::AllowUnaligned);
+        if (result != NoFault) { return result; }
+    }
+    
     // use the CPU's statically allocated read request and packet objects
     Request *req = &data_read_req;
     // read data
@@ -762,29 +860,67 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data, unsigned size, unsigned 
     // Send read request
     timerPort.sendFunctional(pkt);
     
+    // Clean up
+    delete pkt;
+    
     if (addr == TIMER_READ_SLACK) {
         // Print out for debug
     #ifdef DEBUG
         DPRINTF(SlackTimer, "read from timer: %d ticks, %d cycles\n", read_timer, read_timer/ticks(1));
     #endif
+    
         read_timer /= ticks(1);
-        memcpy(data, &read_timer, size);
+        
     } else if (addr == TIMER_READ_DROP) {
-        // Update hardware counters
-        if (read_timer == 1) { not_drops++; }
-        else { drops++; }
-        // Print out for debug
     #ifdef DEBUG
+        unsigned drops = 0;
+        unsigned not_drops = 0;
+        readFromTimer(TIMER_DROPS, (uint8_t *)&drops, sizeof(drops), ArmISA::TLB::AllowUnaligned);
+        readFromTimer(TIMER_NOT_DROPS, (uint8_t *)&not_drops, sizeof(not_drops), ArmISA::TLB::AllowUnaligned);
         DPRINTF(SlackTimer, "read from timer: drop? %d, numdrops: %d, numfull: %d\n", !read_timer, drops, not_drops);
     #endif
-        memcpy(data, &read_timer, size);
+        // Hardware invalidation
+        if (!read_timer && invtab.initialized){
+            DPRINTF(Invalidation, "Starting hardware invalidation.\n");
+            instType itp = readFifoInstType();
+            // Check if LUT says to go back to software
+            if (invtab.action[itp].size() && (invtab.action[itp] != "SW")){
+                Addr a = selectValue(invtab.sel1[itp], (Addr)invtab.constant[itp]);
+                Addr b = selectValue(invtab.sel2[itp], (Addr)invtab.constant[itp]);
+                Addr fc_addr = performOp(invtab.aluop[itp], a, b);
+                DPRINTF(Invalidation, "Calculate address %x %s %x = %x\n", a, invtab.aluop[itp], b, fc_addr);
+                // Update address in flag cache
+                writeToFlagCache(FC_SET_ADDR, (uint8_t *)&fc_addr, sizeof(fc_addr), ArmISA::TLB::AllowUnaligned);
+                if (invtab.action[itp] == "HW_set_cache"){
+                    DPRINTF(Invalidation, "Setting cache @ %x\n", fc_addr);
+                    unsigned type = 1;
+                    writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                } else if (invtab.action[itp] == "HW_clear_cache"){
+                    DPRINTF(Invalidation, "Clearing cache @ %x\n", fc_addr);
+                    unsigned type = 1;
+                    writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                } else if (invtab.action[itp] == "HW_set_array"){
+                    DPRINTF(Invalidation, "Setting array @ %x\n", fc_addr);
+                    unsigned type = 0;
+                    writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                } else if (invtab.action[itp] == "HW_clear_array") {
+                    DPRINTF(Invalidation, "Clearing array @ %x\n", fc_addr);
+                    unsigned type = 0;
+                    writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                }
+                DPRINTF(Invalidation, "Staying in HW.\n");
+                return ReExecFault; // Stay in HW
+            }                
+        }
+        DPRINTF(Invalidation, "Using software with return code %d\n", read_timer);
     }
     
-    // Clean up
-    delete pkt;
+    memcpy(data, &read_timer, size);
+    
+    return NoFault;
 }
 
-void
+Fault
 BaseSimpleCPU::readFromFifo(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags)
 {
@@ -805,23 +941,10 @@ BaseSimpleCPU::readFromFifo(Addr addr, uint8_t * data,
 
     // Clean up
     delete pkt;
-    
-    bool wasEmpty = fifoEmpty;
-    
-    // Checking if reading from empty fifo
-    if (addr < FIFO_REG_START) {
-        fifoEmpty = isFifoEmpty();
-    #ifdef DEBUG
-        if (wasEmpty ^ fifoEmpty){
-            // Print out for debug
-            DPRINTF(Fifo, "Check if Fifo empty: %d\n", fifoEmpty);
-        } 
-    #endif
-    }
-    
+  
 #ifdef DEBUG
-    if (addr < FIFO_EMPTY && !(wasEmpty && fifoEmpty)){
-        unsigned read_data;
+    if (addr < FIFO_EMPTY){
+        unsigned read_data = 0;
         unsigned read_size = size;
         if (sizeof(unsigned) < read_size){ read_size = sizeof(unsigned); } //Make sure we don't copy garbage data
         memcpy(&read_data, data, size);
@@ -829,9 +952,10 @@ BaseSimpleCPU::readFromFifo(Addr addr, uint8_t * data,
     }
 #endif
 
+    return NoFault;
 }
 
-void
+Fault
 BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags) 
 {
@@ -859,27 +983,66 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
     mp.memAddr = fed.data;
     DPRINTF(Fifo, "Starting custom packet\n");
   } else if (addr == FIFO_NEXT){
-    Request* req = &data_write_req;
-    unsigned flags = ArmISA::TLB::AllowUnaligned;
-    //size = sizeof(read_tp);
-    req->setPhys(addr, sizeof(fed.data), flags, dataMasterId());
-    // Read command
-    MemCmd cmd = MemCmd::WriteReq;
-    // Create packet
-    PacketPtr pkt = new Packet(req, cmd);
-    // Point packet to data pointer
-    pkt->dataStatic(&fed.data);
+    
+    bool wasEmpty = fifoEmpty;
+    
+    // Pop fifo, since there is an entry
+    if (!wasEmpty) {
+        Request* req = &data_write_req;
+        unsigned flags = ArmISA::TLB::AllowUnaligned;
+        //size = sizeof(read_tp);
+        req->setPhys(addr, sizeof(fed.data), flags, dataMasterId());
+        // Read command
+        MemCmd cmd = MemCmd::WriteReq;
+        // Create packet
+        PacketPtr pkt = new Packet(req, cmd);
+        // Point packet to data pointer
+        pkt->dataStatic(&fed.data);
 
-    // Send read request
-    fifoPort.sendFunctional(pkt);
+        // Send read request
+        fifoPort.sendFunctional(pkt);
 
-    // Clean up
-    delete pkt;
+        // Clean up
+        delete pkt;
+    }
+    
+    
+    fifoEmpty = isFifoEmpty();
+
+#ifdef DEBUG
+    if (wasEmpty ^ fifoEmpty){
+        // Print out for debug
+        DPRINTF(Fifo, "Check if Fifo empty: %d\n", fifoEmpty);
+    } 
+#endif
+
+    // Wait until fifo is no longer empty
+    if (fifoEmpty) { return ReExecFault; }
+    
+    /* Check if next FIFO packet has the done flag and
+     * exit.
+     */
+    if (isFifoDone()) {
+        unsigned drops = 0;
+        unsigned not_drops = 0;
+        readFromTimer(TIMER_DROPS, (uint8_t *)&drops, sizeof(drops), ArmISA::TLB::AllowUnaligned);
+        readFromTimer(TIMER_NOT_DROPS, (uint8_t *)&not_drops, sizeof(not_drops), ArmISA::TLB::AllowUnaligned);
+        
+        // Had some dropping event
+        if (drops || not_drops){
+            printf("Drops = %d, Non-drops = %d\n", drops, not_drops);
+        }
+
+        exitSimLoop("fifo done flag received");
+    }
+    
   }
+  
+  return NoFault;
 }
 
 
-void
+Fault
 BaseSimpleCPU::writeToTimer(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags)
 {
@@ -964,6 +1127,30 @@ BaseSimpleCPU::writeToTimer(Addr addr, uint8_t * data,
 
     // Clean up
     delete timerpkt;
+    
+    return NoFault;
+}
+
+Fault
+BaseSimpleCPU::writeToFlagCache(Addr addr, uint8_t * data,
+                         unsigned size, unsigned flags)
+{
+    Request *req = &data_write_req;
+    req->setPhys(addr, size, flags, dataMasterId());
+    // Write command
+    MemCmd cmd = MemCmd::WriteReq;
+    // Create packet
+    PacketPtr pkt = new Packet(req, cmd);
+    // Point packet to monitoring packet
+    pkt->dataStatic(data);
+
+    // Send read request
+    fcPort.sendFunctional(pkt);
+
+    // Clean up
+    delete pkt;
+
+    return NoFault;
 }
 
 void
@@ -993,9 +1180,88 @@ BaseSimpleCPU::getMasterPort(const std::string &if_name, int idx)
     return fifoPort;
   } else if (if_name == "timer_port") {
     return timerPort;
+  } else if (if_name == "flagcache_port") {
+    return fcPort;
   } else {
     return BaseCPU::getMasterPort(if_name, idx);
   }
+}
+
+bool
+BaseSimpleCPU::InvalidationTable::initTable(const char * file_name)
+{
+    const int MAX_CHARS_PER_LINE = 512;
+    const int MAX_TOKENS_PER_LINE = 6; // Number of columns
+    const char* const DELIMITER = " ";
+    
+    // create a file-reading object
+    ifstream fin;
+    fin.open(file_name); // open a file
+    if (!fin.good()) {
+        warn ("Invalidation table \"%s\" could not be opened.\n", file_name);
+        return false; // return if file not found
+    }
+  
+    unsigned line_number = 0;
+
+    // read each line of the file
+    while (!fin.eof())
+    {
+        // read an entire line into memory
+        char buf[MAX_CHARS_PER_LINE];
+        fin.getline(buf, MAX_CHARS_PER_LINE);
+        line_number++;
+
+        // parse the line into blank-delimited tokens
+        int n = 0; // a for-loop index
+
+        // array to store memory addresses of the tokens in buf
+        const char* token[MAX_TOKENS_PER_LINE] = {}; // initialize to 0
+
+        // parse the line
+        token[0] = strtok(buf, DELIMITER); // first token
+        if (token[0] && strncmp(token[0], "//", 2)) // zero if line is blank
+        {
+          instType inst_type = parseInstType(token[0]);
+          if (inst_type != inst_undef){
+              for (n = 1; n < MAX_TOKENS_PER_LINE; n++)
+              {
+                token[n] = strtok(0, DELIMITER); // subsequent tokens
+                if (!token[n]) break; // no more tokens
+                if (!strcmp(token[n], "-")) token[n] = NULL;
+                switch(n) {
+                    case 1:  sel1[inst_type] = token[n]; break;
+                    case 2:  sel2[inst_type] = token[n]; break;
+                    case 3:  aluop[inst_type] = token[n]; break;
+                    case 4:  constant[inst_type] = atoi(token[n]); break;
+                    case 5:  action[inst_type] = token[n]; break;
+                }
+              }
+          } else {
+            warn("Unrecognized instruction type \"%s\" on line %d.\n", token[0], line_number);
+          }
+        }
+
+    }
+    
+    initialized = true;
+    
+    return true;
+}
+
+BaseSimpleCPU::instType
+BaseSimpleCPU::InvalidationTable::parseInstType(const char * inst_type)
+{
+    if (!strcmp(inst_type, "LOAD")){
+        return inst_load;
+    }else if (!strcmp(inst_type, "STORE")){
+        return inst_store;
+    }else if (!strcmp(inst_type, "CALL")){
+        return inst_call;
+    }else if (!strcmp(inst_type, "RET")){
+        return inst_ret;
+    }
+    return inst_undef;
 }
 
 
