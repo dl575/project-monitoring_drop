@@ -86,10 +86,14 @@ using namespace std;
 using namespace TheISA;
 
 BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
-    : BaseCPU(p), traceData(NULL), thread(NULL),
+    : BaseCPU(p), traceData(NULL), thread(NULL), num_filtered(0),
     fifoPort(name() + "-iport", this),
     timerPort(name() + "-iport", this),
     fcPort(name() + "-iport", this),
+    invtab("Invalidation Table"),
+    filtertab1("Filter Table 1"),
+    filtertab2("Filter Table 2"),
+    fptab("Filter Pointers"),
     fifoStall(false), timerStalled(false),
     fifoEmpty(false)
 {
@@ -107,17 +111,31 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     // Initialize table if specified
     if (p->invalidation_file.size()){
         invtab.initTable(p->invalidation_file.data());
-    #ifdef DEBUG
-        if (invtab.initialized){
-            if (DTRACE(Invalidation)){
-                printf("Invalidation table:\n");
-                for (int i = 0; i < num_inst_types; ++i){
-                    printf("%2d: %10s %10s %6s %3d %15s\n", i, invtab.sel1[i].data(), invtab.sel2[i].data(), invtab.aluop[i].data(), invtab.constant[i], invtab.action[i].data());
-                }
-            }
-        }
-    #endif
     }
+    
+    // Initialize filtering tables
+    if (p->filter_file_1.size()){
+        filtertab1.initTable(p->filter_file_1.data());
+    }
+
+    // Initialize filtering tables
+    if (p->filter_file_2.size()){
+        filtertab2.initTable(p->filter_file_2.data());
+    }
+    
+    // Initialize filtering pointers
+    if (p->filter_ptr_file.size()){
+        fptab.initTable(p->filter_ptr_file.data());
+    }
+    
+#ifdef DEBUG
+    if (DTRACE(Invalidation)){
+        if(invtab.initialized) invtab.printTable();
+        if(filtertab1.initialized) filtertab1.printTable();
+        if(filtertab2.initialized) filtertab2.printTable();
+        if(fptab.initialized) fptab.printTable();
+    }
+#endif
 
     if (FullSystem)
         thread = new SimpleThread(this, 0, p->system, p->itb, p->dtb);
@@ -768,10 +786,26 @@ BaseSimpleCPU::readFifoInstType()
     return inst_undef;
 }
 
+BaseSimpleCPU::instType
+BaseSimpleCPU::parseInstType(const char * inst_type)
+{
+    if (!strcmp(inst_type, "LOAD")){
+        return inst_load;
+    }else if (!strcmp(inst_type, "STORE")){
+        return inst_store;
+    }else if (!strcmp(inst_type, "CALL")){
+        return inst_call;
+    }else if (!strcmp(inst_type, "RET")){
+        return inst_ret;
+    }
+    return inst_undef;
+}
+
 Addr
 BaseSimpleCPU::performOp(std::string &op, Addr a, Addr b)
 {
     Addr result = 0;
+    if (!op.size()) { return 0; }
     if (op == "shftr"){
        result = a >> b;
     } else if (op == "shftl"){
@@ -790,6 +824,7 @@ Addr
 BaseSimpleCPU::selectValue(std::string &select, Addr c)
 {
     Addr value = 0;
+    if (!select.size()) { return 0; }
     if (select == "c") { value = c; }
     else if (select == "prev_addr") {
         readFromFlagCache(FC_GET_ADDR, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
@@ -807,6 +842,45 @@ BaseSimpleCPU::selectValue(std::string &select, Addr c)
         warn("Unknown select \"%s\"\n", select.data());
     }
     return value;
+}
+
+template <unsigned size> void
+BaseSimpleCPU::setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx)
+{
+    Addr a = selectValue(it.sel1[idx], (Addr)it.constant[idx]);
+    Addr b = selectValue(it.sel2[idx], (Addr)it.constant[idx]);
+    Addr fc_addr = performOp(it.aluop[idx], a, b);
+#ifdef DEBUG
+    if (it.aluop[idx].size()){
+        DPRINTF(Invalidation, "Calculate address %x %s %x = %x\n", a, it.aluop[idx], b, fc_addr);
+    } else {
+        DPRINTF(Invalidation, "Calculate address = %x\n", fc_addr);
+    }
+#endif
+    // Update address in flag cache
+    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&fc_addr, sizeof(fc_addr), ArmISA::TLB::AllowUnaligned);
+}
+
+void
+BaseSimpleCPU::performInvalidation(unsigned idx)
+{   
+    if (invtab.action[idx] == "HW_set_cache"){
+        DPRINTF(Invalidation, "Setting cache\n");
+        unsigned type = 1;
+        writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+    } else if (invtab.action[idx] == "HW_clear_cache"){
+        DPRINTF(Invalidation, "Clearing cache\n");
+        unsigned type = 1;
+        writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+    } else if (invtab.action[idx] == "HW_set_array"){
+        DPRINTF(Invalidation, "Setting array\n");
+        unsigned type = 0;
+        writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+    } else if (invtab.action[idx] == "HW_clear_array") {
+        DPRINTF(Invalidation, "Clearing array\n");
+        unsigned type = 0;
+        writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+    }
 }
 
 Fault
@@ -842,6 +916,67 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         bool pop = true;
         Fault result = writeToFifo(FIFO_NEXT, (uint8_t *)&pop, sizeof(pop), ArmISA::TLB::AllowUnaligned);
         if (result != NoFault) { return result; }
+        
+        // Perform filtering
+        if (invtab.initialized && fptab.initialized 
+            && (filtertab1.initialized || filtertab2.initialized))
+        {
+            DPRINTF(Invalidation, "Begin filtering\n");
+            instType itp = readFifoInstType();
+            int select = 0;
+            // Save address
+            Addr saved_addr = 0;
+            readFromFlagCache(FC_GET_ADDR, (uint8_t *)&saved_addr, sizeof(saved_addr), ArmISA::TLB::AllowUnaligned);
+            if (filtertab1.initialized){
+                bool flag = false;
+                if (filtertab1.action[itp].size()){
+                    setFlagCacheAddr(filtertab1, itp);
+                    if (filtertab1.action[itp] == "cache"){
+                        readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                    } else if (filtertab1.action[itp] == "array"){
+                        readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                    }
+                    // Write back original address
+                    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&saved_addr, sizeof(saved_addr), ArmISA::TLB::AllowUnaligned);
+                }
+                if (flag) { select += 2; }
+            }
+            if (filtertab2.initialized){
+                bool flag = false;
+                if (filtertab2.action[itp].size()){
+                    setFlagCacheAddr(filtertab2, itp);
+                    if (filtertab2.action[itp] == "cache"){
+                        readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                    } else if (filtertab2.action[itp] == "array"){
+                        readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                    }
+                    // Write back original address
+                    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&saved_addr, sizeof(saved_addr), ArmISA::TLB::AllowUnaligned);
+                }
+                if (flag) { select += 1; }
+            }
+            // Get index from filter pointer table
+            unsigned itidx = fptab.table[itp][select];
+            DPRINTF(Invalidation, "Filter table select %d @ %d points to %d\n", select, itp, itidx);
+            // Perform filtering operation
+            if (invtab.action[itidx].size()){
+                num_filtered++;
+                DPRINTF(Invalidation, "Filtering fifo entry: num_filtered: %d\n", num_filtered);
+                if (invtab.action[itidx] == "SW"){
+                    // Perform filtering in SW
+                    int return_code = 2;
+                    DPRINTF(Invalidation, "Using software with return code %d\n", return_code);
+                    memcpy(data, &return_code, size);
+                    return NoFault;
+                } else {
+                    setFlagCacheAddr(invtab, itidx);
+                    performInvalidation(itidx);
+                    DPRINTF(Invalidation, "Filtered in HW.\n");
+                    return ReExecFault; // Stay in HW
+                }
+            }
+            DPRINTF(Invalidation, "Entry not filtered\n");
+        }
     }
     
     // use the CPU's statically allocated read request and packet objects
@@ -885,29 +1020,8 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             instType itp = readFifoInstType();
             // Check if LUT says to go back to software
             if (invtab.action[itp].size() && (invtab.action[itp] != "SW")){
-                Addr a = selectValue(invtab.sel1[itp], (Addr)invtab.constant[itp]);
-                Addr b = selectValue(invtab.sel2[itp], (Addr)invtab.constant[itp]);
-                Addr fc_addr = performOp(invtab.aluop[itp], a, b);
-                DPRINTF(Invalidation, "Calculate address %x %s %x = %x\n", a, invtab.aluop[itp], b, fc_addr);
-                // Update address in flag cache
-                writeToFlagCache(FC_SET_ADDR, (uint8_t *)&fc_addr, sizeof(fc_addr), ArmISA::TLB::AllowUnaligned);
-                if (invtab.action[itp] == "HW_set_cache"){
-                    DPRINTF(Invalidation, "Setting cache @ %x\n", fc_addr);
-                    unsigned type = 1;
-                    writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
-                } else if (invtab.action[itp] == "HW_clear_cache"){
-                    DPRINTF(Invalidation, "Clearing cache @ %x\n", fc_addr);
-                    unsigned type = 1;
-                    writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
-                } else if (invtab.action[itp] == "HW_set_array"){
-                    DPRINTF(Invalidation, "Setting array @ %x\n", fc_addr);
-                    unsigned type = 0;
-                    writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
-                } else if (invtab.action[itp] == "HW_clear_array") {
-                    DPRINTF(Invalidation, "Clearing array @ %x\n", fc_addr);
-                    unsigned type = 0;
-                    writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
-                }
+                setFlagCacheAddr(invtab, itp);
+                performInvalidation(itp);
                 DPRINTF(Invalidation, "Staying in HW.\n");
                 return ReExecFault; // Stay in HW
             }                
@@ -1029,8 +1143,8 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
         readFromTimer(TIMER_NOT_DROPS, (uint8_t *)&not_drops, sizeof(not_drops), ArmISA::TLB::AllowUnaligned);
         
         // Had some dropping event
-        if (drops || not_drops){
-            printf("Drops = %d, Non-drops = %d\n", drops, not_drops);
+        if (drops || not_drops || num_filtered){
+            printf("Drops = %d, Non-drops = %d, Filtered = %d\n", drops, not_drops, num_filtered);
         }
 
         exitSimLoop("fifo done flag received");
@@ -1187,12 +1301,97 @@ BaseSimpleCPU::getMasterPort(const std::string &if_name, int idx)
   }
 }
 
-bool
-BaseSimpleCPU::InvalidationTable::initTable(const char * file_name)
+template <unsigned add_size> bool
+BaseSimpleCPU::InvalidationTable<add_size>::initTable(const char * file_name)
 {
     const int MAX_CHARS_PER_LINE = 512;
     const int MAX_TOKENS_PER_LINE = 6; // Number of columns
     const char* const DELIMITER = " ";
+    
+    // create a file-reading object
+    ifstream fin;
+    fin.open(file_name); // open a file
+    if (!fin.good()) {
+        warn ("Invalidation table \"%s\" could not be opened.\n", file_name);
+        return false; // return if file not found
+    }
+  
+    unsigned line_number = 0;
+
+    // read each line of the file
+    while (!fin.eof())
+    {
+        // read an entire line into memory
+        char buf[MAX_CHARS_PER_LINE];
+        fin.getline(buf, MAX_CHARS_PER_LINE);
+        line_number++;
+
+        // parse the line into blank-delimited tokens
+        int n = 0; // a for-loop index
+
+        // array to store memory addresses of the tokens in buf
+        const char* token[MAX_TOKENS_PER_LINE] = {}; // initialize to 0
+
+        // parse the line
+        token[0] = strtok(buf, DELIMITER); // first token
+        if (token[0] && strncmp(token[0], "//", 2)) // zero if line is blank
+        {
+          instType inst_type = parseInstType(token[0]);
+          int idx = inst_type;
+          unsigned temp = add_size;
+          if (temp > 0 && (inst_type == inst_undef)) { 
+              idx = atoi(token[0]);
+              if (idx != 0) { 
+                idx = (idx % temp) + num_inst_types;
+              }
+          }
+          if (idx != 0){
+              for (n = 1; n < MAX_TOKENS_PER_LINE; n++)
+              {
+                token[n] = strtok(0, DELIMITER); // subsequent tokens
+                if (!token[n]) break; // no more tokens
+                if (!strcmp(token[n], "-")) token[n] = "";
+                switch(n) {
+                    case 1:  sel1[idx] = token[n]; break;
+                    case 2:  sel2[idx] = token[n]; break;
+                    case 3:  aluop[idx] = token[n]; break;
+                    case 4:  constant[idx] = atoi(token[n]); break;
+                    case 5:  action[idx] = token[n]; break;
+                }
+              }
+          } else {
+            warn("Unrecognized instruction type \"%s\" in %s:%d.\n", token[0], file_name, line_number);
+          }
+        }
+
+    }
+    
+    initialized = true;
+    
+    return true;
+}
+
+template <unsigned add_size> void
+BaseSimpleCPU::InvalidationTable<add_size>::printTable()
+{
+    printf("%s:\n", table_name.data());
+    printf("%3s %10s %10s %6s %3s %15s\n", "idx", "sel1", "sel2", "aluop", "c", "action/loc.");
+    for (int i = 0; i < size; ++i){
+        printf("%2d: %10s %10s %6s %3d %15s\n", i, sel1[i].data(), sel2[i].data(), aluop[i].data(), constant[i], action[i].data());
+    }
+}
+
+bool
+BaseSimpleCPU::FilterPtrTable::initTable(const char * file_name)
+{
+    const int MAX_CHARS_PER_LINE = 512;
+    const int MAX_TOKENS_PER_LINE = 5; // Number of columns
+    const char* const DELIMITER = " ";
+    
+    if (it_add_size < 1){
+        warn ("Invalidation table contains no additional space for pointers.\n");
+        return false; // return if we cannot add pointers
+    }
     
     // create a file-reading object
     ifstream fin;
@@ -1228,17 +1427,13 @@ BaseSimpleCPU::InvalidationTable::initTable(const char * file_name)
               {
                 token[n] = strtok(0, DELIMITER); // subsequent tokens
                 if (!token[n]) break; // no more tokens
-                if (!strcmp(token[n], "-")) token[n] = NULL;
-                switch(n) {
-                    case 1:  sel1[inst_type] = token[n]; break;
-                    case 2:  sel2[inst_type] = token[n]; break;
-                    case 3:  aluop[inst_type] = token[n]; break;
-                    case 4:  constant[inst_type] = atoi(token[n]); break;
-                    case 5:  action[inst_type] = token[n]; break;
-                }
+                if (!strcmp(token[n], "-")) token[n] = "";
+                unsigned ptr = atoi(token[n]);
+                if (ptr) { ptr = (ptr % it_add_size) + num_inst_types; }
+                table[inst_type][n-1] = ptr;
               }
           } else {
-            warn("Unrecognized instruction type \"%s\" on line %d.\n", token[0], line_number);
+            warn("Unrecognized instruction type \"%s\" in %s:%d.\n", token[0], file_name, line_number);
           }
         }
 
@@ -1249,19 +1444,14 @@ BaseSimpleCPU::InvalidationTable::initTable(const char * file_name)
     return true;
 }
 
-BaseSimpleCPU::instType
-BaseSimpleCPU::InvalidationTable::parseInstType(const char * inst_type)
+void
+BaseSimpleCPU::FilterPtrTable::printTable()
 {
-    if (!strcmp(inst_type, "LOAD")){
-        return inst_load;
-    }else if (!strcmp(inst_type, "STORE")){
-        return inst_store;
-    }else if (!strcmp(inst_type, "CALL")){
-        return inst_call;
-    }else if (!strcmp(inst_type, "RET")){
-        return inst_ret;
+    printf("%s:\n", table_name.data());
+    printf("%3s %3s %3s %3s %3s\n", "idx", "00", "01", "10", "11");
+    for (int i = 0; i < num_inst_types; ++i){
+        printf("%2d: %3d %3d %3d %3d\n", i, table[i][0], table[i][1], table[i][2], table[i][3]);
     }
-    return inst_undef;
 }
 
 

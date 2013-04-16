@@ -41,6 +41,9 @@ class BaseSimpleCPU(BaseCPU):
     timer_enabled = Param.Bool(False, "timer enabled")
     flagcache_enabled = Param.Bool(False, "flag cache enabled")
     invalidation_file = Param.String("", "invalidation file name")
+    filter_file_1 = Param.String("", "filtering file")
+    filter_file_2 = Param.String("", "filtering file")
+    filter_ptr_file = Param.String("", "filtering ptr file")
     # Monitoring filter parameters
     monitoring_filter_load = Param.Bool(False, "monitoring load instructions")
     monitoring_filter_store = Param.Bool(False, "monitoring store instructions")
