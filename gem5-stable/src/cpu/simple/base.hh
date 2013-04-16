@@ -476,23 +476,61 @@ class BaseSimpleCPU : public BaseCPU
         }
     };
     
+    template <unsigned add_size = 0> 
     class InvalidationTable
     {
+      private:
+        static const unsigned size = num_inst_types + add_size;
+        std::string table_name;
+        
       public:
-        std::string sel1[num_inst_types];
-        std::string sel2[num_inst_types];
-        std::string aluop[num_inst_types];
-        int constant[num_inst_types];
-        std::string action[num_inst_types];
+        std::string sel1[size];
+        std::string sel2[size];
+        std::string aluop[size];
+        int constant[size];
+        std::string action[size];
         bool initialized;
         
+        InvalidationTable(std::string name)
+            : sel1(), sel2(), aluop(),
+              constant(), action(),
+              initialized(false)
+            { table_name = name; }
         bool initTable(const char * file_name);
-        
-      private:
-      
-        instType parseInstType(const char * inst_type);
-    
+        void printTable();
     };
+    
+    class FilterPtrTable
+    {
+      private:
+        std::string table_name;
+        
+      public:
+        unsigned table[num_inst_types][4];
+        
+        FilterPtrTable(std::string name)
+            : table(), initialized(false)
+            { table_name = name; }
+        bool initialized;
+        bool initTable(const char * file_name);
+        void printTable();
+    };
+    
+    // Get the type of instruction from fifo entry
+    instType readFifoInstType();
+    // Get the type of instruction from a string
+    static instType parseInstType(const char * inst_type);
+    // Perform an ALU operation
+    Addr performOp(std::string &op, Addr a, Addr b);
+    // Select the a value for the ALU operation
+    Addr selectValue(std::string &select, Addr c);
+    // Set the flagcache address based on invalidation table entry
+    template <unsigned size>
+    void setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx);
+    // Perform invalidation in the flag cache
+    void performInvalidation(unsigned idx);
+    // Number of filtering operations
+    unsigned num_filtered;
 
   protected:
     // Port for monitoring fifo
@@ -502,7 +540,12 @@ class BaseSimpleCPU : public BaseCPU
     // Port for accessing flag cache
     CpuPort fcPort;
     // Invalidation table object
-    InvalidationTable invtab;
+    static const int it_add_size = 4;
+    InvalidationTable <it_add_size> invtab;
+    // Filtering tables
+    InvalidationTable <> filtertab1;
+    InvalidationTable <> filtertab2;
+    FilterPtrTable fptab;
 
     // Stall because need to write to fifo but fifo is full
     bool fifoStall;
@@ -580,12 +623,6 @@ class BaseSimpleCPU : public BaseCPU
     Fault readFromTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     // Read from flag cache into data
     Fault readFromFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
-    // Get the type of instruction from fifo entry
-    instType readFifoInstType();
-    // Perform an ALU operation
-    Addr performOp(std::string &op, Addr a, Addr b);
-    // Select the a value for the ALU operation
-    Addr selectValue(std::string &select, Addr c);
     // Write to fifo
     Fault writeToFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     // Write to timer

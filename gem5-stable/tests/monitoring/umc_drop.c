@@ -42,9 +42,8 @@ int main(int argc, char *argv[]) {
         } else if (READ_FIFO_LOAD) {
           register unsigned int memend = (READ_FIFO_MEMEND >> 2);
           for (temp = (temp >> 2); temp <= memend; ++temp){
-            FC_SET_ADDR(temp)
             // We use masks to get value at bit location
-            if (!FC_CACHE_GET && ((metadata[temp >> 3] & (1<<(temp&0x7))) == 0)) {
+            if (((metadata[temp >> 3] & (1<<(temp&0x7))) == 0)) {
                 printf("UMC error: pc = %x, m[%x] = %d\n", READ_FIFO_PC, (temp << 2), READ_FIFO_DATA);
                 // Exit if UMC error
                 return 1;

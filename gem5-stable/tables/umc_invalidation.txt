@@ -2,3 +2,8 @@
 
   LOAD      MEMADDR   c       shftr    2    HW_set_cache
   STORE     MEMADDR   c       shftr    2    HW_set_cache
+
+//idx       sel1      sel2    op       c    action
+
+  1         -         -       -        -    HW_nop
+  
