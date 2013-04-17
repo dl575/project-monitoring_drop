@@ -1,0 +1,12 @@
+1. Run WCET on monitor:
+    ./scripts/calculate_wcet_monitor.pl
+2. Change WCET in monitor_timing.h and monitors.py
+3. Remake monitor
+4. Verify that WCET is the same in monitor
+5. Estimate WCET for each subtask in program
+6. Run find_wcet.sh
+7. Update WCET and rerun find_wcet.sh
+8. Verify run_dual.sh runs
+9. Run sweep_wcet.py
+10. Run sweep_wcet_parse.py
+

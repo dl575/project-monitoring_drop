@@ -1142,9 +1142,12 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
         readFromTimer(TIMER_DROPS, (uint8_t *)&drops, sizeof(drops), ArmISA::TLB::AllowUnaligned);
         readFromTimer(TIMER_NOT_DROPS, (uint8_t *)&not_drops, sizeof(not_drops), ArmISA::TLB::AllowUnaligned);
         
+        unsigned num_aliased = 0;
+        readFromFlagCache(FC_ALIASED, (uint8_t *)&num_aliased, sizeof(num_aliased), ArmISA::TLB::AllowUnaligned);
+        
         // Had some dropping event
-        if (drops || not_drops || num_filtered){
-            printf("Drops = %d, Non-drops = %d, Filtered = %d\n", drops, not_drops, num_filtered);
+        if (drops || not_drops || num_filtered || num_aliased){
+            printf("Drops = %d, Non-drops = %d, Filtered = %d, Aliased = %d\n", drops, not_drops, num_filtered, num_aliased);
         }
 
         exitSimLoop("fifo done flag received");
@@ -1195,6 +1198,7 @@ BaseSimpleCPU::writeToTimer(Addr addr, uint8_t * data,
     //if end_task we get the timer slack and will add it to the
     //additional slack we are storing into the timer.
     
+    int stall_length = 0;
     if (addr == TIMER_END_TASK){
         int slack;
         Request* req = &data_read_req;
@@ -1214,10 +1218,7 @@ BaseSimpleCPU::writeToTimer(Addr addr, uint8_t * data,
         // Clean up
         delete pkt;
         
-        int stall_length = (int)fed.data*ticks(1) + slack;
-        if (stall_length < 0){
-            panic("Did not meet WCET. Slack is negative: %d.\n", stall_length/ticks(1));
-        }
+        stall_length = (int)fed.data*ticks(1) + slack;
         fed.data = stall_length;
     }
 
@@ -1241,6 +1242,10 @@ BaseSimpleCPU::writeToTimer(Addr addr, uint8_t * data,
 
     // Clean up
     delete timerpkt;
+    
+    if (addr == TIMER_END_TASK && stall_length < 0){
+        panic("Did not meet WCET. Slack is negative: %d.\n", stall_length/ticks(1));
+    }
     
     return NoFault;
 }

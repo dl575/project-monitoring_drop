@@ -37,6 +37,5 @@ while (<>){
 }
 
 foreach my $pc (@wcetorder){
-    print "WCET for $tasktype{$pc} @ $pc = Max: $maxwcet{$pc}, Avg: ".($wcet{$pc}/$numwcet{$pc}).", N: $numwcet{$pc}\n";
-    print "Max Packets for $tasktype{$pc} @ $pc = $maxpackets{$pc}\n" if defined $maxpackets{$pc};
+    print "WCET for $tasktype{$pc} @ $pc = Max: $maxwcet{$pc}, Avg: ".($wcet{$pc}/$numwcet{$pc}).", N: $numwcet{$pc}".(($maxpackets{$pc})? ", MP: $maxpackets{$pc}" : "")."\n";
 }

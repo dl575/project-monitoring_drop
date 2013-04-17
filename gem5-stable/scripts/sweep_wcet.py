@@ -8,12 +8,13 @@ execution time and number of dropped checks.
 import subprocess
 import os
 
-program = "timer_monitor2"
-#monitor = "UMC"
-monitor = "LRC"
+program = "timer_monitor"
+monitor = "UMC"
+# monitor = "LRC"
 
 # WCET per task to try (in percent)
-wcets = [i for i in range(20, 100, 20) + range(100, 200, 50)]
+wcets = [i for i in range(80, 100, 5) + range(100, 401, 20)]
+# wcets = [i for i in range(20, 100, 20) + range(100, 200, 50)]
 # directory where simulation results are stored
 log_dir = os.environ["GEM5"] + "/m5out/%s/" % program
 compile_dir = os.environ["GEM5"] + "/tests/monitoring"
@@ -39,8 +40,12 @@ for wcet in wcets:
              -c %s/%s.arm --cpu-type=atomic" % \
              (compile_dir, program)
   # Output file to store simulation results in
-  output = open(log_dir + ("wcet%.4d.log" % wcet), 'w')
+  log_file = log_dir + ("wcet%.4d.log" % wcet)
+  output = open(log_file, 'w')
   p = subprocess.Popen(run_cmd, cwd=os.environ["GEM5"], shell=True, stdout=output)
-  p.wait()
+  result = p.wait()
   output.close()
+  if (result != 0):
+    p = subprocess.Popen("rm -v %s" % log_file, shell=True)
+    p.wait()
 

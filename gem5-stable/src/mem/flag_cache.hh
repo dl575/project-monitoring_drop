@@ -68,25 +68,13 @@
 #define FC_GET_ADDR            (FLAG_CACHE_ADDR + 0x00)
 #define FC_GET_FLAG_A          (FLAG_CACHE_ADDR + 0x04)
 #define FC_GET_FLAG_C          (FLAG_CACHE_ADDR + 0x08)
+// hidden read registers (should not be used by the program)
+#define FC_ALIASED             (FLAG_CACHE_ADDR + 0x100)
 
 // write registers
 #define FC_SET_ADDR            (FLAG_CACHE_ADDR + 0x00)
 #define FC_SET_FLAG            (FLAG_CACHE_ADDR + 0x04)
 #define FC_CLEAR_FLAG          (FLAG_CACHE_ADDR + 0x08)
-
-// A single cache line
-class cacheLine {
-  public:
-    Addr tags [FC_NUM_WAYS];   // address tags in the line
-    unsigned num_valid;        // the number of ways that are valid
-    bool aliased;              // the line is aliased
-
-    // Clear all variables
-    void init() {
-      num_valid = 0;
-      aliased = false;
-    }
-};
 
 /**
  * The simple memory is a basic multi-ported memory with an infinite
@@ -98,6 +86,13 @@ class FlagCache : public AbstractMemory
 
   private:
 
+    // Single cache line
+    typedef struct {
+        Addr tags [FC_NUM_WAYS];    // address tags in the line
+        unsigned num_valid;         // the number of ways that are valid
+        bool aliased;               // the line is aliased
+    } cacheLine;
+  
     class MemoryPort : public SimpleTimingPort
     {
         FlagCache& memory;
@@ -153,6 +148,10 @@ class FlagCache : public AbstractMemory
     bool flag_array[FA_SIZE];
     // Address Register
     Addr addr;
+    // Last access tick
+    Tick last_access;
+    // Number of aliased events
+    unsigned num_aliased;
     
     Addr cacheAddr (Addr fullAddr){
         return fullAddr % FC_SIZE;

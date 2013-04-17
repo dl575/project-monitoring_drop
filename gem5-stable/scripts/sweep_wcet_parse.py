@@ -15,7 +15,7 @@ import os
 
 import matplotlib.pyplot as plot
 
-program = "timer_monitor2"
+program = "timer_monitor"
 
 # directory where simulation results are stored
 log_dir = os.environ["GEM5"] + "/m5out/%s/" % program
@@ -24,6 +24,8 @@ log_dir = os.environ["GEM5"] + "/m5out/%s/" % program
 wcets = []
 drops = []
 not_drops = []
+filtered = []
+aliased = []
 ticks = []
 
 # For each log file
@@ -33,10 +35,12 @@ for filename in glob.glob(os.path.join(log_dir, "wcet*.log")):
   log_file = open(filename, 'r')
   for line in log_file:
     # Find drops line
-    drop_match = re.search("Drops = ([\d]*), Non-drops = ([\d]*)", line)
+    drop_match = re.search("Drops = ([\d]*), Non-drops = ([\d]*), Filtered = ([\d]*), Aliased = ([\d]*)", line)
     if drop_match:
       drops.append(int(drop_match.group(1)))
       not_drops.append(int(drop_match.group(2)))
+      filtered.append(int(drop_match.group(3)))
+      aliased.append(int(drop_match.group(4)))
     # Find total ticks
     tick_match = re.search("Exiting @ tick ([\d]*)", line)
     if tick_match:
@@ -52,12 +56,14 @@ fig = plot.figure()
 
 # Plot drops/non-drops versus WCET
 ax1 = plot.subplot(211)
-ax1.scatter(wcets, drops)
-ax1.scatter(wcets, not_drops, c='r')
+ax1.scatter(wcets, drops, c='r')
+ax1.scatter(wcets, not_drops, c='g')
+ax1.scatter(wcets, filtered, c='b')
+ax1.scatter(wcets, aliased, c='y')
 plot.xlabel("WCET")
 plot.ylabel("Drops")
 plot.grid(True)
-plot.legend(("Dropped", "Not dropped"), loc="best")
+plot.legend(("Dropped", "Not dropped", "Filtered", "Aliased"), loc="best")
 
 # Plot execution ticks versus WCET
 plot.subplot(212)

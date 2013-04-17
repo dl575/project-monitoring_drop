@@ -5,7 +5,7 @@
 #include "monitoring.h"
 
 #define WCET_CYCLES 12
-#define WCET 153
+#define WCET 408
 
 #ifndef WCET_SCALE
   #define WCET_SCALE 1

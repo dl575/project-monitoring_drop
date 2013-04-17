@@ -105,9 +105,6 @@ MonCPUClass.timer_enabled = False
 
 execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
 
-# Set simulation delay for the core
-MonCPUClass.delay = delay
-
 # Number of CPUs
 np = 2
 

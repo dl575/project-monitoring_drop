@@ -12,6 +12,9 @@ import math
 
 import matplotlib.pyplot as plot
 
+# Set to true if you want to plot on a single plot
+single = False;
+
 # directory where simulation results are stored
 log_dir = os.environ["GEM5"] + "/m5out/malarden/"
 
@@ -21,6 +24,8 @@ benchmarks = []
 wcets = {}
 drops = {}
 not_drops = {}
+filtered = {}
+aliased = {}
 ticks = {}
 
 # Ticks per cycle to convert execution time into cycles
@@ -42,7 +47,7 @@ for filename in glob.glob(os.path.join(log_dir, "wcet*.log")):
   log_file = open(filename, 'r')
   for line in log_file:
     # Find drops line
-    drop_match = re.search("Drops = ([\d]*), Non-drops = ([\d]*)", line)
+    drop_match = re.search("Drops = ([\d]*), Non-drops = ([\d]*), Filtered = ([\d]*), Aliased = ([\d]*)", line)
     if drop_match:
       if not benchmark in drops.keys():
         drops[benchmark] = []
@@ -50,6 +55,12 @@ for filename in glob.glob(os.path.join(log_dir, "wcet*.log")):
       if not benchmark in not_drops.keys():
         not_drops[benchmark] = []
       not_drops[benchmark].append(int(drop_match.group(2)))
+      if not benchmark in filtered.keys():
+        filtered[benchmark] = []
+      filtered[benchmark].append(int(drop_match.group(3)))
+      if not benchmark in aliased.keys():
+        aliased[benchmark] = []
+      aliased[benchmark].append(int(drop_match.group(4)))
     # Find total ticks
     tick_match = re.search("Exiting @ tick ([\d]*)", line)
     if tick_match:
@@ -63,6 +74,8 @@ print benchmarks
 print wcets
 print drops
 print not_drops
+print filtered
+print aliased
 print ticks
 
 # Convert ticks to cycles
@@ -70,13 +83,14 @@ for bench_ticks in ticks.values():
   for i in range(len(bench_ticks)):
     bench_ticks[i] /= TICKS_PER_CYCLE
 
-###
-# Plot all the drops vs. WCET using subplots on one figure.
-# Number of rows/cols of subplots
-sp_rows = math.ceil(math.sqrt(len(benchmarks)))
-# Create new figures
-fig1 = plot.figure()
-fig2 = plot.figure()
+if single:
+    ###
+    # Plot all the drops vs. WCET using subplots on one figure.
+    # Number of rows/cols of subplots
+    sp_rows = math.ceil(math.sqrt(len(benchmarks)))
+    # Create new figures
+    fig1 = plot.figure()
+    fig2 = plot.figure()
 
 # For each set of benchmarks
 for (i, benchmark) in enumerate(benchmarks):
@@ -85,22 +99,33 @@ for (i, benchmark) in enumerate(benchmarks):
   pwcets = wcets[benchmark]
   pdrops = drops[benchmark]
   pnot_drops = not_drops[benchmark]
+  pfiltered = filtered[benchmark]
+  paliased = aliased[benchmark]
   pticks = ticks[benchmark]
 
+  if not single:
+    fig = plot.figure()
+    ax1 = fig.add_subplot(211)
+  else:
+    ax1 = fig1.add_subplot(sp_rows, sp_rows, i+1)
   
   # Plot drops vs. WCET
-  ax1 = fig1.add_subplot(sp_rows, sp_rows, i+1)
-  ax1.scatter(pwcets, pdrops)
-  ax1.scatter(pwcets, pnot_drops, c='r')
+  ax1.scatter(pwcets, pdrops, c='r')
+  ax1.scatter(pwcets, pnot_drops, c='g')
+  ax1.scatter(pwcets, pfiltered, c='b')
+  ax1.scatter(pwcets, paliased, c='y')
   ax1.set_title(benchmark)
   ax1.set_xlabel("WCET")
   ax1.set_ylabel("Drops")
   ax1.grid(True)
   #plot.legend(("Dropped", "Not dropped"), loc="best")
 
+  if not single:
+    ax2 = fig.add_subplot(212)
+  else:
+    ax2 = fig2.add_subplot(sp_rows, sp_rows, i+1)
+  
   # Plot execution time vs. WCET
-  #fig2.subplot(212)
-  ax2 = fig2.add_subplot(sp_rows, sp_rows, i+1)
   ax2.scatter(pwcets, pticks)
   ax2.set_title(benchmark)
   ax2.set_xlabel("WCET")
