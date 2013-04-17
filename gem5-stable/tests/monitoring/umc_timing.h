@@ -11,4 +11,7 @@
 #define MON_WCET 26
 #define MON_DROP_WCET 1
 
+// #define MON_WCET 122
+// #define MON_DROP_WCET 2
+
 #endif // __MONITOR_TIME_H__

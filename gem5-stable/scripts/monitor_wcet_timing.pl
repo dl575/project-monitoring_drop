@@ -24,8 +24,7 @@ the WCET for the monitor with and without dropping.
 
 END
 
-open my $ex, "-|", "gem5.debug --debug-flags=SlackTimer,Fifo $gem5/configs/example/dual_core.py -c $gem5/tests/monitoring/wcet_program.arm --cpu-type=atomic" or die "Failed to run gem5\n";
-# open my $ex, "-|", "gem5.debug --debug-flags=SlackTimer,Fifo $gem5/configs/example/dual_core.py -c $gem5/tests/monitoring/wcet_program.arm --cpu-type=timing --caches" or die "Failed to run gem5\n";
+open my $ex, "-|", "gem5.debug --debug-flags=SlackTimer,Fifo $gem5/configs/example/dual_core.py -c $gem5/tests/monitoring/wcet_program.arm --cpu-type=timing --caches" or die "Failed to run gem5\n";
 
 my $intask = 0;
 my $stall_start;

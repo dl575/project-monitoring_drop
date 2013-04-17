@@ -7,6 +7,9 @@
 #define WCET_CYCLES 12
 #define WCET 408
 
+// #define WCET_CYCLES 780
+// #define WCET 30420
+
 #ifndef WCET_SCALE
   #define WCET_SCALE 1
 #endif
@@ -39,6 +42,7 @@ int main(int argc, char *argv[]) {
   START_TASK((WCET_SCALE-1)*WCET);
 
   START_SUBTASK(1);
+  // START_SUBTASK(60);
   
   for (i = 0; i < 50; i++) {
 //    ENDSTART_SUBTASK(300*TICKS_PER_CYCLE);

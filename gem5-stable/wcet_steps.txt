@@ -1,6 +1,6 @@
 1. Run WCET on monitor:
-    ./scripts/calculate_wcet_monitor.pl
-2. Change WCET in monitor_timing.h and monitors.py
+    ./scripts/monitor_wcet_*.pl
+2. Change WCET in monitor_timing.h
 3. Remake monitor
 4. Verify that WCET is the same in monitor
 5. Estimate WCET for each subtask in program

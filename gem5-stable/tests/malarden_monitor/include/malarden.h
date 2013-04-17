@@ -26,6 +26,9 @@ int statemate(void);
   #define WCET_IS  956*(WCET_SCALE-1)
   #define WCET_IS_1 19
   #define WCET_IS_2 170
+  // #define WCET_IS  61620*(WCET_SCALE-1)
+  // #define WCET_IS_1 1740
+  // #define WCET_IS_2 10740
   
   /** crc.c **/
   #define WCET_CRC 31253*(WCET_SCALE-1)
@@ -35,6 +38,13 @@ int statemate(void);
   #define WCET_CRC_4 12
   #define WCET_CRC_5 19
   #define WCET_CRC_6 33
+  // #define WCET_CRC 1932300*(WCET_SCALE-1)
+  // #define WCET_CRC_1 2760
+  // #define WCET_CRC_2 2340
+  // #define WCET_CRC_3 7320
+  // #define WCET_CRC_4 780
+  // #define WCET_CRC_5 1440
+  // #define WCET_CRC_6 1740
   
   /** edn.c **/
   #define WCET_EDN 35861*(WCET_SCALE-1)

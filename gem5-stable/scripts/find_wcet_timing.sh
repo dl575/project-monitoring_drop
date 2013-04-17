@@ -16,7 +16,7 @@ tasks high enough so you don't get negative slack.
 "
 
     # gem5.debug --debug-flags=SlackTimer,Fifo,Task $GEM5/configs/example/wcet.py -c $2 --monitor=$1 --cpu-type=atomic | tee $3 | $DIR/calculate_wcet.pl
-    gem5.debug --debug-flags=Task $GEM5/configs/example/wcet.py -c $2 --monitor=$1 --cpu-type=atomic | tee $3 | $DIR/calculate_wcet.pl
+    gem5.debug --debug-flags=Task $GEM5/configs/example/wcet.py -c $2 --monitor=$1 --cpu-type=timing --caches | tee $3 | $DIR/calculate_wcet.pl
     
     fi
 elif [ $1 ]; then
