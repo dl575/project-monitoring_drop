@@ -518,6 +518,8 @@ class BaseSimpleCPU : public BaseCPU
     
     // Get the type of instruction from fifo entry
     instType readFifoInstType();
+    // Convert the type of instruction to string
+    std::string instTypeToString(int inst_type);
     // Get the type of instruction from a string
     static instType parseInstType(const char * inst_type);
     // Perform an ALU operation
@@ -531,6 +533,8 @@ class BaseSimpleCPU : public BaseCPU
     void performInvalidation(unsigned idx);
     // Number of filtering operations
     unsigned num_filtered;
+    // Drops by instruction type
+    unsigned dropstats [num_inst_types];
 
   protected:
     // Port for monitoring fifo

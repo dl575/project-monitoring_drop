@@ -86,7 +86,8 @@ using namespace std;
 using namespace TheISA;
 
 BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
-    : BaseCPU(p), traceData(NULL), thread(NULL), num_filtered(0),
+    : BaseCPU(p), traceData(NULL), thread(NULL), 
+    num_filtered(0), dropstats(),
     fifoPort(name() + "-iport", this),
     timerPort(name() + "-iport", this),
     fcPort(name() + "-iport", this),
@@ -786,6 +787,19 @@ BaseSimpleCPU::readFifoInstType()
     return inst_undef;
 }
 
+std::string
+BaseSimpleCPU::instTypeToString(int inst_type)
+{
+    switch (inst_type){
+        case inst_load: return "LOAD";
+        case inst_store: return "STORE";
+        case inst_call: return "CALL";
+        case inst_ret: return "RET";
+    };
+    
+    return "UNDEF";
+}
+
 BaseSimpleCPU::instType
 BaseSimpleCPU::parseInstType(const char * inst_type)
 {
@@ -982,9 +996,9 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     // use the CPU's statically allocated read request and packet objects
     Request *req = &data_read_req;
     // read data
-    int read_timer = 0;
+    long long int read_timer = 0;
     // Create request at timer location
-    req->setPhys(addr, sizeof(int), flags, dataMasterId());
+    req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
     // Read command
     MemCmd cmd = MemCmd::ReadReq;
     // Create packet
@@ -1014,17 +1028,20 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         readFromTimer(TIMER_NOT_DROPS, (uint8_t *)&not_drops, sizeof(not_drops), ArmISA::TLB::AllowUnaligned);
         DPRINTF(SlackTimer, "read from timer: drop? %d, numdrops: %d, numfull: %d\n", !read_timer, drops, not_drops);
     #endif
-        // Hardware invalidation
-        if (!read_timer && invtab.initialized){
-            DPRINTF(Invalidation, "Starting hardware invalidation.\n");
+        if (!read_timer){
             instType itp = readFifoInstType();
-            // Check if LUT says to go back to software
-            if (invtab.action[itp].size() && (invtab.action[itp] != "SW")){
-                setFlagCacheAddr(invtab, itp);
-                performInvalidation(itp);
-                DPRINTF(Invalidation, "Staying in HW.\n");
-                return ReExecFault; // Stay in HW
-            }                
+            dropstats[itp]++;
+            // Hardware invalidation
+            if (invtab.initialized){
+                DPRINTF(Invalidation, "Starting hardware invalidation.\n");
+                // Check if LUT says to go back to software
+                if (invtab.action[itp].size() && (invtab.action[itp] != "SW")){
+                    setFlagCacheAddr(invtab, itp);
+                    performInvalidation(itp);
+                    DPRINTF(Invalidation, "Staying in HW.\n");
+                    return ReExecFault; // Stay in HW
+                }  
+            }
         }
         DPRINTF(Invalidation, "Using software with return code %d\n", read_timer);
     }
@@ -1142,12 +1159,13 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
         readFromTimer(TIMER_DROPS, (uint8_t *)&drops, sizeof(drops), ArmISA::TLB::AllowUnaligned);
         readFromTimer(TIMER_NOT_DROPS, (uint8_t *)&not_drops, sizeof(not_drops), ArmISA::TLB::AllowUnaligned);
         
-        unsigned num_aliased = 0;
-        readFromFlagCache(FC_ALIASED, (uint8_t *)&num_aliased, sizeof(num_aliased), ArmISA::TLB::AllowUnaligned);
-        
         // Had some dropping event
-        if (drops || not_drops || num_filtered || num_aliased){
-            printf("Drops = %d, Non-drops = %d, Filtered = %d, Aliased = %d\n", drops, not_drops, num_filtered, num_aliased);
+        if (drops || not_drops || num_filtered){
+            printf("Drops = %d, Non-drops = %d, Filtered = %d\n", drops, not_drops, num_filtered);
+            printf("Drop breakdown:\n");
+            for (int i = 0; i < num_inst_types; ++i){
+                printf("\t%6s: %d\n", instTypeToString(i).data(), dropstats[i]);
+            }
         }
 
         exitSimLoop("fifo done flag received");
@@ -1166,7 +1184,7 @@ BaseSimpleCPU::writeToTimer(Addr addr, uint8_t * data,
 
     // Get data
     int write_data = 0;
-    if (size > sizeof(int)) size = sizeof(int);
+    if (size > sizeof(write_data)) size = sizeof(write_data);
     memcpy(&write_data, data, size);
   
   #ifdef DEBUG
@@ -1198,13 +1216,13 @@ BaseSimpleCPU::writeToTimer(Addr addr, uint8_t * data,
     //if end_task we get the timer slack and will add it to the
     //additional slack we are storing into the timer.
     
-    int stall_length = 0;
+    long long int stall_length = 0;
     if (addr == TIMER_END_TASK){
-        int slack;
+        long long int slack;
         Request* req = &data_read_req;
         flags = ArmISA::TLB::AllowUnaligned;
         //size = sizeof(read_tp);
-        req->setPhys(TIMER_READ_SLACK, sizeof(int), flags, dataMasterId());
+        req->setPhys(TIMER_READ_SLACK, sizeof(slack), flags, dataMasterId());
         // Read command
         MemCmd cmd = MemCmd::ReadReq;
         // Create packet
@@ -1218,24 +1236,24 @@ BaseSimpleCPU::writeToTimer(Addr addr, uint8_t * data,
         // Clean up
         delete pkt;
         
-        stall_length = (int)fed.data*ticks(1) + slack;
+        stall_length = (long long int)fed.data*ticks(1) + slack;
         fed.data = stall_length;
     }
 
     //convert from cycles to ticks
-    write_data *= ticks(1);
+    long long int write_data_ext = write_data*ticks(1);
     // Create request
     Request *timer_write_req = &data_write_req;
     //unsigned size = sizeof(write_tp);
     flags = ArmISA::TLB::AllowUnaligned;
     // set physical address
-    timer_write_req->setPhys(addr, sizeof(int), flags, dataMasterId());
+    timer_write_req->setPhys(addr, sizeof(write_data_ext), flags, dataMasterId());
     // Create write packet
     MemCmd cmd = MemCmd::WriteReq;
     PacketPtr timerpkt = new Packet(timer_write_req, cmd);
     // Set data
     // write_tp.subtaskStart = curTick();
-    timerpkt->dataStatic(&write_data);
+    timerpkt->dataStatic(&write_data_ext);
 
     // Send read request packet on timer port
     timerPort.sendFunctional(timerpkt);

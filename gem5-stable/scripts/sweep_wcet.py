@@ -9,8 +9,7 @@ import subprocess
 import os
 
 program = "timer_monitor"
-monitor = "UMC"
-# monitor = "LRC"
+monitor = os.environ["MONITOR"]
 
 # WCET per task to try (in percent)
 wcets = [i for i in range(80, 100, 5) + range(100, 401, 20)]

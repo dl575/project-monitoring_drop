@@ -1,5 +1,8 @@
+ifndef MONITOR
+MONITOR=UMC
+endif
 TARGET=
-CCFLAGS=-O2 -DUMC
+CCFLAGS=-O2 -D$(MONITOR)
 
 ${TARGET}: ${TARGET}.c
 	arm-linux-gnueabi-gcc -DUNIX ${CCFLAGS} ${TARGET}.c -o ${TARGET}.arm --static

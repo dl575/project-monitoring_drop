@@ -61,12 +61,6 @@ import CacheConfig
 from Caches import *
 from cpu2000 import *
 
-# Define the monitoring function used
-#monitor = "umc"
-monitor = "umc_drop"
-#monitor = "lrc"
-# monitor = "lrc_drop"
-
 parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
@@ -126,6 +120,7 @@ timer = Timer(range=AddrRange(start=0x30010000, size="64kB"))
 system.timer = timer
 # Create flag cache
 flagcache = FlagCache(range=AddrRange(start=0x30020000, size="64kB"))
+flagcache.bloom_cap = 32768;
 system.flagcache = flagcache
 
 for i in range(options.num_cpus):
@@ -153,7 +148,7 @@ else:
 system.cpu[0].workload = process0
 
 process1 = LiveProcess()
-process1.executable = os.environ["GEM5"] + ("/tests/monitoring/%s.arm" % monitor)
+process1.executable = os.environ["GEM5"] + ("/tests/monitoring/%s.arm" % monitor_bin)
 process1.cmd = ""
 system.cpu[1].workload = process1
 

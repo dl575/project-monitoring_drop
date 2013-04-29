@@ -81,9 +81,9 @@ class timerPacket {
     // Start time of subtask
     Tick subtaskStart;
     // WCET of current subtask
-    int subtaskWCET;
+    long long int subtaskWCET;
     // Accumulated slack
-    int slack;
+    long long int slack;
     // currently executing a task
     bool intask;
     // currently decrementing slack
@@ -140,7 +140,7 @@ class Timer : public AbstractMemory
 
     timerPacket stored_tp;
     // Drop threshold for monitor
-    int drop_thres;
+    long long int drop_thres;
     // Drop Statistics
     unsigned drops, not_drops;
 

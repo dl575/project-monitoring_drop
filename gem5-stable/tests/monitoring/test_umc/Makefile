@@ -1,5 +1,5 @@
 TARGET=
-CCFLAGS=-O2 -DUMC -I ../
+CCFLAGS=-O2 -I ../
 
 ${TARGET}: ${TARGET}.c
 	arm-linux-gnueabi-gcc -DUNIX ${CCFLAGS} ${TARGET}.c -o ${TARGET}.arm --static

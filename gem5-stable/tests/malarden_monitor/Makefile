@@ -1,4 +1,7 @@
-CCFLAGS=-DUMC -O2
+ifndef MONITOR
+MONITOR=UMC
+endif
+CCFLAGS=-D$(MONITOR) -O2
 INCLUDES=$(wildcard include/*.c)
 
 malarden_wcet.obj: malarden_wcet.arm

@@ -124,31 +124,35 @@ Timer::doFunctionalAccess(PacketPtr pkt)
             //memcpy(pkt->getPtr<uint8_t>(), &stored_tp, pkt->getSize());
             */
             
-            int slack;
+            long long int slack;
             if (stored_tp.intask && !stored_tp.isDecrement){
                 slack = stored_tp.slack;
             } else if (stored_tp.isDecrement || (!stored_tp.intask && curTick() < stored_tp.WCET_end)){
                 slack = stored_tp.slack - (curTick() - stored_tp.decrementStart);
                 if (slack > stored_tp.slack){ panic("Timer Underflow."); }
             } else {
-                slack = INT_MAX;
+                slack = LLONG_MAX;
             }
             
             Addr read_addr = pkt->getAddr();
+            uint64_t send_data = 0;
+            
             if (read_addr == TIMER_READ_SLACK){
-                pkt->setData((uint8_t *)&slack);
+                send_data = slack;
             } else if (read_addr == TIMER_READ_DROP) {
                 int drop_status = (slack >= drop_thres);
-                pkt->setData((uint8_t *)&drop_status);
+                send_data = drop_status;
                 if (stored_tp.intask || curTick() < stored_tp.WCET_end){
                     if (drop_status) { not_drops++; }
                     else { drops++; }
                 }
             } else if (read_addr == TIMER_DROPS){
-                pkt->setData((uint8_t *)&drops);
+                send_data = drops;
             } else if (read_addr == TIMER_NOT_DROPS){
-                pkt->setData((uint8_t *)&not_drops);
+                send_data = not_drops;
             }
+            
+            pkt->setData((uint8_t *)&send_data);
         }
         //TRACE_PACKET("Read");
         pkt->makeResponse();
@@ -157,33 +161,35 @@ Timer::doFunctionalAccess(PacketPtr pkt)
             //memcpy(hostAddr, pkt->getPtr<uint8_t>(), pkt->getSize());
             
             Addr write_addr = pkt->getAddr();
+            // Read data value
+            uint64_t get_data = 0;
+            pkt->writeData((uint8_t *)&get_data);
+            
             // Start subtask
             if (write_addr == TIMER_START_SUBTASK) {
               // Save WCET that was written by CPU
-              stored_tp.subtaskWCET = 0;
-              pkt->writeData((uint8_t *)&stored_tp.subtaskWCET);
+              stored_tp.subtaskWCET = get_data;
               // Save current time
               stored_tp.subtaskStart = curTick();
               DPRINTF(SlackTimer, "Written to timer: subtask start = %d, WCET = %d\n", stored_tp.subtaskStart, stored_tp.subtaskWCET);
             // End subtask
             } else if (write_addr == TIMER_END_SUBTASK) {
               // Accumulate remaining subtask slack into total task slack 
-              int additional_slack = stored_tp.subtaskWCET - (curTick() - stored_tp.subtaskStart);
-              int prev_slack = stored_tp.slack;
+              long long int additional_slack = stored_tp.subtaskWCET - (curTick() - stored_tp.subtaskStart);
+              long long int prev_slack = stored_tp.slack;
               stored_tp.slack = prev_slack + additional_slack;
               DPRINTF(SlackTimer, "Written to timer: subtask end, slack = %d(prev) + %d(add) = %d\n", prev_slack, additional_slack, stored_tp.slack);
             } else if (write_addr == TIMER_ENDSTART_SUBTASK) {
               // End the current subtask and also start a new one
 
               // Accumulate remaining subtask slack into total task slack
-              int additional_slack = stored_tp.subtaskWCET - (curTick() - stored_tp.subtaskStart);
-              int prev_slack = stored_tp.slack;
+              long long int additional_slack = stored_tp.subtaskWCET - (curTick() - stored_tp.subtaskStart);
+              long long int prev_slack = stored_tp.slack;
               stored_tp.slack = prev_slack + additional_slack;
               DPRINTF(SlackTimer, "Written to timer: subtask end, slack = %d(prev) + %d(add) = %d\n", prev_slack, additional_slack, stored_tp.slack);
 
               // Save WCET that was written by CPU
-              stored_tp.subtaskWCET = 0;
-              pkt->writeData((uint8_t *)&stored_tp.subtaskWCET);
+              stored_tp.subtaskWCET = get_data;
               // Save current time
               stored_tp.subtaskStart = curTick();
               DPRINTF(SlackTimer, "Written to timer: subtask start = %d, WCET = %d\n", stored_tp.subtaskStart, stored_tp.subtaskWCET);
@@ -192,21 +198,19 @@ Timer::doFunctionalAccess(PacketPtr pkt)
               stored_tp.init();
               stored_tp.intask = true;
               // Use optionally passed value as initial slack
-              pkt->writeData((uint8_t *)&stored_tp.slack);
+              stored_tp.slack = get_data;
               DPRINTF(SlackTimer, "Written to timer: task start, slack = %d\n", stored_tp.slack);
             } else if (write_addr == TIMER_END_TASK) {
               stored_tp.intask = false;
               stored_tp.decrementStart = curTick();
-              int additional_time = 0;
-              pkt->writeData((uint8_t *)&additional_time);
-              int wait_time = stored_tp.slack + additional_time;
+              long long int additional_time = get_data;
+              long long int wait_time = stored_tp.slack + additional_time;
               stored_tp.WCET_end = curTick() + wait_time; // Actual deadline
             #ifdef DEBUG
               DPRINTF(SlackTimer, "Written to timer: task end, %d(slack) + %d(add) = %d\n", stored_tp.slack, additional_time, wait_time);
             #endif
             } else if (write_addr == TIMER_SET_THRES) {
-              drop_thres = 0;
-              pkt->writeData((uint8_t *)&drop_thres);
+              drop_thres = get_data;
             #ifdef DEBUG
               DPRINTF(SlackTimer, "Written to timer: drop threshold = %d\n", drop_thres);
             #endif
@@ -221,7 +225,7 @@ Timer::doFunctionalAccess(PacketPtr pkt)
               if (stored_tp.intask){
                   stored_tp.isDecrement = false;
                   Tick delay_time = (curTick() - stored_tp.decrementStart);
-                  int slack = stored_tp.slack - delay_time;
+                  long long int slack = stored_tp.slack - delay_time;
                   if (slack > stored_tp.slack){
                     panic("Timer Underflow.");
                   }

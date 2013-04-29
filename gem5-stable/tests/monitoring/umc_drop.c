@@ -35,8 +35,8 @@ int main(int argc, char *argv[]) {
           for (temp = (temp >> 2); temp <= memend; ++temp){
             // We use masks to store at bit locations based on last three bits
             metadata[temp >> 3] = metadata[temp >> 3] | (1<<(temp&0x7));
-            FC_SET_ADDR(temp)
-            FC_CACHE_CLEAR
+            // FC_SET_ADDR(temp)
+            // FC_CACHE_CLEAR
           }
         // Load
         } else if (READ_FIFO_LOAD) {

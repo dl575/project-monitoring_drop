@@ -62,15 +62,32 @@ using namespace std;
 FlagCache::FlagCache(const Params* p) :
     AbstractMemory(p),
     lat(p->latency), lat_var(p->latency_var),
-    cache_array(), flag_array(),
-    addr(), last_access(),
-    num_aliased()
+    addr()
 {
     for (size_t i = 0; i < p->port_port_connection_count; ++i) {
         ports.push_back(new MemoryPort(csprintf("%s-port-%d", name(), i),
                                        *this));
     }
 
+    // Create flag array
+    fa_size = p->flagarr_size;
+    if (fa_size < 1) fa_size = 1;
+    flag_array = new bool[fa_size];
+    
+    // Create bloom filter
+    unsigned capacity = p->bloom_cap;
+    float error_rate = p->bloom_err;
+    std::string bloom_file = p->bloom_file;
+    if (!(bloom = new_counting_bloom(capacity, error_rate, bloom_file.data()))) {
+        panic("Could not create bloom filter\n");
+    }
+    
+}
+
+FlagCache::~FlagCache()
+{
+    delete [] flag_array;
+    free_counting_bloom(bloom);
 }
 
 void
@@ -133,24 +150,10 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                 send_data = flag_array[aA];
                 DPRINTF(FlagCache, "Flag array lookup @ %x -> %x: value? %d\n", addr, aA, send_data);
             } else if (read_addr == FC_GET_FLAG_C) { 
-                Addr cA = cacheAddr(addr);
-                // Get cache line
-                cacheLine * cL = &cache_array[cA];
-                // Associative lookup
-                bool found = false;
-                for (unsigned i = 0; i < cL->num_valid; ++i){
-                    if (cL->tags[i] == addr){
-                        found = true;
-                    }
-                }
-                send_data = (cL->aliased || found);
-                if (cL->aliased && curTick() != last_access) {
-                    num_aliased++;
-                    last_access = curTick();
-                }
-                DPRINTF(FlagCache, "Flag cache lookup @ %x -> %x: found? %d, aliased? %d, num_aliased = %d\n", addr, cA, found, cL->aliased, num_aliased);
-            } else if (read_addr == FC_ALIASED) {
-                send_data = num_aliased;
+                // Check bloom filter with address
+                bool found = counting_bloom_check(bloom, (const char *)&addr, sizeof(addr));
+                send_data = found;
+                DPRINTF(FlagCache, "Bloom filter lookup @ %x: found? %d\n", addr, found);
             } else {
               warn("Unrecognized read from flag cache read address %x\n", read_addr);
             }
@@ -177,35 +180,9 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                     flag_array[aA] = true;
                     DPRINTF(FlagCache, "Flag array set @ %x -> %x\n", addr, aA);
                 } else if (get_data == 1) {
-                    Addr cA = cacheAddr(addr);
-                    // Get cache line
-                    cacheLine * cL = &cache_array[cA];
-                    // Cache isn't aliased
-                    if (cL->num_valid <= FC_NUM_WAYS) {
-                        bool found = false;
-                        // Associative lookup
-                        for (unsigned i = 0; i < cL->num_valid; ++i){
-                            if (cL->tags[i] == addr){
-                                found = true;
-                            }
-                        }
-                        // Set cache line
-                        if (!found){
-                            // Cache has space
-                            if (cL->num_valid < FC_NUM_WAYS){
-                                cL->tags[cL->num_valid] = addr;
-                                DPRINTF(FlagCache, "Flag cache set @ %x -> %x: tag set at way %d as %x\n", addr, cA, cL->num_valid, cL->tags[cL->num_valid]);
-                            } else {
-                                cL->aliased = true;
-                                DPRINTF(FlagCache, "Flag cache set @ %x -> %x: cache is now aliased\n", addr, cA);
-                            }
-                            cL->num_valid++;
-                        } else {
-                            DPRINTF(FlagCache, "Flag cache set @ %x -> %x: tag already exists\n", addr, cA);
-                        }
-                    } else {
-                        DPRINTF(FlagCache, "Flag set @ %x -> %x: cache is already aliased\n", addr, cA);
-                    }
+                    // Set bloom filter with address
+                    counting_bloom_add(bloom, (const char *)&addr, sizeof(addr));
+                    DPRINTF(FlagCache, "Bloom filter set @ %x\n", addr);
                 }
             // Clear flag
             } else if (write_addr == FC_CLEAR_FLAG) {
@@ -214,33 +191,9 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                     flag_array[aA] = false;
                     DPRINTF(FlagCache, "Flag array clear @ %x -> %x\n", addr, aA);
                 } else if (get_data == 1) {
-                    Addr cA = cacheAddr(addr);
-                    // Get cache line
-                    cacheLine * cL = &cache_array[cA];
-                    // Cache isn't aliased
-                    if (cL->num_valid <= FC_NUM_WAYS) {
-                        bool found = false;
-                        // Associative lookup
-                        for (unsigned i = 0; i < cL->num_valid; ++i){
-                            // Shift items back
-                            if (found){
-                                cL->tags[i-1] = cL->tags[i];
-                            }
-                            // Found tag
-                            if (cL->tags[i] == addr){
-                                found = true;
-                                DPRINTF(FlagCache, "Flag cache clear @ %x -> %x: found tag at %d\n", addr, cA, i);
-                            }
-                        }
-                        // Decrement number of valids
-                        if (found){
-                            cL->num_valid--;
-                        } else {
-                            DPRINTF(FlagCache, "Flag cache clear @ %x -> %x: did not find tag\n", addr, cA);
-                        }
-                    } else {
-                        DPRINTF(FlagCache, "Flag cache clear @ %x -> %x: cache is aliased\n", addr, cA);
-                    }
+                    // Clear bloom filter with address
+                    counting_bloom_remove(bloom, (const char *)&addr, sizeof(addr));
+                    DPRINTF(FlagCache, "Bloom filter clear @ %x\n", addr);
                 }
             } else {
               warn("Unknown address written to flag cache.");

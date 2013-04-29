@@ -64,7 +64,6 @@ from cpu2000 import *
 parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
-parser.add_option("--monitor", action="store", type="string", dest="monitor", help="monitor to use")
 
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
@@ -74,12 +73,6 @@ if '--ruby' in sys.argv:
 if args:
     print "Error: script doesn't take any positional arguments"
     sys.exit(1)
-
-
-if options.monitor:
-    monitor = options.monitor
-else:
-    parser.error('Error: monitor not defined')
     
 # Number of threads per CPU
 numThreads = 1

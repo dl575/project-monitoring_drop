@@ -53,12 +53,10 @@
 #include "mem/tport.hh"
 #include "params/FlagCache.hh"
 
-// Number of entries in cache
-#define FC_IDX_WIDTH 8
-#define FC_SIZE (1 << FC_IDX_WIDTH)
-#define FA_SIZE 16
-// Number of ways
-#define FC_NUM_WAYS 1
+extern "C" {
+#include "mem/bloom_filter/dablooms.h"
+}
+
 // Flag Cache device address
 #define FLAG_CACHE_ADDR 0x30020000
 #define FLAG_CACHE_ADDR_START FLAG_CACHE_ADDR
@@ -68,8 +66,6 @@
 #define FC_GET_ADDR            (FLAG_CACHE_ADDR + 0x00)
 #define FC_GET_FLAG_A          (FLAG_CACHE_ADDR + 0x04)
 #define FC_GET_FLAG_C          (FLAG_CACHE_ADDR + 0x08)
-// hidden read registers (should not be used by the program)
-#define FC_ALIASED             (FLAG_CACHE_ADDR + 0x100)
 
 // write registers
 #define FC_SET_ADDR            (FLAG_CACHE_ADDR + 0x00)
@@ -85,13 +81,6 @@ class FlagCache : public AbstractMemory
 {
 
   private:
-
-    // Single cache line
-    typedef struct {
-        Addr tags [FC_NUM_WAYS];    // address tags in the line
-        unsigned num_valid;         // the number of ways that are valid
-        bool aliased;               // the line is aliased
-    } cacheLine;
   
     class MemoryPort : public SimpleTimingPort
     {
@@ -121,7 +110,7 @@ class FlagCache : public AbstractMemory
 
     typedef FlagCacheParams Params;
     FlagCache(const Params *p);
-    virtual ~FlagCache() { }
+    virtual ~FlagCache();
 
     unsigned int drain(Event* de);
 
@@ -142,23 +131,16 @@ class FlagCache : public AbstractMemory
 
   private:
     
-    // Cache Array
-    cacheLine cache_array[FC_SIZE];
+    // Bloom filter
+    counting_bloom_t * bloom;
     // Flag Array
-    bool flag_array[FA_SIZE];
+    bool * flag_array;
+    unsigned fa_size;
     // Address Register
     Addr addr;
-    // Last access tick
-    Tick last_access;
-    // Number of aliased events
-    unsigned num_aliased;
-    
-    Addr cacheAddr (Addr fullAddr){
-        return fullAddr % FC_SIZE;
-    }
     
     Addr arrayAddr (Addr fullAddr){
-        return fullAddr % FA_SIZE;
+        return fullAddr % fa_size;
     }
 
 };

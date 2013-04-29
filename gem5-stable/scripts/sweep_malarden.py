@@ -10,7 +10,7 @@ import os
 import re
 import subprocess
 
-monitor = "UMC"
+monitor = os.environ["MONITOR"]
 
 # WCET per task to try (in cycles)
 wcets = [i for i in range(97,100,1) + range(100,501,50)]
