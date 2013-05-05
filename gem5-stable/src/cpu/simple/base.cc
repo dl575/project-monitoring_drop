@@ -108,6 +108,8 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     mf.store = p->monitoring_filter_store;
     mf.call = p->monitoring_filter_call;
     mf.ret = p->monitoring_filter_ret;
+    mf.intalu = p->monitoring_filter_intalu;
+    mf.intalu = p->monitoring_filter_indctrl;
     
     // Initialize table if specified
     if (p->invalidation_file.size()){
@@ -604,7 +606,9 @@ BaseSimpleCPU::performMonitoring() {
         (curStaticInst->isLoad() && mf.load) ||
         (curStaticInst->isStore() && mf.store) ||
         (curStaticInst->isCall() && mf.call) || 
-        (curStaticInst->isReturn() && mf.ret)
+        (curStaticInst->isReturn() && mf.ret) ||
+        ((curStaticInst->opClass() == IntAluOp) && mf.intalu) || // FIXME: also need to include mul/div
+        (curStaticInst->isIndirectCtrl() && mf.indctrl)
        )
        &&
        !(
@@ -623,10 +627,28 @@ BaseSimpleCPU::performMonitoring() {
         mp.memAddr = fed.memAddr; // memory access instruction
         mp.memEnd = fed.memAddr;
         mp.data = fed.data;       // memory access data
+        // source registers
         mp.numsrcregs = curStaticInst->numSrcRegs();
         for (unsigned i = 0; i < curStaticInst->numSrcRegs(); ++i){
           mp.srcregs[i] = curStaticInst->srcRegIdx(i);
         }
+        // destination registers
+        // Note:
+        //   Here we assume only one "real" destination register, i.e.
+        //   we don't count condition codes as destination registers
+        // initially set destination register to a dummy one
+        mp.rd = TheISA::INTREG_ZERO;
+        mp.numdstregs = 0;
+        for (int i = 0; i < curStaticInst->numDestRegs(); ++i) {
+          if (TheISA::isISAReg(curStaticInst->destRegIdx(i))) {
+            mp.rd = curStaticInst->destRegIdx(i);
+            mp.numdstregs = 1;
+          }
+        }
+        if (curStaticInst->isStore()) {
+          mp.rd = curStaticInst->machInst.rt;
+          mp.numdstregs = 1;
+        } 
         // load/store flag
         mp.store = curStaticInst->isStore();
         mp.load = curStaticInst->isLoad();
@@ -634,6 +656,8 @@ BaseSimpleCPU::performMonitoring() {
         mp.control = curStaticInst->isControl(); // control inst
         mp.call    = curStaticInst->isCall();    // call inst
         mp.ret     = curStaticInst->isReturn();  // return inst
+        mp.intalu  = (curStaticInst->opClass() == IntAluOp); // integer ALU inst
+        mp.indctrl = curStaticInst->isIndirectCtrl(); // indirect control
         mp.lr      = tc->readIntReg(14); // Link register
         mp.nextpc  = tc->nextInstAddr(); // Next program counter
 

@@ -178,6 +178,10 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
                 else if (read_addr == FIFO_LR) { send_data = mp.lr; }
                 else if (read_addr == FIFO_NEXTPC) { send_data = mp.nextpc; }
                 else if (read_addr == FIFO_LOAD) { send_data = mp.load; }
+                else if (read_addr == FIFO_NUMDSTREGS) { send_data = mp.numdstregs; }
+                else if (read_addr == FIFO_RD) { send_data = mp.rd; }
+                else if (read_addr == FIFO_INTALU) { send_data = mp.intalu; }
+                else if (read_addr == FIFO_INDCTRL) { send_data = mp.indctrl; }
                 else {
                   warn("Unrecognized read from fifo address %x\n", read_addr);
                 }

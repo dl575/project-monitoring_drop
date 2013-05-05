@@ -83,6 +83,10 @@ struct monitoring_packet {
 #define READ_FIFO_LR          *(fifo + 39)
 #define READ_FIFO_NEXTPC      *(fifo + 40)
 #define READ_FIFO_LOAD        *(fifo + 41)
+#define READ_FIFO_NUMDSTREGS  *(fifo + 42)
+#define READ_FIFO_RD          *(fifo + 43)
+#define READ_FIFO_INTALU      *(fifo + 44)
+#define READ_FIFO_INDCTRL     *(fifo + 45)
 
 // Fifo flags
 #define READ_FIFO_FULL    *(fifo + 0x400)
