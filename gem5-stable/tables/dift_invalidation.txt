@@ -1,0 +1,10 @@
+//opcode    sel1      sel2    op       c    action
+
+  LOAD      // Set cache for RD register
+  STORE     MEMADDR   c       shftr    2    HW_set_cache
+  INTALU    // Set cache for RD register
+
+//idx       sel1      sel2    op       c    action
+
+  1         -         -       -        -    HW_nop
+  
