@@ -61,7 +61,7 @@ elif monitor == "DIFT_SWDROP":
   MainCPUClass.monitoring_filter_indctrl = True
   # Define monitoring executable
   monitor_bin = "dift_swdrop"
-# Drop handled in hardware with filtering
+# Drop handled in hardware without filtering
 elif monitor == "DIFT_HWDROP":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
@@ -70,11 +70,24 @@ elif monitor == "DIFT_HWDROP":
   MainCPUClass.monitoring_filter_indctrl = True
   # Load the invalidation file
   MonCPUClass.invalidation_file = "tables/dift_invalidation.txt"
-  # MonCPUClass.filter_file_1 = "tables/dift_filter1.txt"
-  # MonCPUClass.filter_file_2 = "tables/dift_filter2.txt"
-  # MonCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
   # Define monitoring executable
   monitor_bin = "dift_hwdrop"
+# Drop handled in hardware with filtering
+elif monitor == "DIFT_HWFILTER":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_indctrl = True
+  # Load the invalidation file
+  MonCPUClass.invalidation_file = "tables/dift_invalidation.txt"
+  # Load the filter tables
+  MonCPUClass.filter_file_1 = "tables/dift_filter1.txt"
+  MonCPUClass.filter_file_2 = "tables/dift_filter2.txt"
+  MonCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
+  # Define monitoring executable
+  monitor_bin = "dift_hwdrop"
+
 else:
   raise Exception("Monitor not recognized: %s" % monitor)
 

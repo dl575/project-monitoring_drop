@@ -5,3 +5,13 @@
   INTALU    RD        c       add      0    HW_set_array
   INDCTRL   -         -       -        -    HW_nop
 
+//idx       sel1      sel2    op       c    action
+
+// If invalid memory tag, clear taint in array
+// If both ALU operands are clear, clear taint in array
+  1         RD        c       add      0    HW_clear_array
+// If untainted indctrl, skip
+  2         -         -       -        -    HW_nop
+// If either ALU operand is tainted, set taint in array
+  3         RD        c       add      0    HW_set_array
+ 

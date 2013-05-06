@@ -894,6 +894,10 @@ BaseSimpleCPU::selectValue(std::string &select, Addr c)
         readFromFifo(FIFO_DATA, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
     } else if (select == "RD") {
         readFromFifo(FIFO_RD, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (select == "RS") {
+        readFromFifo(FIFO_SRCREG(0), (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (select == "RT") {
+        readFromFifo(FIFO_SRCREG(1), (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
     } else {
         warn("Unknown select \"%s\"\n", select.data());
     }
