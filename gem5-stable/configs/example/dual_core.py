@@ -120,7 +120,6 @@ timer = Timer(range=AddrRange(start=0x30010000, size="64kB"))
 system.timer = timer
 # Create flag cache
 flagcache = FlagCache(range=AddrRange(start=0x30020000, size="64kB"))
-flagcache.bloom_cap = 32768;
 system.flagcache = flagcache
 
 for i in range(options.num_cpus):

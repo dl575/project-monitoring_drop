@@ -66,6 +66,8 @@ extern "C" {
 #define FC_GET_ADDR            (FLAG_CACHE_ADDR + 0x00)
 #define FC_GET_FLAG_A          (FLAG_CACHE_ADDR + 0x04)
 #define FC_GET_FLAG_C          (FLAG_CACHE_ADDR + 0x08)
+// hidden read registers (should not be used by the program)
+#define FC_ALIASED             (FLAG_CACHE_ADDR + 0x100)
 
 // write registers
 #define FC_SET_ADDR            (FLAG_CACHE_ADDR + 0x00)
@@ -81,6 +83,13 @@ class FlagCache : public AbstractMemory
 {
 
   private:
+  
+    // Single cache line
+    typedef struct{
+        Addr * tags;                   // address tags in the line
+        unsigned num_valid;            // the number of ways that are valid
+        bool aliased;                  // the line is aliased
+    } cacheLine;
   
     class MemoryPort : public SimpleTimingPort
     {
@@ -132,12 +141,24 @@ class FlagCache : public AbstractMemory
   private:
     
     // Bloom filter
-    counting_bloom_t * bloom;
+    // counting_bloom_t * bloom;
+    // Flag Cache
+    cacheLine * cache_array;
+    unsigned fc_size;
+    unsigned num_ways;
     // Flag Array
     bool * flag_array;
     unsigned fa_size;
     // Address Register
     Addr addr;
+    // Last access tick
+    Tick last_access;
+    // Number of aliased events
+    unsigned num_aliased;
+    
+    Addr cacheAddr (Addr fullAddr){
+        return fullAddr % fc_size;
+    }
     
     Addr arrayAddr (Addr fullAddr){
         return fullAddr % fa_size;

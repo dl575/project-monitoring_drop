@@ -13,7 +13,7 @@ import subprocess
 monitor = os.environ["MONITOR"]
 
 # WCET per task to try (in cycles)
-wcets = [i for i in range(80,100,5) + range(100,401,50)]
+wcets = [i for i in range(80,100,5) + range(100,105,1)]
 # directory where simulation results are stored
 log_dir = os.environ["GEM5"] + "/m5out/malarden/"
 # Directory where generated sources are

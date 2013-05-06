@@ -78,28 +78,17 @@ icrc1(unsigned short crc, unsigned char onech)
 	return ans;
 }
 
+static unsigned short icrctb[256];
+static uchar    rchr[256];
+static uchar    it[16] = {0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15};
+
 unsigned short 
 icrc(unsigned short crc, unsigned long len,
      short jinit, int jrev)
 {
-	unsigned short  icrc1(unsigned short crc, unsigned char onech);
-	static unsigned short icrctb[256], init = 0;
-	static uchar    rchr[256];
 	unsigned short  tmp1, tmp2, j, cword = crc;
-	static uchar    it[16] = {0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15};
-
-	if (!init) {
-		init = 1;
-		for (j = 0; j <= 255; j++) {
-        
-            ENDSTART_SUBTASK(WCET_CRC_3);
-        
-			icrctb[j] = icrc1(j << 8, (uchar) 0);
-			rchr[j] = (uchar) (it[j & 0xF] << 4 | it[j >> 4]);
-		}
-	}
     
-    ENDSTART_SUBTASK(WCET_CRC_4);
+    ENDSTART_SUBTASK(WCET_CRC_3);
     
 	if (jinit >= 0)
 		cword = ((uchar) jinit) | (((uchar) jinit) << 8);
@@ -108,7 +97,7 @@ icrc(unsigned short crc, unsigned long len,
 
 	for (j = 1; j <= len; j++) {
         
-        ENDSTART_SUBTASK(WCET_CRC_5);
+        ENDSTART_SUBTASK(WCET_CRC_4);
     
 		if (jrev < 0) {
 			tmp1 = rchr[lin[j]] ^ HIBYTE(cword);
@@ -118,7 +107,7 @@ icrc(unsigned short crc, unsigned long len,
 		cword = icrctb[tmp1] ^ LOBYTE(cword) << 8;
 	}
     
-    ENDSTART_SUBTASK(WCET_CRC_6);
+    ENDSTART_SUBTASK(WCET_CRC_5);
     
 	if (jrev >= 0) {
 		tmp2 = cword;
@@ -132,12 +121,19 @@ icrc(unsigned short crc, unsigned long len,
 int 
 crc(void)
 {
-    INIT_MONITOR;
-    while (!READ_FIFO_EMPTY);
     
 	unsigned short  i1, i2;
 	unsigned long   n;
+    int j;
 
+    for (j = 0; j <= 255; j++) {
+        icrctb[j] = icrc1(j << 8, (uchar) 0);
+        rchr[j] = (uchar) (it[j & 0xF] << 4 | it[j >> 4]);
+    }
+    
+    INIT_MONITOR;
+    while (!READ_FIFO_EMPTY);
+    
     START_TASK(WCET_CRC);
      
     START_SUBTASK(WCET_CRC_1);

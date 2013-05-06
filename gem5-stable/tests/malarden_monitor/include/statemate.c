@@ -954,7 +954,7 @@ FH_DU(void)
 	step = 0;
 	while (!stable) {
     
-        ENDSTART_SUBTASK(WCET_STA_4);
+        ENDSTART_SUBTASK(WCET_STA_3);
     
 		stable = 1;
 		step++;
@@ -1010,7 +1010,7 @@ FH_DU(void)
 			}	/** switch FH_STEUERUNG_DUMMY_FH_STEUERUNG_DUMMY_next_state **/
 		}
 		
-        ENDSTART_SUBTASK(WCET_STA_5);
+        ENDSTART_SUBTASK(WCET_STA_4);
         
         {
 			{
@@ -1070,7 +1070,7 @@ FH_DU(void)
 			}
 		}
 		
-        ENDSTART_SUBTASK(WCET_STA_6);
+        ENDSTART_SUBTASK(WCET_STA_5);
         
         SYS_bit_cpy(Bitlist, active_KINDERSICHERUNG_CTRL_IDX, Bitlist, active_KINDERSICHERUNG_CTRL_old_IDX);
 		SYS_bit_cpy(Bitlist, active_FH_TUERMODUL_CTRL_IDX, Bitlist, active_FH_TUERMODUL_CTRL_old_IDX);
@@ -1202,20 +1202,18 @@ int
 statemate(void)
 {
 
+	init();
+    
     INIT_MONITOR;
     while (!READ_FIFO_EMPTY);
     
     START_TASK(WCET_STA);
     
-    START_SUBTASK(WCET_STA_1);
-
-	init();
-    
-    ENDSTART_SUBTASK(WCET_STA_2);
+    START_SUBTASK(WCET_STA_1);   
     
 	interface();
     
-    ENDSTART_SUBTASK(WCET_STA_3);
+    ENDSTART_SUBTASK(WCET_STA_2);
     
 	FH_DU();
     

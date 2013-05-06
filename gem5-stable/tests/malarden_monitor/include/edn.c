@@ -262,12 +262,6 @@ jpegdct(short *d, short *r)
 int
 edn(void)
 {
-    INIT_MONITOR;
-    while (!READ_FIFO_EMPTY);
-
-    START_TASK(WCET_EDN);
-    
-    START_SUBTASK(WCET_EDN_1);
     
 	short           a[200] = {0x0000, 0x07ff, 0x0c00, 0x0800, 0x0200, 0xf800, 0xf300, 0x0400, 0x0000,
 		0x07ff, 0x0c00, 0x0800, 0x0200, 0xf800, 0xf300, 0x0400, 0x0000, 0x07ff, 0x0c00,
@@ -321,6 +315,13 @@ edn(void)
 	 */
      
     output[0] = 0;
+    
+    INIT_MONITOR;
+    while (!READ_FIFO_EMPTY);
+
+    START_TASK(WCET_EDN);
+    
+    START_SUBTASK(WCET_EDN_1);
 
 	vec_mpy1(a, b, c);
 	c = mac(a, b, (long int) c, (long int *) output);

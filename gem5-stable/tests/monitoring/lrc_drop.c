@@ -23,6 +23,7 @@
 
 #include "timer.h"
 #include "monitoring.h"
+#include "flagcache.h"
 
 // Stack to store link registers
 int lr[256];
@@ -36,6 +37,8 @@ int main(int argc, char *argv[]) {
   INIT_MONITOR
   // set up timer interface for reading
   INIT_TIMER
+  // setup flag cache interface
+  INIT_FC
   // set drop threshold in timer
   SET_THRES(MON_WCET - MON_DROP_WCET);
 
@@ -43,24 +46,29 @@ int main(int argc, char *argv[]) {
     // Run full monitoring
     if (READ_SLACK_DROP == 1) {
       // On call, save link register onto stack
+      lr_ptr = FC_GET_ADDR;
       if (temp = READ_FIFO_CALL) {
         lr[lr_ptr] = READ_FIFO_LR;
         // Push
         lr_ptr++;
+        FC_SET_ADDR(lr_ptr)
+        FC_CACHE_CLEAR
       // On return, check link register, then pop entry from stack
       } else if (temp = READ_FIFO_RET) {
         // if stored lr == 0, then it is invalid and skip check
-        if (lr[lr_ptr-1] && lr[lr_ptr-1] - 1 != READ_FIFO_NEXTPC) {
+        if (/*!FC_CACHE_GET && */(/*lr[lr_ptr-1] &&*/ lr[lr_ptr-1] - 1 != READ_FIFO_NEXTPC)) {
           printf("LRC Error\n");
           //return 1;
         }
         // Invalidate entry
-        lr[lr_ptr-1] = 0;
+        // lr[lr_ptr-1] = 0;
         // Pop
         lr_ptr--;
+        FC_SET_ADDR(lr_ptr)
       }
-    // Not enough slack, drop
-    } else {
+    }
+    /*// Not enough slack, drop
+    else {
       // On a call,
       if (temp = READ_FIFO_CALL) {
         // Increment stack pointer (entry remains invalid)
@@ -71,9 +79,7 @@ int main(int argc, char *argv[]) {
         lr[lr_ptr-1] = 0;
         lr_ptr--;
       }
-    }
-    
-    POP_FIFO;
+    }*/
 
   }
 

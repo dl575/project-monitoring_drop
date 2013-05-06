@@ -25,6 +25,7 @@ wcets = {}
 drops = {}
 not_drops = {}
 filtered = {}
+aliased = {}
 ticks = {}
 
 # Ticks per cycle to convert execution time into cycles
@@ -46,7 +47,7 @@ for filename in glob.glob(os.path.join(log_dir, "wcet*.log")):
   log_file = open(filename, 'r')
   for line in log_file:
     # Find drops line
-    drop_match = re.search("Drops = ([\d]*), Non-drops = ([\d]*), Filtered = ([\d]*)", line)
+    drop_match = re.search("Drops = ([\d]*), Non-drops = ([\d]*), Filtered = ([\d]*), Aliased = ([\d]*)", line)
     # Find total ticks
     tick_match = re.search("Exiting @ tick ([\d]*)", line)
     if drop_match:
@@ -59,6 +60,9 @@ for filename in glob.glob(os.path.join(log_dir, "wcet*.log")):
       if not benchmark in filtered.keys():
         filtered[benchmark] = []
       filtered[benchmark].append(int(drop_match.group(3)))
+      if not benchmark in aliased.keys():
+        aliased[benchmark] = []
+      aliased[benchmark].append(int(drop_match.group(4)))
     if tick_match:
       if not benchmark in ticks.keys():
         ticks[benchmark] = []
@@ -71,6 +75,7 @@ print wcets
 print drops
 print not_drops
 print filtered
+print aliased
 print ticks
 
 # Convert ticks to cycles
@@ -95,6 +100,7 @@ for (i, benchmark) in enumerate(benchmarks):
   pdrops = drops[benchmark]
   pnot_drops = not_drops[benchmark]
   pfiltered = filtered[benchmark]
+  paliased = aliased[benchmark]
   pticks = ticks[benchmark]
 
   if not single:
@@ -107,6 +113,7 @@ for (i, benchmark) in enumerate(benchmarks):
   ax1.scatter(pwcets, pdrops, c='r')
   ax1.scatter(pwcets, pnot_drops, c='g')
   ax1.scatter(pwcets, pfiltered, c='b')
+  ax1.scatter(pwcets, paliased, c='y')
   ax1.set_title(benchmark)
   ax1.set_xlabel("WCET")
   ax1.set_ylabel("Drops")

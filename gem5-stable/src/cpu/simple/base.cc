@@ -1159,9 +1159,12 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
         readFromTimer(TIMER_DROPS, (uint8_t *)&drops, sizeof(drops), ArmISA::TLB::AllowUnaligned);
         readFromTimer(TIMER_NOT_DROPS, (uint8_t *)&not_drops, sizeof(not_drops), ArmISA::TLB::AllowUnaligned);
         
+        unsigned num_aliased = 0;
+        readFromFlagCache(FC_ALIASED, (uint8_t *)&num_aliased, sizeof(num_aliased), ArmISA::TLB::AllowUnaligned);
+        
         // Had some dropping event
-        if (drops || not_drops || num_filtered){
-            printf("Drops = %d, Non-drops = %d, Filtered = %d\n", drops, not_drops, num_filtered);
+        if (drops || not_drops || num_filtered || num_aliased){
+            printf("Drops = %d, Non-drops = %d, Filtered = %d, Aliased = %d\n", drops, not_drops, num_filtered, num_aliased);
             printf("Drop breakdown:\n");
             for (int i = 0; i < num_inst_types; ++i){
                 printf("\t%6s: %d\n", instTypeToString(i).data(), dropstats[i]);
