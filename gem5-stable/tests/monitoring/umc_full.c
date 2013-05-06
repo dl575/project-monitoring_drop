@@ -1,4 +1,4 @@
-
+#ifdef UMC_FULL
 /*
  * umc.c
  *
@@ -14,7 +14,6 @@
 #include <stdbool.h>
 
 #include "monitoring.h"
-#include "timer.h"
 
 #define METADATA_ADDRESSES 1024*1024*128
 
@@ -31,17 +30,18 @@ int main(int argc, char *argv[]) {
 
   // Main loop, loop until main core signals done
   while(1) {
-    if (READ_SLACK_DROP) {
-      // Store
-      if (temp = READ_FIFO_STORE) {
+  
+    POP_FIFO;
+    // Store
+    if (temp = READ_FIFO_STORE) {
         // Write metadata
         register int memend = (READ_FIFO_MEMEND >> 2);
         for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
           // We use masks to store at bit locations based on last three bits
           metadata[temp >> 3] = metadata[temp >> 3] | (1<<(temp&0x7));
         }
-      // Load
-      } else {
+    // Load
+    } else {
         register int memend = (READ_FIFO_MEMEND >> 2);
         for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
           // We use masks to get value at bit location
@@ -51,10 +51,11 @@ int main(int argc, char *argv[]) {
               return 1;
           }
         }
-      }
-      
-    } // READ_SLACK
+    }
+
   } // while (1)
 
   return 1;
 }
+
+#endif

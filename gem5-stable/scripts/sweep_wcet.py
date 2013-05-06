@@ -10,6 +10,7 @@ import os
 
 program = "timer_monitor"
 monitor = os.environ["MONITOR"]
+model = os.environ["MODEL"]
 
 # WCET per task to try (in percent)
 wcets = [i for i in range(80, 100, 5) + range(100, 401, 20)]
@@ -28,8 +29,8 @@ p.wait()
 # For each WCET to try
 for wcet in wcets:
   # Compile the main program
-  compile_cmd = "arm-linux-gnueabi-gcc -O2 -D%s -DUNIX -DWCET_SCALE=%f \
-      %s.c -o %s.arm --static" % (monitor, (float(wcet)/100), program, program)
+  compile_cmd = "arm-linux-gnueabi-gcc -O2 -D%s -D%s -DUNIX -DWCET_SCALE=%f \
+      %s.c -o %s.arm --static" % (monitor, model, (float(wcet)/100), program, program)
   print compile_cmd
   p = subprocess.Popen(compile_cmd, cwd=compile_dir, shell=True)
   p.wait()

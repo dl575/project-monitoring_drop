@@ -205,13 +205,6 @@ int
 compress(void)
 {
 
-    INIT_MONITOR;
-    while (!READ_FIFO_EMPTY);
-    
-    START_TASK(WCET_CMP);
-    
-    START_SUBTASK(WCET_CMP_1);
-
 	int             count = IN_COUNT;
 
 	initbuffer();
@@ -228,8 +221,13 @@ compress(void)
 	apsim_InCnt = IN_COUNT + 3;
 	InBuff = (unsigned char *) orig_text_buffer;
 	OutBuff = (unsigned char *) comp_text_buffer;
-
-    ENDSTART_SUBTASK(WCET_CMP_2);
+    
+    INIT_MONITOR;
+    while (!READ_FIFO_EMPTY);
+    
+    START_TASK(WCET_CMP);
+    
+    START_SUBTASK(WCET_CMP_1);
     
 	int result = compress_sub();
     
@@ -303,7 +301,7 @@ compress_sub(void)
     
 	while (InCnt > 0) {	/* apsim_loop 11 0 */
     
-        ENDSTART_SUBTASK(WCET_CMP_3);
+        ENDSTART_SUBTASK(WCET_CMP_2);
     
 		int             apsim_bound111 = 0;
 
@@ -339,7 +337,7 @@ probe:
 			goto probe;
 
 nomatch:  
-        ENDSTART_SUBTASK(WCET_CMP_5);
+        ENDSTART_SUBTASK(WCET_CMP_3);
         
 		out_count++;
 		ent = c;
@@ -351,7 +349,7 @@ nomatch:
 		}
 	}
     
-    ENDSTART_SUBTASK(WCET_CMP_6);
+    ENDSTART_SUBTASK(WCET_CMP_5);
     
 	if (bytes_out > in_count) {	/* exit(2) if no savings */
 		exit_stat = 2;

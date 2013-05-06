@@ -7,12 +7,8 @@
 #ifndef __SLACKTIMER_H__
 #define __SLACKTIMER_H__
 
-#ifdef UMC
-    #include "umc_timing.h"
-#endif
-#ifdef LRC
-    #include "lrc_timing.h"
-#endif
+#include "umc_timing.h"
+#include "lrc_timing.h"
 
 // Timer base address
 #define TIMER_ADDR 0x30010000

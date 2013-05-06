@@ -11,6 +11,7 @@ import re
 import subprocess
 
 monitor = os.environ["MONITOR"]
+model = os.environ["MODEL"]
 
 # WCET per task to try (in cycles)
 wcets = [i for i in range(97,100,1) + range(100,501,50)]
@@ -35,8 +36,8 @@ for filename in glob.glob(os.path.join(compile_dir, "malarden*.c")):
   for wcet in wcets:
     # Compile the main program 
     # Move it to ../multi_malarden.arm to work with config script
-    compile_cmd = "arm-linux-gnueabi-gcc -D%s -DUNIX -O2 -DWCET_SCALE=%f \
-        %s malarden_%s.c -o malarden_%s.arm --static;" % ( monitor, \
+    compile_cmd = "arm-linux-gnueabi-gcc -D%s -D%s -DUNIX -O2 -DWCET_SCALE=%f \
+        %s malarden_%s.c -o malarden_%s.arm --static;" % ( monitor, model, \
         (float(wcet)/100), ' '.join([('../include/%s.c' % elem) for elem in benchmarks.split('_')]), \
          benchmarks, benchmarks)
     print compile_cmd

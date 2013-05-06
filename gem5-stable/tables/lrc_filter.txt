@@ -1,0 +1,3 @@
+//opcode    sel1      sel2    op       c    location
+
+  RET       prev_addr c       sub      0    cache

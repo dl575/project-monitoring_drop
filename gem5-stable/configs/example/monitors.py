@@ -3,7 +3,29 @@ monitor = os.environ["MONITOR"]
 #######################################
 # UMC
 #######################################
-if monitor == "UMC":
+if monitor == "UMC_FULL":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  # MonCPUClass.delay = 128
+  # Define monitoring executable
+  monitor_bin = "umc_full"
+elif monitor == "UMC_SWDROP":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  # MonCPUClass.delay = 128
+  # Define monitoring executable
+  monitor_bin = "umc_swdrop"
+elif monitor == "UMC_HWDROP":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  # Load the invalidation file
+  MonCPUClass.invalidation_file = "tables/umc_invalidation.txt"
+  # Define monitoring executable
+  monitor_bin = "umc_hwdrop"
+elif monitor == "UMC_HWFILTER":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
@@ -12,33 +34,44 @@ if monitor == "UMC":
   MonCPUClass.filter_file_1 = "tables/umc_filter.txt"
   MonCPUClass.filter_ptr_file = "tables/umc_filter_ptrs.txt"
   # Define monitoring executable
-  monitor_bin = "umc_drop"
-elif monitor == "UMC_HWDROP":
-  # Set up monitoring filter
-  MainCPUClass.monitoring_filter_load = True
-  MainCPUClass.monitoring_filter_store = True
-  # Load the invalidation file
-  MonCPUClass.invalidation_file = "tables/umc_invalidation.txt"
-  # Define monitoring executable
-  monitor_bin = "umc_drop"
-  #monitor_bin = "umc"
-elif monitor == "UMC_FULL":
-  # Set up monitoring filter
-  MainCPUClass.monitoring_filter_load = True
-  MainCPUClass.monitoring_filter_store = True
-  # Define monitoring executable
-  monitor_bin = "umc"
+  monitor_bin = "umc_hwfilter"
+  
 
 #######################################
 # LRC
 #######################################
-elif monitor == "LRC":
+elif monitor == "LRC_FULL":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
+  # MonCPUClass.delay = 40
   # Define monitoring executable
-  monitor_bin = "lrc_drop"
-  #monitor_bin = "lrc"
+  #monitor_bin = "lrc_full"
+elif monitor == "LRC_SWDROP":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_call = True
+  MainCPUClass.monitoring_filter_ret = True
+  # MonCPUClass.delay = 40
+  # Define monitoring executable
+  monitor_bin = "lrc_swdrop"
+elif monitor == "LRC_HWDROP":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_call = True
+  MainCPUClass.monitoring_filter_ret = True
+  # Load the invalidation file
+  MonCPUClass.invalidation_file = "tables/lrc_invalidation.txt"
+  # Define monitoring executable
+  monitor_bin = "lrc_hwdrop"
+elif monitor == "LRC_HWFILTER":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_call = True
+  MainCPUClass.monitoring_filter_ret = True
+  # Load the invalidation file
+  MonCPUClass.invalidation_file = "tables/lrc_invalidation.txt"
+  MonCPUClass.filter_file_1 = "tables/lrc_filter.txt"
+  MonCPUClass.filter_ptr_file = "tables/lrc_filter_ptrs.txt"
+  # Define monitoring executable
+  monitor_bin = "lrc_hwfilter"
 
 #######################################
 # DIFT
@@ -50,8 +83,9 @@ elif monitor == "DIFT_FULL":
   MainCPUClass.monitoring_filter_store = True
   MainCPUClass.monitoring_filter_intalu = True
   MainCPUClass.monitoring_filter_indctrl = True
+  # MonCPUClass.delay = 40
   # Define monitoring executable
-  monitor_bin = "dift"
+  monitor_bin = "dift_full"
 # Drop handled in software
 elif monitor == "DIFT_SWDROP":
   # Set up monitoring filter
@@ -59,6 +93,7 @@ elif monitor == "DIFT_SWDROP":
   MainCPUClass.monitoring_filter_store = True
   MainCPUClass.monitoring_filter_intalu = True
   MainCPUClass.monitoring_filter_indctrl = True
+  # MonCPUClass.delay = 40
   # Define monitoring executable
   monitor_bin = "dift_swdrop"
 # Drop handled in hardware without filtering
@@ -86,7 +121,7 @@ elif monitor == "DIFT_HWFILTER":
   MonCPUClass.filter_file_2 = "tables/dift_filter2.txt"
   MonCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
   # Define monitoring executable
-  monitor_bin = "dift_hwdrop"
+  monitor_bin = "dift_hwfilter"
 
 else:
   raise Exception("Monitor not recognized: %s" % monitor)

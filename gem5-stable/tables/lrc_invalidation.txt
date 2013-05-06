@@ -1,0 +1,9 @@
+//opcode    sel1      sel2    op       c    action
+
+  CALL      prev_addr c       add      1    HW_set_cache
+  RET       prev_addr c       sub      1    HW_nop
+
+//idx       sel1      sel2    op       c    action
+
+  1         prev_addr c       sub      1    HW_nop
+  

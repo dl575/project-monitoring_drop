@@ -53,16 +53,11 @@ int
 insertsort()
 {
 
-    INIT_MONITOR;
-    while (!READ_FIFO_EMPTY);
 
-    START_TASK(WCET_IS);
 
 	int             i, j, temp;
     unsigned int    a[11];
 
-    START_SUBTASK(WCET_IS_1);
-    
 	a[0] = 0;		/* assume all data is positive */
 	a[1] = 11;
 	a[2] = 10;
@@ -75,6 +70,14 @@ insertsort()
 	a[9] = 3;
 	a[10] = 2;
 	i = 2;
+    
+    INIT_MONITOR;
+    while (!READ_FIFO_EMPTY);
+
+    START_TASK(WCET_IS);
+    
+    START_SUBTASK(WCET_IS_1);
+    
     
 	while (i <= 10) {
 		ENDSTART_SUBTASK(WCET_IS_2);
