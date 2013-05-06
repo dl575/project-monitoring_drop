@@ -458,6 +458,8 @@ class BaseSimpleCPU : public BaseCPU
         inst_store,       // Store instruction
         inst_call,        // Call instruction
         inst_ret,         // Return instruction
+        inst_intalu,      // Integer ALU instruction
+        inst_indctrl,     // Indirect control instruction
         num_inst_types    // Number of instruction types
     };
 

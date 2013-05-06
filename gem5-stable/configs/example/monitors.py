@@ -13,6 +13,14 @@ if monitor == "UMC":
   MonCPUClass.filter_ptr_file = "tables/umc_filter_ptrs.txt"
   # Define monitoring executable
   monitor_bin = "umc_drop"
+elif monitor == "UMC_HWDROP":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  # Load the invalidation file
+  MonCPUClass.invalidation_file = "tables/umc_invalidation.txt"
+  # Define monitoring executable
+  monitor_bin = "umc_drop"
   #monitor_bin = "umc"
 elif monitor == "UMC_FULL":
   # Set up monitoring filter
@@ -54,7 +62,7 @@ elif monitor == "DIFT_SWDROP":
   # Define monitoring executable
   monitor_bin = "dift_swdrop"
 # Drop handled in hardware with filtering
-elif monitor == "DIFT_SWDROP":
+elif monitor == "DIFT_HWDROP":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
@@ -62,8 +70,9 @@ elif monitor == "DIFT_SWDROP":
   MainCPUClass.monitoring_filter_indctrl = True
   # Load the invalidation file
   MonCPUClass.invalidation_file = "tables/dift_invalidation.txt"
-  MonCPUClass.filter_file_1 = "tables/dift_filter.txt"
-  MonCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
+  # MonCPUClass.filter_file_1 = "tables/dift_filter1.txt"
+  # MonCPUClass.filter_file_2 = "tables/dift_filter2.txt"
+  # MonCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
   # Define monitoring executable
   monitor_bin = "dift_hwdrop"
 else:

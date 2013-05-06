@@ -1,6 +1,6 @@
 
 /*
- * dift.c
+ * dift_hwdrop.c
  *
  * Dynamic information flow tracking on monitoring core.
  *
@@ -13,6 +13,7 @@
 
 #include "timer.h"
 #include "monitoring.h"
+#include "flagcache.h"
 
 #define METADATA_ADDRESSES 0x400000
 
@@ -27,7 +28,8 @@
 #define MONITOR "[DIFT] "
 
 bool tagmem[METADATA_ADDRESSES];
-bool tagrf[NUM_REGS];
+// Flag cache used for register file tags
+// bool tagrf[NUM_REGS];
 
 int main(int argc, char *argv[]) {
   register int temp;
@@ -41,13 +43,16 @@ int main(int argc, char *argv[]) {
   INIT_MONITOR;
   // Set up timer
   INIT_TIMER;
+  // set up flag cache
+  INIT_FC
   // set drop threshold in timer
   SET_THRES(MON_WCET - MON_DROP_WCET);
 
   // Main loop, loop until main core signals done
   while(1) {
 
-    if (READ_SLACK > threshold) {
+    // Run full monitoring
+    if (READ_SLACK_DROP == 1) {
 
       //printf("pc = %x, m[%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);
       // Store
@@ -57,11 +62,33 @@ int main(int argc, char *argv[]) {
 //        bool settag = READ_FIFO_SETTAG;
         bool settag = false; // FIXME
         unsigned rt = READ_FIFO_RD;
+        // Read in from flag cache
+        FC_SET_ADDR(rt);
+        bool tagrf_rt = FC_ARRAY_GET;
+        // For each memory address
+        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp) {
+          /*
+          if (settag || tagrf[rt] || tagmem[temp % METADATA_ADDRESSES])
+            tainted_insts++;
+            */
+          // Set tag in flag cache too
+          FC_SET_ADDR(temp % METADATA_ADDRESSES);
+          bool set = settag ? true : (bool)tagrf_rt;
+          if (set) {
+            FC_CACHE_SET;
+          } else {
+            FC_CACHE_CLEAR;
+          }
+          // Set tag for memory address
+          tagmem[temp % METADATA_ADDRESSES] = set;
+        }
+        /*
         for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp) {
           if (settag || tagrf[rt] || tagmem[temp % METADATA_ADDRESSES])
             tainted_insts++;
           tagmem[temp % METADATA_ADDRESSES] = settag ? true : (bool)tagrf[rt];
         }
+        */
         if (settag)
           printf(MONITOR "set tag\n");
         // else
@@ -78,44 +105,87 @@ int main(int argc, char *argv[]) {
           //   printf(MONITOR "set taint r%d\n", rd);
           // else if (tagrf[rd] && !tagmem[temp % METADATA_ADDRESSES])
           //   printf(MONITOR "clear taint r%d\n", rd);
+          /*
           if (tagrf[rd] || tagmem[temp % METADATA_ADDRESSES])
             tainted_insts++;
-          tag = tagrf[rd] = tagmem[temp % METADATA_ADDRESSES];
+            */
+          //tag = tagrf[rd] = tagmem[temp % METADATA_ADDRESSES];
+
+          // Read tag from flag cache
+          FC_SET_ADDR(temp % METADATA_ADDRESSES);
+          bool fc_tag = FC_CACHE_GET;
+
+          // Marked as untainted in flag cache, use untainted
+          if (fc_tag == 0) {
+            // Update in memory
+            tagmem[temp % METADATA_ADDRESSES] = 0;
+            // Write to destination in flag cache
+            FC_SET_ADDR(rd);
+            FC_ARRAY_CLEAR;
+          // Marked as tainted in flag cache, use memory tag value
+          } else {
+            // Read tag from source in memory
+            tag = tagmem[temp % METADATA_ADDRESSES];
+            // Write tag to destination in flag cach
+            FC_SET_ADDR(rd);
+            if (tag) { 
+              FC_ARRAY_SET;
+            } else {
+              FC_ARRAY_CLEAR;
+            }
+          }
         }
+        /*
           if (tag)
             printf(MONITOR "read tainted tag [0x%x], set taint r%d=%d\n", temp, rd, tagrf[rd]);
+            */
           total_insts++;
       } else if (temp = READ_FIFO_INDCTRL) {
         printf("indctrl\n");
         unsigned rs = READ_FIFO_SRCREG(0);
         // printf(MONITOR "indirect jump on r%d=%d\n", rs, tagrf[rs]);
         // on indirect jump, check tag taint
-        if (tagrf[rs]) {
+        FC_SET_ADDR(rs);
+        bool tagrf_rs = FC_ARRAY_GET;
+        if (tagrf_rs) {
           printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
           // return -1;
         }
       } else { // (temp = READ_FIFO_INTALU)
         // on ALU instructions, propagate tag between registers
         bool tresult = false;
+        bool tagrf_srcreg;
         for (i = 0; i < READ_FIFO_NUMSRCREGS; ++i) {
-          tresult |= tagrf[READ_FIFO_SRCREG(i)];
+          //tresult |= tagrf[READ_FIFO_SRCREG(i)];
+
+          FC_SET_ADDR(READ_FIFO_SRCREG(i));
+          tagrf_srcreg = FC_ARRAY_GET;
+          tresult |= tagrf_srcreg;
+          
           // if (tagrf[READ_FIFO_SRCREG(i)])
           //   printf(MONITOR "r%d = %d\n", READ_FIFO_SRCREG(i), tagrf[READ_FIFO_SRCREG(i)]);
         }
         unsigned rd = READ_FIFO_RD;
         if (rd < 0x21) { // FIXME: remove hardcoded value
-          if (tresult || tagrf[rd])
+          FC_SET_ADDR(rd);
+          bool tagrf_rd = FC_ARRAY_GET;
+          if (tresult || tagrf_rd)
             tainted_insts++;
-          if (!tagrf[rd] && tresult)
+          if (!tagrf_rd && tresult)
             printf(MONITOR "set taint r%d\n", rd);
-          else if (tagrf[rd] && !tresult)
+          else if (tagrf_rd && !tresult)
             printf(MONITOR "clear taint r%d\n", rd);
-          tagrf[rd] = tresult;
+          if (tresult) {
+            FC_ARRAY_SET; 
+          } else {
+            FC_ARRAY_CLEAR;
+          }
+          //tagrf[rd] = tresult;
         }
         total_insts++;
       }
     // Not enough slack
-    } 
+    } // READ_SLACK_DROP
   } // while(1)
 
   return 1;
