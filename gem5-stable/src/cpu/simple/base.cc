@@ -108,6 +108,8 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     mf.store = p->monitoring_filter_store;
     mf.call = p->monitoring_filter_call;
     mf.ret = p->monitoring_filter_ret;
+    mf.intalu = p->monitoring_filter_intalu;
+    mf.intalu = p->monitoring_filter_indctrl;
     
     // Initialize table if specified
     if (p->invalidation_file.size()){
@@ -604,7 +606,9 @@ BaseSimpleCPU::performMonitoring() {
         (curStaticInst->isLoad() && mf.load) ||
         (curStaticInst->isStore() && mf.store) ||
         (curStaticInst->isCall() && mf.call) || 
-        (curStaticInst->isReturn() && mf.ret)
+        (curStaticInst->isReturn() && mf.ret) ||
+        ((curStaticInst->opClass() == IntAluOp) && mf.intalu) || // FIXME: also need to include mul/div
+        (curStaticInst->isIndirectCtrl() && mf.indctrl)
        )
        &&
        !(
@@ -623,10 +627,28 @@ BaseSimpleCPU::performMonitoring() {
         mp.memAddr = fed.memAddr; // memory access instruction
         mp.memEnd = fed.memAddr;
         mp.data = fed.data;       // memory access data
+        // source registers
         mp.numsrcregs = curStaticInst->numSrcRegs();
         for (unsigned i = 0; i < curStaticInst->numSrcRegs(); ++i){
           mp.srcregs[i] = curStaticInst->srcRegIdx(i);
         }
+        // destination registers
+        // Note:
+        //   Here we assume only one "real" destination register, i.e.
+        //   we don't count condition codes as destination registers
+        // initially set destination register to a dummy one
+        mp.rd = TheISA::INTREG_ZERO;
+        mp.numdstregs = 0;
+        for (int i = 0; i < curStaticInst->numDestRegs(); ++i) {
+          if (TheISA::isISAReg(curStaticInst->destRegIdx(i))) {
+            mp.rd = curStaticInst->destRegIdx(i);
+            mp.numdstregs = 1;
+          }
+        }
+        if (curStaticInst->isStore()) {
+          mp.rd = curStaticInst->machInst.rt;
+          mp.numdstregs = 1;
+        } 
         // load/store flag
         mp.store = curStaticInst->isStore();
         mp.load = curStaticInst->isLoad();
@@ -634,6 +656,8 @@ BaseSimpleCPU::performMonitoring() {
         mp.control = curStaticInst->isControl(); // control inst
         mp.call    = curStaticInst->isCall();    // call inst
         mp.ret     = curStaticInst->isReturn();  // return inst
+        mp.intalu  = (curStaticInst->opClass() == IntAluOp); // integer ALU inst
+        mp.indctrl = curStaticInst->isIndirectCtrl(); // indirect control
         mp.lr      = tc->readIntReg(14); // Link register
         mp.nextpc  = tc->nextInstAddr(); // Next program counter
 
@@ -783,6 +807,16 @@ BaseSimpleCPU::readFifoInstType()
         DPRINTF(Invalidation, "Fifo entry instruction type is RET\n");
         return inst_ret;
     }
+    readFromFifo(FIFO_INTALU, (uint8_t *)&is_type, sizeof(is_type), ArmISA::TLB::AllowUnaligned);
+    if (is_type) {
+        DPRINTF(Invalidation, "Fifo entry instruction type is INTALU\n");
+        return inst_intalu;
+    }
+    readFromFifo(FIFO_INDCTRL, (uint8_t *)&is_type, sizeof(is_type), ArmISA::TLB::AllowUnaligned);
+    if (is_type) {
+        DPRINTF(Invalidation, "Fifo entry instruction type is INDCTRL\n");
+        return inst_indctrl;
+    }
     DPRINTF(Invalidation, "Fifo entry instruction type is unknown\n");
     return inst_undef;
 }
@@ -795,6 +829,8 @@ BaseSimpleCPU::instTypeToString(int inst_type)
         case inst_store: return "STORE";
         case inst_call: return "CALL";
         case inst_ret: return "RET";
+        case inst_intalu: return "INTALU";
+        case inst_indctrl: return "INDCTRL";
     };
     
     return "UNDEF";
@@ -811,6 +847,10 @@ BaseSimpleCPU::parseInstType(const char * inst_type)
         return inst_call;
     }else if (!strcmp(inst_type, "RET")){
         return inst_ret;
+    }else if (!strcmp(inst_type, "INTALU")){
+        return inst_intalu;
+    }else if (!strcmp(inst_type, "INDCTRL")){
+        return inst_indctrl;
     }
     return inst_undef;
 }
@@ -852,6 +892,8 @@ BaseSimpleCPU::selectValue(std::string &select, Addr c)
         readFromFifo(FIFO_LR, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
     } else if (select == "DATA") {
         readFromFifo(FIFO_DATA, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (select == "RD") {
+        readFromFifo(FIFO_RD, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
     } else {
         warn("Unknown select \"%s\"\n", select.data());
     }
@@ -894,6 +936,8 @@ BaseSimpleCPU::performInvalidation(unsigned idx)
         DPRINTF(Invalidation, "Clearing array\n");
         unsigned type = 0;
         writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+    } else {
+        DPRINTF(Invalidation, "No invalidation operation performed\n");
     }
 }
 
@@ -1360,7 +1404,7 @@ BaseSimpleCPU::InvalidationTable<add_size>::initTable(const char * file_name)
 
         // parse the line
         token[0] = strtok(buf, DELIMITER); // first token
-        if (token[0] && strncmp(token[0], "//", 2)) // zero if line is blank
+        if (token[0] && strncmp(token[0], "//", 2)) // Skip if line is blank or commented out
         {
           instType inst_type = parseInstType(token[0]);
           int idx = inst_type;

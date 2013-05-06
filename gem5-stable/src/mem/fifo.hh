@@ -76,6 +76,10 @@
 #define FIFO_LR            (FIFO_ADDR + 0x9c)       // link register
 #define FIFO_NEXTPC        (FIFO_ADDR + 0xa0)       // next instruction address
 #define FIFO_LOAD          (FIFO_ADDR + 0xa4)       // load flag
+#define FIFO_NUMDSTREGS    (FIFO_ADDR + 0xa8)       // number of destination registers
+#define FIFO_RD            (FIFO_ADDR + 0xac)       // rd destination register
+#define FIFO_INTALU        (FIFO_ADDR + 0xb0)       // integer ALU instruction flag
+#define FIFO_INDCTRL       (FIFO_ADDR + 0xb4)       // indirect control instruction flag
 
 // Fifo registers
 #define FIFO_REG_START (FIFO_ADDR + 0x1000) 
@@ -102,9 +106,13 @@ class monitoringPacket {
     bool done;            // indicates that the main core program has finished
     uint8_t numsrcregs;   // indicates the number of source registers used for this instruction
     uint8_t srcregs[27];  // the actual source registers for the instruction
+    uint8_t numdstregs;  // indicates number of dest registers for the instruction
+    uint8_t rd;           // destination register numbers
     bool control;         // true if control instruction
     bool call;            // true if call instruction
     bool ret;             // true if return instruction
+    bool intalu;          // integer ALU instruction
+    bool indctrl;         // indirect control instruction
     uint64_t lr;          // link register
     uint64_t nextpc;      // next program counter
 
@@ -122,9 +130,13 @@ class monitoringPacket {
       for (unsigned i = 0; i < 27; ++i){
         srcregs[i] = 0;
       }
+      numdstregs = 0;
+      rd = 0;
       control = false;
       call = false;
       ret = false;
+      intalu = false;
+      indctrl = false;
       lr = 0;
       nextpc = 0;
     }

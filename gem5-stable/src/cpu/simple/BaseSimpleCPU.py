@@ -49,6 +49,8 @@ class BaseSimpleCPU(BaseCPU):
     monitoring_filter_store = Param.Bool(False, "monitoring store instructions")
     monitoring_filter_call = Param.Bool(False, "monitoring call instructions")
     monitoring_filter_ret = Param.Bool(False, "monitoring return instructions")
+    monitoring_filter_intalu = Param.Bool(False, "monitoring integer ALU instructions")
+    monitoring_filter_indctrl = Param.Bool(False, "monitoring indirect control instructions")
 
     if fifo_enabled:
       fifo_port = MasterPort("Fifo Port")

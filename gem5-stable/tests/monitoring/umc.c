@@ -14,6 +14,7 @@
 #include <stdbool.h>
 
 #include "monitoring.h"
+#include "timer.h"
 
 #define METADATA_ADDRESSES 1024*1024*128
 
@@ -25,34 +26,34 @@ int main(int argc, char *argv[]) {
 
   // Set up monitoring
   INIT_MONITOR;
+  // set up timer interface for reading
+  INIT_TIMER;
 
   // Main loop, loop until main core signals done
   while(1) {
-  
-    // Store
-    if (temp = READ_FIFO_STORE) {
-      // Write metadata
-      register int memend = (READ_FIFO_MEMEND >> 2);
-      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
-        // We use masks to store at bit locations based on last three bits
-        metadata[temp >> 3] = metadata[temp >> 3] | (1<<(temp&0x7));
-      }
-    // Load
-    } else {
-      register int memend = (READ_FIFO_MEMEND >> 2);
-      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
-        // We use masks to get value at bit location
-        if ((metadata[temp >> 3] & (1<<(temp&0x7))) == 0) {
-            printf("UMC error: pc = %x, m[%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);
-            // Exit if UMC error
-            return 1;
+    if (READ_SLACK_DROP) {
+      // Store
+      if (temp = READ_FIFO_STORE) {
+        // Write metadata
+        register int memend = (READ_FIFO_MEMEND >> 2);
+        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
+          // We use masks to store at bit locations based on last three bits
+          metadata[temp >> 3] = metadata[temp >> 3] | (1<<(temp&0x7));
+        }
+      // Load
+      } else {
+        register int memend = (READ_FIFO_MEMEND >> 2);
+        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
+          // We use masks to get value at bit location
+          if ((metadata[temp >> 3] & (1<<(temp&0x7))) == 0) {
+              printf("UMC error: pc = %x, m[%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);
+              // Exit if UMC error
+              return 1;
+          }
         }
       }
-    }
-    
-    // Next entry
-    POP_FIFO;
-
+      
+    } // READ_SLACK
   } // while (1)
 
   return 1;

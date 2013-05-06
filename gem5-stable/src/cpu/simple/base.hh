@@ -458,6 +458,8 @@ class BaseSimpleCPU : public BaseCPU
         inst_store,       // Store instruction
         inst_call,        // Call instruction
         inst_ret,         // Return instruction
+        inst_intalu,      // Integer ALU instruction
+        inst_indctrl,     // Indirect control instruction
         num_inst_types    // Number of instruction types
     };
 
@@ -577,10 +579,12 @@ class BaseSimpleCPU : public BaseCPU
     // Monitoring filter - decides which instructions to monitor
     class monitorFilter {
       public:
-        bool load;
-        bool store;
-        bool call;
-        bool ret;
+        bool load;    // Load instruction
+        bool store;   // Store instruction
+        bool call;    // Function call instruction
+        bool ret;     // Return instruction
+        bool intalu;  // Integer ALU instruction
+        bool indctrl; // Indirect control instruction
 
         // Constructor sets all flags to false 
         monitorFilter() {
@@ -588,6 +592,8 @@ class BaseSimpleCPU : public BaseCPU
           store = false;
           call = false;
           ret = false;
+          intalu = false;
+          indctrl = false;
         }
     };
     monitorFilter mf;

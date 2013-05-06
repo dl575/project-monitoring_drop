@@ -351,6 +351,14 @@ intRegInMode(OperatingMode mode, int reg)
     return mode * intRegsPerMode + reg;
 }
 
+static inline bool isISAReg(unsigned index)
+{
+  if (index < INTREG_ZERO || index == INTREG_UREG0 || index == INTREG_UREG1 || index == INTREG_UREG2)
+    return true;
+  else
+    return false;
+}
+
 }
 
 #endif
