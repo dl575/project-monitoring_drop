@@ -1,7 +1,10 @@
 ifndef MONITOR
-MONITOR=UMC
+MONITOR=UMC_HWFILTER
 endif
-CCFLAGS=-D$(MONITOR) -O2
+ifndef MODEL
+MODEL=ATOMIC
+endif
+CCFLAGS=-D$(MONITOR) -D$(MODEL) -O2
 INCLUDES=$(wildcard include/*.c)
 
 malarden_wcet.obj: malarden_wcet.arm

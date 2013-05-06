@@ -1,4 +1,4 @@
-
+#ifdef LRC_FULL
 /*
  * lrc.c
  *
@@ -28,6 +28,9 @@ int main(int argc, char *argv[]) {
 
   // Main loop, loop until main core signals done
   while(1) {
+    
+    POP_FIFO;
+    
 #ifdef DEBUG
     printf("pc = %x, ccr=(%d, %d, %d), lr = %x, nextpc = %x\n", READ_FIFO_PC, 
         READ_FIFO_CONTROL, READ_FIFO_CALL, READ_FIFO_RET, READ_FIFO_LR,
@@ -53,9 +56,9 @@ int main(int argc, char *argv[]) {
 #endif
     }
 
-    // Next entry
-    POP_FIFO;
   } // while(1)
 
   return 1;
 }
+
+#endif

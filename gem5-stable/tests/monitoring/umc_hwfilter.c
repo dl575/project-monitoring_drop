@@ -1,3 +1,4 @@
+#ifdef UMC_HWFILTER
 
 #include <stdio.h>
 #include <string.h>
@@ -20,7 +21,7 @@ int main(int argc, char *argv[]) {
   // set up timer interface for reading
   INIT_TIMER
   // set up flag cache
-  // INIT_FC
+  INIT_FC
   // set drop threshold in timer
   SET_THRES(MON_WCET - MON_DROP_WCET);
 
@@ -35,16 +36,15 @@ int main(int argc, char *argv[]) {
           for (temp = (temp >> 2); temp <= memend; ++temp){
             // We use masks to store at bit locations based on last three bits
             metadata[temp >> 3] = metadata[temp >> 3] | (1<<(temp&0x7));
-            // FC_SET_ADDR(temp)
-            // FC_CACHE_CLEAR
+            FC_SET_ADDR(temp)
+            FC_CACHE_CLEAR
           }
         // Load
         } else if (READ_FIFO_LOAD) {
           register unsigned int memend = (READ_FIFO_MEMEND >> 2);
           for (temp = (temp >> 2); temp <= memend; ++temp){
-            // FC_SET_ADDR(temp)
             // We use masks to get value at bit location
-            if (/*!FC_CACHE_GET && */((metadata[temp >> 3] & (1<<(temp&0x7))) == 0)) {
+            if (((metadata[temp >> 3] & (1<<(temp&0x7))) == 0)) {
                 printf("UMC error: pc = %x, m[%x] = %d\n", READ_FIFO_PC, (temp << 2), READ_FIFO_DATA);
                 // Exit if UMC error
                 return 1;
@@ -52,15 +52,9 @@ int main(int argc, char *argv[]) {
           }
         }
     }
-    // Not enough slack, drop
-    else {
-        // Write to prevent false positives
-        // Shift by 2 to store tag per word
-        // Shift by additional 3 because we will not be bit masking
-        temp = READ_FIFO_MEMADDR;
-        metadata[(temp >> 5)] = 0xFF;
-    }
   }
 
   return 1;
 }
+
+#endif

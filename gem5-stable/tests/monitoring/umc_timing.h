@@ -4,23 +4,38 @@
  * Author: Mohamed Ismail
  */
 
-#ifndef __MONITOR_TIME_H__
-#define __MONITOR_TIME_H__
+#ifndef __UMC_TIME_H__
+#define __UMC_TIME_H__
 
-// cycles needed to perform full monitoring
-// #define MON_WCET 26
-// #define MON_DROP_WCET 1
+#ifdef UMC_SWDROP
+#ifdef ATOMIC
 
-// HW Drop and filter
-// #define MON_WCET 122
-// #define MON_DROP_WCET 2
+#endif
+#ifdef TIMING
+    #define MON_WCET 128
+    #define MON_DROP_WCET 80
+#endif
+#endif
 
-// HW Drop
-// #define MON_WCET 124
-// #define MON_DROP_WCET 2
+#ifdef UMC_HWDROP
+#ifdef ATOMIC
 
-// SW Drop
-#define MON_WCET 128
-#define MON_DROP_WCET 80
+#endif
+#ifdef TIMING
+    #define MON_WCET 124
+    #define MON_DROP_WCET 2
+#endif
+#endif
 
-#endif // __MONITOR_TIME_H__
+#ifdef UMC_HWFILTER
+#ifdef ATOMIC
+    #define MON_WCET 26
+    #define MON_DROP_WCET 1
+#endif
+#ifdef TIMING
+    #define MON_WCET 122
+    #define MON_DROP_WCET 2
+#endif
+#endif
+
+#endif // __UMC_TIME_H__

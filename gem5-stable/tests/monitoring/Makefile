@@ -1,8 +1,11 @@
 ifndef MONITOR
-MONITOR=UMC
+MONITOR=UMC_HWFILTER
+endif
+ifndef MODEL
+MODEL=ATOMIC
 endif
 TARGET=
-CCFLAGS=-O2 -D$(MONITOR)
+CCFLAGS=-O2 -D$(MONITOR) -D$(MODEL)
 
 ${TARGET}: ${TARGET}.c
 	arm-linux-gnueabi-gcc -DUNIX ${CCFLAGS} ${TARGET}.c -o ${TARGET}.arm --static

@@ -7,7 +7,7 @@
 
 
 #ifndef WCET_SCALE
-    #define WCET_SCALE 3
+    #define WCET_SCALE 1
 #endif
 
 /** Function definitions **/
@@ -21,6 +21,272 @@ int nsichneu();
 int statemate(void);
 
 /** WCET for UMC **/
+#ifdef UMC_FULL
+#ifdef ATOMIC
+
+#endif
+#ifdef TIMING
+  /** insertsort.c **/
+  #define WCET_IS  46500*(WCET_SCALE)
+  #define WCET_IS_1 0
+  #define WCET_IS_2 0
+  
+  /** crc.c **/
+  #define WCET_CRC 89400*(WCET_SCALE)
+  #define WCET_CRC_1 0
+  #define WCET_CRC_2 0
+  #define WCET_CRC_3 0
+  #define WCET_CRC_4 0
+  #define WCET_CRC_5 0
+  
+  /** edn.c **/
+  #define WCET_EDN 2795700*(WCET_SCALE)
+  #define WCET_EDN_1 0
+  #define WCET_EDN_2 0
+  #define WCET_EDN_3 0
+  #define WCET_EDN_4 0
+  #define WCET_EDN_5 0
+  #define WCET_EDN_6 0
+  #define WCET_EDN_7 0
+  #define WCET_EDN_8 0
+  #define WCET_EDN_9 0
+  #define WCET_EDN_10 0
+  #define WCET_EDN_11 0
+  #define WCET_EDN_12 0
+  #define WCET_EDN_13 0
+  #define WCET_EDN_14 0
+  #define WCET_EDN_15 0
+  
+  /** compress.c **/
+  #define WCET_CMP 377880*(WCET_SCALE)
+  #define WCET_CMP_1 0
+  #define WCET_CMP_2 0
+  #define WCET_CMP_3 0
+  #define WCET_CMP_4 0
+  #define WCET_CMP_5 0
+  
+  /** fir.c **/
+  #define WCET_FIR 199920*(WCET_SCALE)
+  #define WCET_FIR_1 0
+  #define WCET_FIR_2 0
+  #define WCET_FIR_3 0
+  #define WCET_FIR_4 0
+  
+  /** jfdcint.c **/
+  #define WCET_JFDC 197880*(WCET_SCALE)
+  #define WCET_JFDC_1 0
+  #define WCET_JFDC_2 0
+  #define WCET_JFDC_3 0
+  #define WCET_JFDC_4 0
+  #define WCET_JFDC_5 0
+  
+  /** nsichneu.c **/
+  #define WCET_NSI 489540*(WCET_SCALE)
+  #define WCET_NSI_1 0
+  #define WCET_NSI_2 0
+  #define WCET_NSI_3 0
+  #define WCET_NSI_4 0
+  #define WCET_NSI_5 0
+  #define WCET_NSI_6 0
+  #define WCET_NSI_7 0
+  #define WCET_NSI_8 0
+  
+  /** statemate.c **/
+  #define WCET_STA 132420*(WCET_SCALE)
+  #define WCET_STA_1 0
+  #define WCET_STA_2 0
+  #define WCET_STA_3 0
+  #define WCET_STA_4 0
+  #define WCET_STA_5 0
+  
+#endif
+#endif
+
+#ifdef UMC_SWDROP
+#ifdef ATOMIC
+
+#endif
+#ifdef TIMING
+
+#endif
+#endif
+
+/** WCET for LRC **/
+#ifdef LRC_FULL
+#ifdef ATOMIC
+
+#endif
+#ifdef TIMING
+  /** insertsort.c **/
+  #define WCET_IS  46500*(WCET_SCALE)
+  #define WCET_IS_1 0
+  #define WCET_IS_2 0
+  
+  /** crc.c **/
+  #define WCET_CRC 89400*(WCET_SCALE)
+  #define WCET_CRC_1 0
+  #define WCET_CRC_2 0
+  #define WCET_CRC_3 0
+  #define WCET_CRC_4 0
+  #define WCET_CRC_5 0
+  
+  /** edn.c **/
+  #define WCET_EDN 2795700*(WCET_SCALE)
+  #define WCET_EDN_1 0
+  #define WCET_EDN_2 0
+  #define WCET_EDN_3 0
+  #define WCET_EDN_4 0
+  #define WCET_EDN_5 0
+  #define WCET_EDN_6 0
+  #define WCET_EDN_7 0
+  #define WCET_EDN_8 0
+  #define WCET_EDN_9 0
+  #define WCET_EDN_10 0
+  #define WCET_EDN_11 0
+  #define WCET_EDN_12 0
+  #define WCET_EDN_13 0
+  #define WCET_EDN_14 0
+  #define WCET_EDN_15 0
+  
+  /** compress.c **/
+  #define WCET_CMP 377880*(WCET_SCALE)
+  #define WCET_CMP_1 0
+  #define WCET_CMP_2 0
+  #define WCET_CMP_3 0
+  #define WCET_CMP_4 0
+  #define WCET_CMP_5 0
+  
+  /** fir.c **/
+  #define WCET_FIR 199920*(WCET_SCALE)
+  #define WCET_FIR_1 0
+  #define WCET_FIR_2 0
+  #define WCET_FIR_3 0
+  #define WCET_FIR_4 0
+  
+  /** jfdcint.c **/
+  #define WCET_JFDC 197880*(WCET_SCALE)
+  #define WCET_JFDC_1 0
+  #define WCET_JFDC_2 0
+  #define WCET_JFDC_3 0
+  #define WCET_JFDC_4 0
+  #define WCET_JFDC_5 0
+  
+  /** nsichneu.c **/
+  #define WCET_NSI 489540*(WCET_SCALE)
+  #define WCET_NSI_1 0
+  #define WCET_NSI_2 0
+  #define WCET_NSI_3 0
+  #define WCET_NSI_4 0
+  #define WCET_NSI_5 0
+  #define WCET_NSI_6 0
+  #define WCET_NSI_7 0
+  #define WCET_NSI_8 0
+  
+  /** statemate.c **/
+  #define WCET_STA 132420*(WCET_SCALE)
+  #define WCET_STA_1 0
+  #define WCET_STA_2 0
+  #define WCET_STA_3 0
+  #define WCET_STA_4 0
+  #define WCET_STA_5 0
+#endif
+#endif
+
+#ifdef LRC_SWDROP
+#ifdef ATOMIC
+
+#endif
+#ifdef TIMING
+
+#endif
+#endif
+
+/** WCET common to all monitors **/
+#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER
+#ifdef ATOMIC
+
+#endif
+#ifdef TIMING
+  /** insertsort.c **/
+  #define WCET_IS  46500*(WCET_SCALE-1)
+  #define WCET_IS_1 180
+  #define WCET_IS_2 7980
+  
+  /** crc.c **/
+  #define WCET_CRC 89400*(WCET_SCALE-1)
+  #define WCET_CRC_1 960
+  #define WCET_CRC_2 1260
+  #define WCET_CRC_3 720
+  #define WCET_CRC_4 1140
+  #define WCET_CRC_5 960
+  
+  /** edn.c **/
+  #define WCET_EDN 2795700*(WCET_SCALE-1)
+  #define WCET_EDN_1 1080
+  #define WCET_EDN_2 900
+  #define WCET_EDN_3 2100
+  #define WCET_EDN_4 660
+  #define WCET_EDN_5 1860
+  #define WCET_EDN_6 24720
+  #define WCET_EDN_7 2820
+  #define WCET_EDN_8 15960
+  #define WCET_EDN_9 3300
+  #define WCET_EDN_10 1500
+  #define WCET_EDN_11 3420
+  #define WCET_EDN_12 1860
+  #define WCET_EDN_13 6480
+  #define WCET_EDN_14 21240
+  #define WCET_EDN_15 960
+  
+  /** compress.c **/
+  #define WCET_CMP 377880*(WCET_SCALE-1)
+  #define WCET_CMP_1 60180
+  #define WCET_CMP_2 4920
+  #define WCET_CMP_3 1920
+  #define WCET_CMP_4 1380
+  #define WCET_CMP_5 1020
+  
+  /** fir.c **/
+  #define WCET_FIR 199920*(WCET_SCALE-1)
+  #define WCET_FIR_1 3180
+  #define WCET_FIR_2 960
+  #define WCET_FIR_3 600
+  #define WCET_FIR_4 6780
+  
+  /** jfdcint.c **/
+  #define WCET_JFDC 197880*(WCET_SCALE-1)
+  #define WCET_JFDC_1 3240
+  #define WCET_JFDC_2 13320
+  #define WCET_JFDC_3 240
+  #define WCET_JFDC_4 12600
+  #define WCET_JFDC_5 960
+  
+  /** nsichneu.c **/
+  #define WCET_NSI 489540*(WCET_SCALE-1)
+  #define WCET_NSI_1 360
+  #define WCET_NSI_2 9120
+  #define WCET_NSI_3 39180
+  #define WCET_NSI_4 39120
+  #define WCET_NSI_5 39120
+  #define WCET_NSI_6 39180
+  #define WCET_NSI_7 39120
+  #define WCET_NSI_8 39540
+  
+  /** statemate.c **/
+  #define WCET_STA 132420*(WCET_SCALE-1)
+  #define WCET_STA_1 3300
+  #define WCET_STA_2 4980
+  #define WCET_STA_3 1560
+  #define WCET_STA_4 9240
+  #define WCET_STA_5 51120
+  
+#endif
+#endif
+
+
+
+/** Old Data: Needs to be deleted **/
+
 #ifdef UMC
   /** insertsort.c **/
   // #define WCET_IS  956*(WCET_SCALE-1)
@@ -230,7 +496,6 @@ int statemate(void);
   #define WCET_STA_5 51600
 #endif // UMC
 
-/** WCET for LRC **/
 #ifdef LRC  
   /** insertsort.c **/
   // #define WCET_IS   733*(WCET_SCALE-1)

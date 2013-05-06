@@ -1,3 +1,4 @@
+#ifdef LRC_HWDROP
 
 /*
  * lrc_drop.c
@@ -56,32 +57,18 @@ int main(int argc, char *argv[]) {
       // On return, check link register, then pop entry from stack
       } else if (temp = READ_FIFO_RET) {
         // if stored lr == 0, then it is invalid and skip check
-        if (/*!FC_CACHE_GET && */(/*lr[lr_ptr-1] &&*/ lr[lr_ptr-1] - 1 != READ_FIFO_NEXTPC)) {
+        if (!FC_CACHE_GET && (lr[lr_ptr-1] - 1 != READ_FIFO_NEXTPC)) {
           printf("LRC Error\n");
-          //return 1;
+          return 1;
         }
-        // Invalidate entry
-        // lr[lr_ptr-1] = 0;
         // Pop
         lr_ptr--;
         FC_SET_ADDR(lr_ptr)
       }
     }
-    /*// Not enough slack, drop
-    else {
-      // On a call,
-      if (temp = READ_FIFO_CALL) {
-        // Increment stack pointer (entry remains invalid)
-        lr_ptr++;
-      // On a return,
-      } else if (temp = READ_FIFO_RET) {
-        // Invalidate entry and pop, no check is performed
-        lr[lr_ptr-1] = 0;
-        lr_ptr--;
-      }
-    }*/
-
   }
 
   return 1;
 }
+
+#endif
