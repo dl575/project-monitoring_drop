@@ -82,57 +82,23 @@ int main(int argc, char *argv[]) {
         // Propagate from memory addresses
         register int memend = (READ_FIFO_MEMEND >> 2);
         for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
-          // Check if the memory metadata is invalid
-          FC_SET_ADDR(temp);
-          register invalid = FC_CACHE_GET;  
-          // Invalid metadata, clear taint
-          if (invalid) {
+          // Valid metadata (invalid filtered out), handle normally
+          // Pull out correct bit in memory to store int tag register file
+          if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
+            FC_SET_ADDR(rd);
+            FC_ARRAY_SET;
+          } else {
             FC_SET_ADDR(rd);
             FC_ARRAY_CLEAR;
-          // Valid metadata, handle normally
-          } else {
-            // Pull out correct bit in memory to store int tag register file
-            if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
-              FC_SET_ADDR(rd);
-              FC_ARRAY_SET;
-            } else {
-              FC_SET_ADDR(rd);
-              FC_ARRAY_CLEAR;
-            }
           }
         }
       // Indirect control
       } else if (temp = READ_FIFO_INDCTRL) {
-        // Get source register
-        rs = READ_FIFO_SRCREG(0);
-        // Get source register tag
-        FC_SET_ADDR(rs);
-        register bool tag = FC_ARRAY_GET;
-        // on indirect jump, check tag taint
-        if (tag) {
-          printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
-          return -1;
-        }
-      // integer ALU
-      } else { 
-        // on ALU instructions, propagate tag between registers
-        // Read source tags and determine taint of destination
-        register bool tresult = false;
-        for (temp = 0; temp < READ_FIFO_NUMSRCREGS; ++temp) {
-          FC_SET_ADDR(READ_FIFO_SRCREG(temp));
-          tresult |= FC_ARRAY_GET;
-        }
-        // Destination register
-        rd = READ_FIFO_RD;
-        // Set destination taint
-        if (rd < 0x21) { // FIXME: remove hardcoded value
-          FC_SET_ADDR(rd);
-          if (tresult) {
-            FC_ARRAY_SET;
-          } else {
-            FC_ARRAY_GET;
-          }
-        }
+        // Valid indirect control flow is all filtered out
+        printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
+        return -1;
+      // integer ALU - handled completely using filter table + invalidation engine
+      // } else {
       } // inst type
 
     } // READ_SLACK_DROP
