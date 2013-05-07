@@ -28,8 +28,8 @@
     #define MON_DROP_WCET 1
 #endif
 #ifdef TIMING
-    #define MON_WCET 40
-    #define MON_DROP_WCET 1
+    #define MON_WCET 77
+    #define MON_DROP_WCET 2
 #endif
 #endif
 
