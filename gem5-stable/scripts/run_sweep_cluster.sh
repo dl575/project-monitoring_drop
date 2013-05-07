@@ -2,8 +2,8 @@
 cd /ufs/cluster/mismail/monitoring_drop/gem5-stable
 export PATH=$PATH:`pwd`/build/ARM/
 export GEM5=`pwd`/
-export MONITOR='UMC_HWFILTER'
-export MODEL='ATOMIC'
+export MONITOR='UMC_HWDROP'
+export MODEL='TIMING'
 perl -np -e "s/<MONITOR>/$MONITOR/; s/<MODEL>/$MODEL/;" $GEM5/scripts/run_node.sh.tmpl > $GEM5/scripts/run_node.sh
 
 unzip -o tests/monitoring/monitoring.$MODEL.zip -d tests/monitoring

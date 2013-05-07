@@ -848,7 +848,7 @@ def makeEnv(label, objsfx, strip = False, **kwargs):
     new_env.Append(**kwargs)
 
     swig_env = new_env.Clone()
-    swig_env.Append(CCFLAGS='-Werror')
+    # swig_env.Append(CCFLAGS='-Werror')
     if env['GCC']:
         swig_env.Append(CCFLAGS='-Wno-uninitialized')
         swig_env.Append(CCFLAGS='-Wno-sign-compare')
