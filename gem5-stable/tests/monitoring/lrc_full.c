@@ -14,8 +14,6 @@
 
 #include "monitoring.h"
 
-#define DEBUG
-
 // Stack to store link registers
 int lr[256];
 

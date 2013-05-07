@@ -7,14 +7,20 @@ if monitor == "UMC_FULL":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
-  # MonCPUClass.delay = 128
+  # Atomic
+  # MonCPUClass.delay = 22
+  # Timing
+  # MonCPUClass.delay = 32
   # Define monitoring executable
   monitor_bin = "umc_full"
 elif monitor == "UMC_SWDROP":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
-  # MonCPUClass.delay = 128
+  # Atomic
+  # MonCPUClass.delay = 30
+  # Timing
+  # MonCPUClass.delay = 40
   # Define monitoring executable
   monitor_bin = "umc_swdrop"
 elif monitor == "UMC_HWDROP":
@@ -44,14 +50,20 @@ elif monitor == "LRC_FULL":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
-  # MonCPUClass.delay = 40
+  # Atomic
+  # MonCPUClass.delay = 15
+  # Timing
+  # MonCPUClass.delay = 16
   # Define monitoring executable
-  #monitor_bin = "lrc_full"
+  monitor_bin = "lrc_full"
 elif monitor == "LRC_SWDROP":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
-  # MonCPUClass.delay = 40
+  # Atomic
+  # MonCPUClass.delay = 19
+  # Timing
+  # MonCPUClass.delay = 21
   # Define monitoring executable
   monitor_bin = "lrc_swdrop"
 elif monitor == "LRC_HWDROP":

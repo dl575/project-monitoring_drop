@@ -25,8 +25,6 @@ int main(int argc, char *argv[]) {
 
   // Set up monitoring
   INIT_MONITOR;
-  // set up timer interface for reading
-  INIT_TIMER;
 
   // Main loop, loop until main core signals done
   while(1) {

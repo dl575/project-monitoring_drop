@@ -15,8 +15,8 @@
 
 #define ARRSIZE 1000
 
-int __attribute__((noinline)) add(int a, int b) {
-  return a + b;
+int __attribute__((noinline)) add(int a, int b, int depth) {
+  return (depth > 0)? a + b + add(a, b, depth-1) : 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
   }
   for (i = 0; i < ARRSIZE; ++i){
     //sum += arr[i];
-    sum = add(sum, arr0[i]);
+    sum = add(sum, arr0[i], i%100);
   }
   
   START_TASK(0);
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
   }
   for (i = 0; i < ARRSIZE; ++i){
     //sum += arr[i];
-    sum = add(sum, arr1[i]);
+    sum = add(sum, arr1[i], i%100);
   }
   END_TASK(ARRSIZE*200);
   

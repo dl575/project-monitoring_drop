@@ -79,7 +79,7 @@ numThreads = 1
 
 # Create new CPU type for main core
 (MainCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
-MainCPUClass.clock = '2GHz'
+MainCPUClass.clock = '500MHz'
 MainCPUClass.numThreads = numThreads;
 MainCPUClass.fifo_enabled = True
 MainCPUClass.monitoring_enabled = False
@@ -90,7 +90,7 @@ MainCPUClass.flagcache_enabled = False
 
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
-MonCPUClass.clock = '2GHz'
+MonCPUClass.clock = '500MHz'
 MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True
@@ -108,7 +108,7 @@ options.num_cpus = 2
 
 # Create system, CPUs, bus, and memory
 system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
-                physmem = SimpleMemory(range=AddrRange("512MB")),
+                physmem = SimpleMemory(range=AddrRange("512MB"), latency='15ns'),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
 # Create a "fifo" memory
@@ -155,6 +155,9 @@ system.cpu[1].workload = process1
 system.system_port = system.membus.slave
 # Connect memory to bus
 system.physmem.port = system.membus.master
+# Configure cache size
+options.l1i_size = '16kB'
+options.l1d_size = '16kB'
 # Set up caches if enabled, connect to memory bus, and set up interrupts
 CacheConfig.config_cache(options, system)
 
