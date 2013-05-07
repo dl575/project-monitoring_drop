@@ -15,7 +15,7 @@
 #include "monitoring.h"
 #include "flagcache.h"
 
-#define METADATA_ADDRESSES 0x400000
+#define METADATA_ADDRESSES 1024*1024*128
 
 #define ISA_ARM
 
@@ -27,17 +27,14 @@
 
 #define MONITOR "[DIFT] "
 
-bool tagmem[METADATA_ADDRESSES];
+char tagmem[METADATA_ADDRESSES];
 // Flag cache used for register file tags
 // bool tagrf[NUM_REGS];
 
 int main(int argc, char *argv[]) {
   register int temp;
-  // flags for whether memory was initialized
-  unsigned i;
-  bool tag;
-  unsigned long total_insts = 0;
-  unsigned long tainted_insts = 0;
+  register int rd;
+  register int rs;
 
   // Set up monitoring
   INIT_MONITOR;
@@ -54,137 +51,90 @@ int main(int argc, char *argv[]) {
     // Run full monitoring
     if (READ_SLACK_DROP == 1) {
 
-      //printf("pc = %x, m[%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);
       // Store
       if (temp = READ_FIFO_STORE) {
-        // on store, propagate tag from RF to memory
-        // printf("store\n");
-//        bool settag = READ_FIFO_SETTAG;
-        bool settag = false; // FIXME
-        unsigned rt = READ_FIFO_RD;
-        // Read in from flag cache
-        FC_SET_ADDR(rt);
-        bool tagrf_rt = FC_ARRAY_GET;
-        // For each memory address
-        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp) {
-          /*
-          if (settag || tagrf[rt] || tagmem[temp % METADATA_ADDRESSES])
-            tainted_insts++;
-            */
-          // Set tag in flag cache too
-          FC_SET_ADDR(temp % METADATA_ADDRESSES);
-          bool set = settag ? true : (bool)tagrf_rt;
-          if (set) {
-            FC_CACHE_SET;
+  //        bool settag = READ_FIFO_SETTAG;
+        register bool settag = false; // FIXME: Allow setting tag from software
+        // Get source register
+        rd = READ_FIFO_RD;
+        // Get source tag from flag cache array
+        FC_SET_ADDR(rd);
+        register bool tag = FC_ARRAY_GET;
+        // Propagate to destination memory addresses
+        register int memend = (READ_FIFO_MEMEND >> 2);
+        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
+          if (tag) {
+            // Bit mask to set taing
+            tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
           } else {
-            FC_CACHE_CLEAR;
+            // Bit mask to clear tag
+            tagmem[temp >> 3] = tagmem[temp >> 3] & ~(1 << (temp&0x07));
           }
-          // Set tag for memory address
-          tagmem[temp % METADATA_ADDRESSES] = set;
+          // Set flag cache as valid (clear invalidation)
+          FC_SET_ADDR(temp);
+          FC_CACHE_CLEAR;
         }
-        /*
-        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp) {
-          if (settag || tagrf[rt] || tagmem[temp % METADATA_ADDRESSES])
-            tainted_insts++;
-          tagmem[temp % METADATA_ADDRESSES] = settag ? true : (bool)tagrf[rt];
-        }
-        */
-        if (settag)
-          printf(MONITOR "set tag\n");
-        // else
-        //   printf(MONITOR "propagate tag from reg to mem - r%d = %d\n", rt, tagrf[rt]);
-        total_insts++;
+      // Load
       } else if (temp = READ_FIFO_LOAD) {
         // on load, propagate tag from memory to RF
-        // printf("load\n");
-        unsigned rd = READ_FIFO_RD;
-        // if (rd >= 0x21)
-        //   printf(MONITOR "load - rd : r%d\n", rd);
-        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= (READ_FIFO_MEMEND >> 2); ++temp) {
-          // if (!tagrf[rd] && tagmem[temp % METADATA_ADDRESSES])
-          //   printf(MONITOR "set taint r%d\n", rd);
-          // else if (tagrf[rd] && !tagmem[temp % METADATA_ADDRESSES])
-          //   printf(MONITOR "clear taint r%d\n", rd);
-          /*
-          if (tagrf[rd] || tagmem[temp % METADATA_ADDRESSES])
-            tainted_insts++;
-            */
-          //tag = tagrf[rd] = tagmem[temp % METADATA_ADDRESSES];
-
-          // Read tag from flag cache
-          FC_SET_ADDR(temp % METADATA_ADDRESSES);
-          bool fc_tag = FC_CACHE_GET;
-
-          // Marked as untainted in flag cache, use untainted
-          if (fc_tag == 0) {
-            // Update in memory
-            tagmem[temp % METADATA_ADDRESSES] = 0;
-            // Write to destination in flag cache
+        // Get destination register
+        rd = READ_FIFO_RD;
+        // Propagate from memory addresses
+        register int memend = (READ_FIFO_MEMEND >> 2);
+        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
+          // Check if the memory metadata is invalid
+          FC_SET_ADDR(temp);
+          register invalid = FC_CACHE_GET;  
+          // Invalid metadata, clear taint
+          if (invalid) {
             FC_SET_ADDR(rd);
             FC_ARRAY_CLEAR;
-          // Marked as tainted in flag cache, use memory tag value
+          // Valid metadata, handle normally
           } else {
-            // Read tag from source in memory
-            tag = tagmem[temp % METADATA_ADDRESSES];
-            // Write tag to destination in flag cach
-            FC_SET_ADDR(rd);
-            if (tag) { 
+            // Pull out correct bit in memory to store int tag register file
+            if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
+              FC_SET_ADDR(rd);
               FC_ARRAY_SET;
             } else {
+              FC_SET_ADDR(rd);
               FC_ARRAY_CLEAR;
             }
           }
         }
-        /*
-          if (tag)
-            printf(MONITOR "read tainted tag [0x%x], set taint r%d=%d\n", temp, rd, tagrf[rd]);
-            */
-          total_insts++;
+      // Indirect control
       } else if (temp = READ_FIFO_INDCTRL) {
-        printf("indctrl\n");
-        unsigned rs = READ_FIFO_SRCREG(0);
-        // printf(MONITOR "indirect jump on r%d=%d\n", rs, tagrf[rs]);
-        // on indirect jump, check tag taint
+        // Get source register
+        rs = READ_FIFO_SRCREG(0);
+        // Get source register tag
         FC_SET_ADDR(rs);
-        bool tagrf_rs = FC_ARRAY_GET;
-        if (tagrf_rs) {
+        register bool tag = FC_ARRAY_GET;
+        // on indirect jump, check tag taint
+        if (tag) {
           printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
-          // return -1;
+          return -1;
         }
-      } else { // (temp = READ_FIFO_INTALU)
+      // integer ALU
+      } else { 
         // on ALU instructions, propagate tag between registers
-        bool tresult = false;
-        bool tagrf_srcreg;
-        for (i = 0; i < READ_FIFO_NUMSRCREGS; ++i) {
-          //tresult |= tagrf[READ_FIFO_SRCREG(i)];
-
-          FC_SET_ADDR(READ_FIFO_SRCREG(i));
-          tagrf_srcreg = FC_ARRAY_GET;
-          tresult |= tagrf_srcreg;
-          
-          // if (tagrf[READ_FIFO_SRCREG(i)])
-          //   printf(MONITOR "r%d = %d\n", READ_FIFO_SRCREG(i), tagrf[READ_FIFO_SRCREG(i)]);
+        // Read source tags and determine taint of destination
+        register bool tresult = false;
+        for (temp = 0; temp < READ_FIFO_NUMSRCREGS; ++temp) {
+          FC_SET_ADDR(READ_FIFO_SRCREG(temp));
+          tresult |= FC_ARRAY_GET;
         }
-        unsigned rd = READ_FIFO_RD;
+        // Destination register
+        rd = READ_FIFO_RD;
+        // Set destination taint
         if (rd < 0x21) { // FIXME: remove hardcoded value
           FC_SET_ADDR(rd);
-          bool tagrf_rd = FC_ARRAY_GET;
-          if (tresult || tagrf_rd)
-            tainted_insts++;
-          if (!tagrf_rd && tresult)
-            printf(MONITOR "set taint r%d\n", rd);
-          else if (tagrf_rd && !tresult)
-            printf(MONITOR "clear taint r%d\n", rd);
           if (tresult) {
-            FC_ARRAY_SET; 
+            FC_ARRAY_SET;
           } else {
-            FC_ARRAY_CLEAR;
+            FC_ARRAY_GET;
           }
-          //tagrf[rd] = tresult;
         }
-        total_insts++;
-      }
-    // Not enough slack
+      } // inst type
+
     } // READ_SLACK_DROP
   } // while(1)
 
