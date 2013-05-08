@@ -4,7 +4,10 @@ endif
 ifndef MODEL
 MODEL=ATOMIC
 endif
-CCFLAGS=-D$(MONITOR) -D$(MODEL) -O2
+ifdef WCET_SCALE
+SCALE_FLAG=-DWCET_SCALE=$(WCET_SCALE)
+endif
+CCFLAGS=-D$(MONITOR) -D$(MODEL) $(SCALE_FLAG) -O2
 INCLUDES=$(wildcard include/*.c)
 
 malarden_wcet.obj: malarden_wcet.arm

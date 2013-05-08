@@ -1,4 +1,5 @@
 monitor = os.environ["MONITOR"]
+model = os.environ["MODEL"]
 
 #######################################
 # UMC
@@ -7,20 +8,20 @@ if monitor == "UMC_FULL":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
-  # Atomic
-  # MonCPUClass.delay = 22
-  # Timing
-  # MonCPUClass.delay = 32
+  if model == 'ATOMIC':
+    delay = 22
+  if model == 'TIMING':
+    delay = 65
   # Define monitoring executable
   monitor_bin = "umc_full"
 elif monitor == "UMC_SWDROP":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
-  # Atomic
-  # MonCPUClass.delay = 30
-  # Timing
-  # MonCPUClass.delay = 40
+  if model == 'ATOMIC':
+    delay = 30
+  if model == 'TIMING':
+    delay = 81
   # Define monitoring executable
   monitor_bin = "umc_swdrop"
 elif monitor == "UMC_HWDROP":
@@ -50,20 +51,20 @@ elif monitor == "LRC_FULL":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
-  # Atomic
-  # MonCPUClass.delay = 15
-  # Timing
-  # MonCPUClass.delay = 16
+  if model == 'ATOMIC':
+    delay = 15
+  if model == 'TIMING':
+    delay = 33
   # Define monitoring executable
   monitor_bin = "lrc_full"
 elif monitor == "LRC_SWDROP":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
-  # Atomic
-  # MonCPUClass.delay = 19
-  # Timing
-  # MonCPUClass.delay = 21
+  if model == 'ATOMIC':
+    delay = 19
+  if model == 'TIMING':
+    delay = 42
   # Define monitoring executable
   monitor_bin = "lrc_swdrop"
 elif monitor == "LRC_HWDROP":

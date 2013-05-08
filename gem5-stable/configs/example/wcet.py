@@ -96,7 +96,11 @@ MonCPUClass.fifo_enabled = True
 MonCPUClass.monitoring_enabled = False
 MonCPUClass.timer_enabled = False
 
+delay = 0
+
 execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
+
+MonCPUClass.delay = delay
 
 # Number of CPUs
 options.num_cpus = 1

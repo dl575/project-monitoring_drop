@@ -11,10 +11,10 @@ import re
 import subprocess
 
 models = ['ATOMIC', 'TIMING']
-monitors = ['UMC_FULL', 'UMC_SWDROP', 'UMC_HWDROP', 'UMC_HWFILTER', 'LRC_FULL', 'LRC_SWDROP', 'LRC_HWDROP', 'LRC_HWFILTER']
+monitors = ['UMC_SWDROP', 'UMC_HWDROP', 'UMC_HWFILTER', 'LRC_SWDROP', 'LRC_HWDROP', 'LRC_HWFILTER']
 
 # WCET per task to try (in cycles)
-wcets = [i for i in range(97,100,1) + range(100,501,50)]
+wcets = [i for i in range(97,100,1) + range(100,401,25)]
 # Directory where generated sources are
 compile_dir = os.environ["GEM5"] + "/tests/malarden_monitor/generated/"
 
