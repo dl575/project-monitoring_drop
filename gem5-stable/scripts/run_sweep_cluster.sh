@@ -15,5 +15,5 @@ for file in tests/malarden_monitor/generated/malarden*.arm
 do
     echo qsub -b y "$GEM5/scripts/run_node.sh $GEM5/$file"
     qsub -b y "$GEM5/scripts/run_node.sh $GEM5/$file"
-    sleep 0.5
+    sleep 0.2
 done
