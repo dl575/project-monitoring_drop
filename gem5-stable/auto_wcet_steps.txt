@@ -1,7 +1,7 @@
 1. Make sure you compile wcet_program
 2. Build the monitors:
     scripts/build_monitors.pl
-3. Run WCET on monitors:
+3. Run WCET on monitors (update tick per cycle):
     scripts/auto_monitor_wcet.pl
 4. Update configs/monitors.py with full monitoring numbers
 5. Update auto_program_wcet.pl with drop monitoring numbers

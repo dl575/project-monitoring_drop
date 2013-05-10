@@ -90,7 +90,7 @@ MainCPUClass.flagcache_enabled = False
 
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
-MonCPUClass.clock = '1250MHz'
+MonCPUClass.clock = '7500MHz'
 MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True

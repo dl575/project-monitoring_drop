@@ -8,7 +8,7 @@ die "GEM5 path not defined" unless defined $gem5;
 
 my @monitors = ('UMC_FULL', 'UMC_SWDROP', 'UMC_HWDROP', 'UMC_HWFILTER', 'LRC_FULL', 'LRC_SWDROP', 'LRC_HWDROP', 'LRC_HWFILTER');
 my @models = ('ATOMIC', 'TIMING');
-my %ticks_to_cycles = ('ATOMIC'=>800, 'TIMING'=>800);
+my %ticks_to_cycles = ('ATOMIC'=>133, 'TIMING'=>133);
 my $output_str = "";
 my $default_full = 100;
 my $default_drop = 10;
