@@ -32,58 +32,58 @@ int statemate(void);
 	#define WCET_CRC_2 17
 	#define WCET_CRC 1323*(WCET_SCALE-1)
 	#define WCET_EDN_1 14
-	#define WCET_EDN_2 13
-	#define WCET_EDN_3 65
+	#define WCET_EDN_2 31
+	#define WCET_EDN_3 209
 	#define WCET_EDN_4 9
-	#define WCET_EDN_5 31
-	#define WCET_EDN_6 495
-	#define WCET_EDN_7 80
-	#define WCET_EDN_8 281
-	#define WCET_EDN_9 84
+	#define WCET_EDN_5 32
+	#define WCET_EDN_6 1322
+	#define WCET_EDN_7 263
+	#define WCET_EDN_8 587
+	#define WCET_EDN_9 229
 	#define WCET_EDN_10 15
-	#define WCET_EDN_11 50
-	#define WCET_EDN_12 35
-	#define WCET_EDN_13 201
-	#define WCET_EDN_14 526
-	#define WCET_EDN_15 46
-	#define WCET_EDN 51414*(WCET_SCALE-1)
-	#define WCET_CMP_1 1559
-	#define WCET_CMP_2 103
+	#define WCET_EDN_11 49
+	#define WCET_EDN_12 89
+	#define WCET_EDN_13 723
+	#define WCET_EDN_14 1732
+	#define WCET_EDN_15 172
+	#define WCET_EDN 124753*(WCET_SCALE-1)
+	#define WCET_CMP_1 5339
+	#define WCET_CMP_2 283
 	#define WCET_CMP_3 29
 	#define WCET_CMP_4 16
-	#define WCET_CMP_5 38
-	#define WCET_CMP 6771*(WCET_SCALE-1)
+	#define WCET_CMP_5 128
+	#define WCET_CMP 14795*(WCET_SCALE-1)
 	#define WCET_FIR_1 45
 	#define WCET_FIR_2 16
 	#define WCET_FIR_3 10
-	#define WCET_FIR_4 107
-	#define WCET_FIR 3257*(WCET_SCALE-1)
+	#define WCET_FIR_4 103
+	#define WCET_FIR 3208*(WCET_SCALE-1)
 	#define WCET_JFDC_1 45
-	#define WCET_JFDC_2 227
+	#define WCET_JFDC_2 475
 	#define WCET_JFDC_3 4
-	#define WCET_JFDC_4 211
-	#define WCET_JFDC_5 24
-	#define WCET_JFDC 3256*(WCET_SCALE-1)
-	#define WCET_NSI_1 7
-	#define WCET_NSI_2 147
-	#define WCET_NSI_3 715
-	#define WCET_NSI_4 716
-	#define WCET_NSI_5 715
-	#define WCET_NSI_6 719
-	#define WCET_NSI_7 716
-	#define WCET_NSI_8 732
-	#define WCET_NSI 8772*(WCET_SCALE-1)
+	#define WCET_JFDC_4 517
+	#define WCET_JFDC_5 60
+	#define WCET_JFDC 7112*(WCET_SCALE-1)
+	#define WCET_NSI_1 3
+	#define WCET_NSI_2 270
+	#define WCET_NSI_3 1725
+	#define WCET_NSI_4 1746
+	#define WCET_NSI_5 1747
+	#define WCET_NSI_6 1702
+	#define WCET_NSI_7 1725
+	#define WCET_NSI_8 1725
+	#define WCET_NSI 20459*(WCET_SCALE-1)
 	#define WCET_STA_1 36
-	#define WCET_STA_2 126
+	#define WCET_STA_2 432
 	#define WCET_STA_3 24
-	#define WCET_STA_4 144
-	#define WCET_STA_5 1010
-	#define WCET_STA 2499*(WCET_SCALE-1)
+	#define WCET_STA_4 270
+	#define WCET_STA_5 2607
+	#define WCET_STA 6207*(WCET_SCALE-1)
 #endif
 #ifdef UMC_SWDROP
 	#define WCET_IS_1 2
-	#define WCET_IS_2 173
-	#define WCET_IS 942*(WCET_SCALE-1)
+	#define WCET_IS_2 188
+	#define WCET_IS 957*(WCET_SCALE-1)
 	#define WCET_CRC_1 15
 	#define WCET_CRC_3 10
 	#define WCET_CRC_4 17
@@ -91,53 +91,53 @@ int statemate(void);
 	#define WCET_CRC_2 17
 	#define WCET_CRC 1322*(WCET_SCALE-1)
 	#define WCET_EDN_1 14
-	#define WCET_EDN_2 12
-	#define WCET_EDN_3 44
-	#define WCET_EDN_4 10
-	#define WCET_EDN_5 41
-	#define WCET_EDN_6 360
-	#define WCET_EDN_7 56
-	#define WCET_EDN_8 264
-	#define WCET_EDN_9 65
-	#define WCET_EDN_10 16
-	#define WCET_EDN_11 71
-	#define WCET_EDN_12 28
-	#define WCET_EDN_13 122
-	#define WCET_EDN_14 348
-	#define WCET_EDN_15 26
-	#define WCET_EDN 42104*(WCET_SCALE-1)
-	#define WCET_CMP_1 968
-	#define WCET_CMP_2 72
-	#define WCET_CMP_3 28
+	#define WCET_EDN_2 27
+	#define WCET_EDN_3 99
+	#define WCET_EDN_4 15
+	#define WCET_EDN_5 86
+	#define WCET_EDN_6 610
+	#define WCET_EDN_7 121
+	#define WCET_EDN_8 519
+	#define WCET_EDN_9 125
+	#define WCET_EDN_10 21
+	#define WCET_EDN_11 181
+	#define WCET_EDN_12 53
+	#define WCET_EDN_13 307
+	#define WCET_EDN_14 798
+	#define WCET_EDN_15 66
+	#define WCET_EDN 76993*(WCET_SCALE-1)
+	#define WCET_CMP_1 2213
+	#define WCET_CMP_2 162
+	#define WCET_CMP_3 43
 	#define WCET_CMP_4 18
-	#define WCET_CMP_5 28
-	#define WCET_CMP 5674*(WCET_SCALE-1)
+	#define WCET_CMP_5 73
+	#define WCET_CMP 11844*(WCET_SCALE-1)
 	#define WCET_FIR_1 45
 	#define WCET_FIR_2 16
 	#define WCET_FIR_3 10
 	#define WCET_FIR_4 103
 	#define WCET_FIR 3208*(WCET_SCALE-1)
 	#define WCET_JFDC_1 45
-	#define WCET_JFDC_2 206
+	#define WCET_JFDC_2 361
 	#define WCET_JFDC_3 4
-	#define WCET_JFDC_4 177
-	#define WCET_JFDC_5 24
-	#define WCET_JFDC 2925*(WCET_SCALE-1)
-	#define WCET_NSI_1 7
-	#define WCET_NSI_2 145
-	#define WCET_NSI_3 630
-	#define WCET_NSI_4 631
-	#define WCET_NSI_5 630
-	#define WCET_NSI_6 631
-	#define WCET_NSI_7 632
-	#define WCET_NSI_8 641
-	#define WCET_NSI 7863*(WCET_SCALE-1)
+	#define WCET_JFDC_4 347
+	#define WCET_JFDC_5 64
+	#define WCET_JFDC 5530*(WCET_SCALE-1)
+	#define WCET_NSI_1 4
+	#define WCET_NSI_2 301
+	#define WCET_NSI_3 1327
+	#define WCET_NSI_4 1313
+	#define WCET_NSI_5 1327
+	#define WCET_NSI_6 1314
+	#define WCET_NSI_7 1319
+	#define WCET_NSI_8 1345
+	#define WCET_NSI 16354*(WCET_SCALE-1)
 	#define WCET_STA_1 36
-	#define WCET_STA_2 82
+	#define WCET_STA_2 207
 	#define WCET_STA_3 24
-	#define WCET_STA_4 139
-	#define WCET_STA_5 811
-	#define WCET_STA 2062*(WCET_SCALE-1)
+	#define WCET_STA_4 254
+	#define WCET_STA_5 1621
+	#define WCET_STA 4007*(WCET_SCALE-1)
 #endif
 #ifdef LRC_FULL
 	#define WCET_IS_1 2
@@ -182,15 +182,15 @@ int statemate(void);
 	#define WCET_JFDC_4 143
 	#define WCET_JFDC_5 16
 	#define WCET_JFDC 2336*(WCET_SCALE-1)
-	#define WCET_NSI_1 5
+	#define WCET_NSI_1 6
 	#define WCET_NSI_2 115
-	#define WCET_NSI_3 490
-	#define WCET_NSI_4 491
+	#define WCET_NSI_3 491
+	#define WCET_NSI_4 492
 	#define WCET_NSI_5 491
-	#define WCET_NSI_6 492
-	#define WCET_NSI_7 493
-	#define WCET_NSI_8 499
-	#define WCET_NSI 6150*(WCET_SCALE-1)
+	#define WCET_NSI_6 491
+	#define WCET_NSI_7 492
+	#define WCET_NSI_8 500
+	#define WCET_NSI 6157*(WCET_SCALE-1)
 	#define WCET_STA_1 36
 	#define WCET_STA_2 57
 	#define WCET_STA_3 23
@@ -200,14 +200,14 @@ int statemate(void);
 #endif
 #ifdef LRC_SWDROP
 	#define WCET_IS_1 2
-	#define WCET_IS_2 170
-	#define WCET_IS 939*(WCET_SCALE-1)
+	#define WCET_IS_2 171
+	#define WCET_IS 940*(WCET_SCALE-1)
 	#define WCET_CRC_1 15
 	#define WCET_CRC_3 10
 	#define WCET_CRC_4 17
 	#define WCET_CRC_5 17
 	#define WCET_CRC_2 17
-	#define WCET_CRC 1322*(WCET_SCALE-1)
+	#define WCET_CRC 1323*(WCET_SCALE-1)
 	#define WCET_EDN_1 14
 	#define WCET_EDN_2 9
 	#define WCET_EDN_3 33
@@ -241,15 +241,15 @@ int statemate(void);
 	#define WCET_JFDC_4 143
 	#define WCET_JFDC_5 16
 	#define WCET_JFDC 2336*(WCET_SCALE-1)
-	#define WCET_NSI_1 5
+	#define WCET_NSI_1 6
 	#define WCET_NSI_2 115
-	#define WCET_NSI_3 490
-	#define WCET_NSI_4 491
+	#define WCET_NSI_3 491
+	#define WCET_NSI_4 492
 	#define WCET_NSI_5 491
-	#define WCET_NSI_6 492
-	#define WCET_NSI_7 493
-	#define WCET_NSI_8 499
-	#define WCET_NSI 6150*(WCET_SCALE-1)
+	#define WCET_NSI_6 491
+	#define WCET_NSI_7 492
+	#define WCET_NSI_8 496
+	#define WCET_NSI 6148*(WCET_SCALE-1)
 	#define WCET_STA_1 36
 	#define WCET_STA_2 57
 	#define WCET_STA_3 23
@@ -300,15 +300,15 @@ int statemate(void);
 	#define WCET_JFDC_4 143
 	#define WCET_JFDC_5 16
 	#define WCET_JFDC 2337*(WCET_SCALE-1)
-	#define WCET_NSI_1 4
+	#define WCET_NSI_1 5
 	#define WCET_NSI_2 115
-	#define WCET_NSI_3 491
+	#define WCET_NSI_3 492
 	#define WCET_NSI_4 491
-	#define WCET_NSI_5 493
-	#define WCET_NSI_6 492
+	#define WCET_NSI_5 491
+	#define WCET_NSI_6 491
 	#define WCET_NSI_7 493
 	#define WCET_NSI_8 499
-	#define WCET_NSI 6155*(WCET_SCALE-1)
+	#define WCET_NSI 6151*(WCET_SCALE-1)
 	#define WCET_STA_1 35
 	#define WCET_STA_2 58
 	#define WCET_STA_3 23
@@ -320,125 +320,184 @@ int statemate(void);
 #ifdef TIMING
 #ifdef UMC_FULL
 	#define WCET_IS_1 4
-	#define WCET_IS_2 2160
-	#define WCET_IS 11002*(WCET_SCALE-1)
+	#define WCET_IS_2 11971
+	#define WCET_IS 60284*(WCET_SCALE-1)
 	#define WCET_CRC_1 91
-	#define WCET_CRC_3 124
-	#define WCET_CRC_4 138
-	#define WCET_CRC_5 290
-	#define WCET_CRC_2 442
-	#define WCET_CRC 11936*(WCET_SCALE-1)
-	#define WCET_EDN_1 72
-	#define WCET_EDN_2 174
-	#define WCET_EDN_3 789
-	#define WCET_EDN_4 122
-	#define WCET_EDN_5 731
-	#define WCET_EDN_6 5891
-	#define WCET_EDN_7 1082
-	#define WCET_EDN_8 4001
-	#define WCET_EDN_9 1146
-	#define WCET_EDN_10 184
-	#define WCET_EDN_11 1423
-	#define WCET_EDN_12 481
-	#define WCET_EDN_13 2409
-	#define WCET_EDN_14 5908
-	#define WCET_EDN_15 482
-	#define WCET_EDN 658649*(WCET_SCALE-1)
-	#define WCET_CMP_1 16764
-	#define WCET_CMP_2 1268
-	#define WCET_CMP_3 414
-	#define WCET_CMP_4 246
-	#define WCET_CMP_5 534
-	#define WCET_CMP 91995*(WCET_SCALE-1)
-	#define WCET_FIR_1 503
-	#define WCET_FIR_2 151
-	#define WCET_FIR_3 139
-	#define WCET_FIR_4 778
-	#define WCET_FIR 31132*(WCET_SCALE-1)
-	#define WCET_JFDC_1 367
-	#define WCET_JFDC_2 2950
-	#define WCET_JFDC_3 60
-	#define WCET_JFDC_4 2844
-	#define WCET_JFDC_5 482
-	#define WCET_JFDC 44298*(WCET_SCALE-1)
-	#define WCET_NSI_1 26
-	#define WCET_NSI_2 2106
-	#define WCET_NSI_3 9926
-	#define WCET_NSI_4 10007
-	#define WCET_NSI_5 10037
-	#define WCET_NSI_6 10006
-	#define WCET_NSI_7 9920
-	#define WCET_NSI_8 9852
-	#define WCET_NSI 119499*(WCET_SCALE-1)
-	#define WCET_STA_1 410
-	#define WCET_STA_2 1709
-	#define WCET_STA_3 256
-	#define WCET_STA_4 2340
-	#define WCET_STA_5 13171
-	#define WCET_STA 33041*(WCET_SCALE-1)
+	#define WCET_CRC_3 668
+	#define WCET_CRC_4 682
+	#define WCET_CRC_5 1642
+	#define WCET_CRC_2 2616
+	#define WCET_CRC 60626*(WCET_SCALE-1)
+	#define WCET_EDN_1 52
+	#define WCET_EDN_2 990
+	#define WCET_EDN_3 4615
+	#define WCET_EDN_4 666
+	#define WCET_EDN_5 3984
+	#define WCET_EDN_6 33363
+	#define WCET_EDN_7 6247
+	#define WCET_EDN_8 22769
+	#define WCET_EDN_9 6588
+	#define WCET_EDN_10 1018
+	#define WCET_EDN_11 8524
+	#define WCET_EDN_12 2657
+	#define WCET_EDN_13 13816
+	#define WCET_EDN_14 34215
+	#define WCET_EDN_15 2951
+	#define WCET_EDN 3745031*(WCET_SCALE-1)
+	#define WCET_CMP_1 1000*(WCET_SCALE-1)
+	#define WCET_CMP_2 1000*(WCET_SCALE-1)
+	#define WCET_CMP_3 1000*(WCET_SCALE-1)
+	#define WCET_CMP_4 1000*(WCET_SCALE-1)
+	#define WCET_CMP_5 1000*(WCET_SCALE-1)
+	#define WCET_CMP 1000*(WCET_SCALE-1)
+	#define WCET_FIR_1 1000*(WCET_SCALE-1)
+	#define WCET_FIR_2 1000*(WCET_SCALE-1)
+	#define WCET_FIR_3 1000*(WCET_SCALE-1)
+	#define WCET_FIR_4 1000*(WCET_SCALE-1)
+	#define WCET_FIR 1000*(WCET_SCALE-1)
+	#define WCET_JFDC_1 1000*(WCET_SCALE-1)
+	#define WCET_JFDC_2 1000*(WCET_SCALE-1)
+	#define WCET_JFDC_3 1000*(WCET_SCALE-1)
+	#define WCET_JFDC_4 1000*(WCET_SCALE-1)
+	#define WCET_JFDC_5 1000*(WCET_SCALE-1)
+	#define WCET_JFDC 1000*(WCET_SCALE-1)
+	#define WCET_NSI_1 1000*(WCET_SCALE-1)
+	#define WCET_NSI_2 1000*(WCET_SCALE-1)
+	#define WCET_NSI_3 1000*(WCET_SCALE-1)
+	#define WCET_NSI_4 1000*(WCET_SCALE-1)
+	#define WCET_NSI_5 1000*(WCET_SCALE-1)
+	#define WCET_NSI_6 1000*(WCET_SCALE-1)
+	#define WCET_NSI_7 1000*(WCET_SCALE-1)
+	#define WCET_NSI_8 1000*(WCET_SCALE-1)
+	#define WCET_NSI 1000*(WCET_SCALE-1)
+	#define WCET_STA_1 1000*(WCET_SCALE-1)
+	#define WCET_STA_2 1000*(WCET_SCALE-1)
+	#define WCET_STA_3 1000*(WCET_SCALE-1)
+	#define WCET_STA_4 1000*(WCET_SCALE-1)
+	#define WCET_STA_5 1000*(WCET_SCALE-1)
+	#define WCET_STA 1000*(WCET_SCALE-1)
 #endif
 #ifdef UMC_SWDROP
 	#define WCET_IS_1 4
-	#define WCET_IS_2 1404
-	#define WCET_IS 7269*(WCET_SCALE-1)
+	#define WCET_IS_2 7542
+	#define WCET_IS 38058*(WCET_SCALE-1)
 	#define WCET_CRC_1 91
-	#define WCET_CRC_3 82
-	#define WCET_CRC_4 96
-	#define WCET_CRC_5 186
-	#define WCET_CRC_2 274
-	#define WCET_CRC 8233*(WCET_SCALE-1)
-	#define WCET_EDN_1 72
-	#define WCET_EDN_2 111
-	#define WCET_EDN_3 495
-	#define WCET_EDN_4 80
-	#define WCET_EDN_5 458
-	#define WCET_EDN_6 3770
-	#define WCET_EDN_7 682
-	#define WCET_EDN_8 2552
-	#define WCET_EDN_9 725
-	#define WCET_EDN_10 121
-	#define WCET_EDN_11 925
-	#define WCET_EDN_12 313
-	#define WCET_EDN_13 1527
-	#define WCET_EDN_14 3724
-	#define WCET_EDN_15 293
-	#define WCET_EDN 420433*(WCET_SCALE-1)
-	#define WCET_CMP_1 10838
-	#define WCET_CMP_2 827
-	#define WCET_CMP_3 267
-	#define WCET_CMP_4 162
-	#define WCET_CMP_5 324
-	#define WCET_CMP 59022*(WCET_SCALE-1)
-	#define WCET_FIR_1 377
-	#define WCET_FIR_2 109
-	#define WCET_FIR_3 97
-	#define WCET_FIR_4 555
-	#define WCET_FIR 21245*(WCET_SCALE-1)
-	#define WCET_JFDC_1 282
-	#define WCET_JFDC_2 1900
-	#define WCET_JFDC_3 39
-	#define WCET_JFDC_4 1857
-	#define WCET_JFDC_5 293
-	#define WCET_JFDC 28466*(WCET_SCALE-1)
-	#define WCET_NSI_1 27
-	#define WCET_NSI_2 1350
-	#define WCET_NSI_3 6717
-	#define WCET_NSI_4 6693
-	#define WCET_NSI_5 6677
-	#define WCET_NSI_6 6697
-	#define WCET_NSI_7 6661
-	#define WCET_NSI_8 6641
-	#define WCET_NSI 78426*(WCET_SCALE-1)
-	#define WCET_STA_1 321
-	#define WCET_STA_2 1085
-	#define WCET_STA_3 222
-	#define WCET_STA_4 1543
-	#define WCET_STA_5 8579
-	#define WCET_STA 21461*(WCET_SCALE-1)
+	#define WCET_CRC_3 422
+	#define WCET_CRC_4 436
+	#define WCET_CRC_5 1027
+	#define WCET_CRC_2 1634
+	#define WCET_CRC 38808*(WCET_SCALE-1)
+	#define WCET_EDN_1 52
+	#define WCET_EDN_2 621
+	#define WCET_EDN_3 2893
+	#define WCET_EDN_4 420
+	#define WCET_EDN_5 2509
+	#define WCET_EDN_6 20940
+	#define WCET_EDN_7 3910
+	#define WCET_EDN_8 14282
+	#define WCET_EDN_9 4127
+	#define WCET_EDN_10 650
+	#define WCET_EDN_11 5326
+	#define WCET_EDN_12 1673
+	#define WCET_EDN_13 8648
+	#define WCET_EDN_14 21423
+	#define WCET_EDN_15 1844
+	#define WCET_EDN 2349550*(WCET_SCALE-1)
+	#define WCET_CMP_1 1000*(WCET_SCALE-1)
+	#define WCET_CMP_2 1000*(WCET_SCALE-1)
+	#define WCET_CMP_3 1000*(WCET_SCALE-1)
+	#define WCET_CMP_4 1000*(WCET_SCALE-1)
+	#define WCET_CMP_5 1000*(WCET_SCALE-1)
+	#define WCET_CMP 1000*(WCET_SCALE-1)
+	#define WCET_FIR_1 1000*(WCET_SCALE-1)
+	#define WCET_FIR_2 1000*(WCET_SCALE-1)
+	#define WCET_FIR_3 1000*(WCET_SCALE-1)
+	#define WCET_FIR_4 1000*(WCET_SCALE-1)
+	#define WCET_FIR 1000*(WCET_SCALE-1)
+	#define WCET_JFDC_1 1000*(WCET_SCALE-1)
+	#define WCET_JFDC_2 1000*(WCET_SCALE-1)
+	#define WCET_JFDC_3 1000*(WCET_SCALE-1)
+	#define WCET_JFDC_4 1000*(WCET_SCALE-1)
+	#define WCET_JFDC_5 1000*(WCET_SCALE-1)
+	#define WCET_JFDC 1000*(WCET_SCALE-1)
+	#define WCET_NSI_1 1000*(WCET_SCALE-1)
+	#define WCET_NSI_2 1000*(WCET_SCALE-1)
+	#define WCET_NSI_3 1000*(WCET_SCALE-1)
+	#define WCET_NSI_4 1000*(WCET_SCALE-1)
+	#define WCET_NSI_5 1000*(WCET_SCALE-1)
+	#define WCET_NSI_6 1000*(WCET_SCALE-1)
+	#define WCET_NSI_7 1000*(WCET_SCALE-1)
+	#define WCET_NSI_8 1000*(WCET_SCALE-1)
+	#define WCET_NSI 1000*(WCET_SCALE-1)
+	#define WCET_STA_1 1000*(WCET_SCALE-1)
+	#define WCET_STA_2 1000*(WCET_SCALE-1)
+	#define WCET_STA_3 1000*(WCET_SCALE-1)
+	#define WCET_STA_4 1000*(WCET_SCALE-1)
+	#define WCET_STA_5 1000*(WCET_SCALE-1)
+	#define WCET_STA 1000*(WCET_SCALE-1)
 #endif
 #ifdef LRC_FULL
 	#define WCET_IS_1 4
-	#define WCET_IS_2 379
+	#define WCET_IS_2 378
+	#define WCET_IS 2039*(WCET_SCALE-1)
+	#define WCET_CRC_1 90
+	#define WCET_CRC_3 24
+	#define WCET_CRC_4 71
+	#define WCET_CRC_5 32
+	#define WCET_CRC_2 40
+	#define WCET_CRC 3099*(WCET_SCALE-1)
+	#define WCET_EDN_1 53
+	#define WCET_EDN_2 24
+	#define WCET_EDN_3 107
+	#define WCET_EDN_4 22
+	#define WCET_EDN_5 121
+	#define WCET_EDN_6 841
+	#define WCET_EDN_7 130
+	#define WCET_EDN_8 551
+	#define WCET_EDN_9 147
+	#define WCET_EDN_10 53
+	#define WCET_EDN_11 152
+	#define WCET_EDN_12 80
+	#define WCET_EDN_13 292
+	#define WCET_EDN_14 727
+	#define WCET_EDN_15 53
+	#define WCET_EDN 91301*(WCET_SCALE-1)
+	#define WCET_CMP_1 2529
+	#define WCET_CMP_2 194
+	#define WCET_CMP_3 90
+	#define WCET_CMP_4 44
+	#define WCET_CMP_5 36
+	#define WCET_CMP 12162*(WCET_SCALE-1)
+	#define WCET_FIR_1 220
+	#define WCET_FIR_2 51
+	#define WCET_FIR_3 39
+	#define WCET_FIR_4 218
+	#define WCET_FIR 6832*(WCET_SCALE-1)
+	#define WCET_JFDC_1 146
+	#define WCET_JFDC_2 488
+	#define WCET_JFDC_3 10
+	#define WCET_JFDC_4 474
+	#define WCET_JFDC_5 48
+	#define WCET_JFDC 6591*(WCET_SCALE-1)
+	#define WCET_NSI_1 8
+	#define WCET_NSI_2 495
+	#define WCET_NSI_3 2056
+	#define WCET_NSI_4 2054
+	#define WCET_NSI_5 2074
+	#define WCET_NSI_6 2037
+	#define WCET_NSI_7 2058
+	#define WCET_NSI_8 2057
+	#define WCET_NSI 21020*(WCET_SCALE-1)
+	#define WCET_STA_1 222
+	#define WCET_STA_2 265
+	#define WCET_STA_3 96
+	#define WCET_STA_4 421
+	#define WCET_STA_5 2345
+	#define WCET_STA 5414*(WCET_SCALE-1)
+#endif
+#ifdef LRC_SWDROP
+	#define WCET_IS_1 4
+	#define WCET_IS_2 378
 	#define WCET_IS 2039*(WCET_SCALE-1)
 	#define WCET_CRC_1 91
 	#define WCET_CRC_3 24
@@ -452,86 +511,27 @@ int statemate(void);
 	#define WCET_EDN_4 22
 	#define WCET_EDN_5 121
 	#define WCET_EDN_6 841
-	#define WCET_EDN_7 129
+	#define WCET_EDN_7 130
 	#define WCET_EDN_8 551
-	#define WCET_EDN_9 148
+	#define WCET_EDN_9 147
 	#define WCET_EDN_10 53
 	#define WCET_EDN_11 152
 	#define WCET_EDN_12 80
-	#define WCET_EDN_13 310
+	#define WCET_EDN_13 292
 	#define WCET_EDN_14 727
 	#define WCET_EDN_15 53
-	#define WCET_EDN 91338*(WCET_SCALE-1)
+	#define WCET_EDN 91302*(WCET_SCALE-1)
 	#define WCET_CMP_1 2529
 	#define WCET_CMP_2 194
 	#define WCET_CMP_3 90
 	#define WCET_CMP_4 44
 	#define WCET_CMP_5 36
 	#define WCET_CMP 12162*(WCET_SCALE-1)
-	#define WCET_FIR_1 199
+	#define WCET_FIR_1 219
 	#define WCET_FIR_2 51
 	#define WCET_FIR_3 39
-	#define WCET_FIR_4 218
-	#define WCET_FIR 6828*(WCET_SCALE-1)
-	#define WCET_JFDC_1 146
-	#define WCET_JFDC_2 488
-	#define WCET_JFDC_3 10
-	#define WCET_JFDC_4 474
-	#define WCET_JFDC_5 48
-	#define WCET_JFDC 6591*(WCET_SCALE-1)
-	#define WCET_NSI_1 8
-	#define WCET_NSI_2 493
-	#define WCET_NSI_3 2056
-	#define WCET_NSI_4 2054
-	#define WCET_NSI_5 2074
-	#define WCET_NSI_6 2037
-	#define WCET_NSI_7 2058
-	#define WCET_NSI_8 2057
-	#define WCET_NSI 21018*(WCET_SCALE-1)
-	#define WCET_STA_1 223
-	#define WCET_STA_2 265
-	#define WCET_STA_3 96
-	#define WCET_STA_4 421
-	#define WCET_STA_5 2345
-	#define WCET_STA 5415*(WCET_SCALE-1)
-#endif
-#ifdef LRC_SWDROP
-	#define WCET_IS_1 4
-	#define WCET_IS_2 379
-	#define WCET_IS 2040*(WCET_SCALE-1)
-	#define WCET_CRC_1 90
-	#define WCET_CRC_3 24
-	#define WCET_CRC_4 71
-	#define WCET_CRC_5 32
-	#define WCET_CRC_2 40
-	#define WCET_CRC 3099*(WCET_SCALE-1)
-	#define WCET_EDN_1 53
-	#define WCET_EDN_2 24
-	#define WCET_EDN_3 108
-	#define WCET_EDN_4 22
-	#define WCET_EDN_5 121
-	#define WCET_EDN_6 841
-	#define WCET_EDN_7 129
-	#define WCET_EDN_8 551
-	#define WCET_EDN_9 148
-	#define WCET_EDN_10 53
-	#define WCET_EDN_11 152
-	#define WCET_EDN_12 80
-	#define WCET_EDN_13 310
-	#define WCET_EDN_14 727
-	#define WCET_EDN_15 53
-	#define WCET_EDN 91338*(WCET_SCALE-1)
-	#define WCET_CMP_1 2529
-	#define WCET_CMP_2 194
-	#define WCET_CMP_3 90
-	#define WCET_CMP_4 44
-	#define WCET_CMP_5 36
-	#define WCET_CMP 12162*(WCET_SCALE-1)
-	#define WCET_FIR_1 199
-	#define WCET_FIR_2 51
-	#define WCET_FIR_3 39
-	#define WCET_FIR_4 218
-	#define WCET_FIR 6828*(WCET_SCALE-1)
+	#define WCET_FIR_4 217
+	#define WCET_FIR 6829*(WCET_SCALE-1)
 	#define WCET_JFDC_1 145
 	#define WCET_JFDC_2 488
 	#define WCET_JFDC_3 10
@@ -552,7 +552,7 @@ int statemate(void);
 	#define WCET_STA_3 96
 	#define WCET_STA_4 421
 	#define WCET_STA_5 2345
-	#define WCET_STA 5415*(WCET_SCALE-1)
+	#define WCET_STA 5413*(WCET_SCALE-1)
 #endif
 #if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER
 	#define WCET_IS_1 6
@@ -569,43 +569,43 @@ int statemate(void);
 	#define WCET_EDN_3 104
 	#define WCET_EDN_4 22
 	#define WCET_EDN_5 102
-	#define WCET_EDN_6 840
-	#define WCET_EDN_7 148
+	#define WCET_EDN_6 841
+	#define WCET_EDN_7 149
 	#define WCET_EDN_8 551
-	#define WCET_EDN_9 153
-	#define WCET_EDN_10 53
-	#define WCET_EDN_11 148
+	#define WCET_EDN_9 154
+	#define WCET_EDN_10 52
+	#define WCET_EDN_11 147
 	#define WCET_EDN_12 62
-	#define WCET_EDN_13 314
+	#define WCET_EDN_13 295
 	#define WCET_EDN_14 727
 	#define WCET_EDN_15 34
-	#define WCET_EDN 91318*(WCET_SCALE-1)
-	#define WCET_CMP_1 2510
+	#define WCET_EDN 91286*(WCET_SCALE-1)
+	#define WCET_CMP_1 2512
 	#define WCET_CMP_2 194
 	#define WCET_CMP_3 90
 	#define WCET_CMP_4 44
 	#define WCET_CMP_5 55
-	#define WCET_CMP 12164*(WCET_SCALE-1)
-	#define WCET_FIR_1 202
+	#define WCET_CMP 12166*(WCET_SCALE-1)
+	#define WCET_FIR_1 221
 	#define WCET_FIR_2 32
 	#define WCET_FIR_3 39
-	#define WCET_FIR_4 220
-	#define WCET_FIR 6812*(WCET_SCALE-1)
+	#define WCET_FIR_4 221
+	#define WCET_FIR 6813*(WCET_SCALE-1)
 	#define WCET_JFDC_1 166
 	#define WCET_JFDC_2 474
 	#define WCET_JFDC_3 10
-	#define WCET_JFDC_4 492
+	#define WCET_JFDC_4 494
 	#define WCET_JFDC_5 30
-	#define WCET_JFDC 6591*(WCET_SCALE-1)
+	#define WCET_JFDC 6593*(WCET_SCALE-1)
 	#define WCET_NSI_1 6
 	#define WCET_NSI_2 492
-	#define WCET_NSI_3 2057
-	#define WCET_NSI_4 1998
+	#define WCET_NSI_3 2059
+	#define WCET_NSI_4 1999
 	#define WCET_NSI_5 2038
 	#define WCET_NSI_6 2037
 	#define WCET_NSI_7 2035
 	#define WCET_NSI_8 2010
-	#define WCET_NSI 20843*(WCET_SCALE-1)
+	#define WCET_NSI 20846*(WCET_SCALE-1)
 	#define WCET_STA_1 222
 	#define WCET_STA_2 248
 	#define WCET_STA_3 77

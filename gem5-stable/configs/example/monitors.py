@@ -11,7 +11,7 @@ if monitor == "UMC_FULL":
   if model == 'ATOMIC':
     delay = 22
   if model == 'TIMING':
-    delay = 301
+    delay = 325
   # Define monitoring executable
   monitor_bin = "umc_full"
 elif monitor == "UMC_SWDROP":
@@ -21,7 +21,7 @@ elif monitor == "UMC_SWDROP":
   if model == 'ATOMIC':
     delay = 30
   if model == 'TIMING':
-    delay = 365
+    delay = 389
   # Define monitoring executable
   monitor_bin = "umc_swdrop"
 elif monitor == "UMC_HWDROP":
@@ -54,7 +54,7 @@ elif monitor == "LRC_FULL":
   if model == 'ATOMIC':
     delay = 15
   if model == 'TIMING':
-    delay = 170
+    delay = 195
   # Define monitoring executable
   monitor_bin = "lrc_full"
 elif monitor == "LRC_SWDROP":

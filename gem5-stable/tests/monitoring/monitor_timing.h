@@ -17,7 +17,7 @@
 	#define MON_DROP_WCET 6
 #endif
 #ifdef UMC_HWDROP
-	#define MON_WCET 29
+	#define MON_WCET 32
 	#define MON_DROP_WCET 1
 #endif
 #ifdef UMC_HWFILTER
@@ -30,7 +30,7 @@
 #endif
 #ifdef LRC_SWDROP
 	#define MON_WCET 19
-	#define MON_DROP_WCET 12
+	#define MON_DROP_WCET 19
 #endif
 #ifdef LRC_HWDROP
 	#define MON_WCET 22
@@ -38,28 +38,28 @@
 #endif
 #ifdef LRC_HWFILTER
 	#define MON_WCET 20
-	#define MON_DROP_WCET 1
+	#define MON_DROP_WCET 20
 #endif
 #endif
 #ifdef TIMING
 #ifdef UMC_FULL
-	#define MON_WCET 301
-	#define MON_DROP_WCET 300
+	#define MON_WCET 325
+	#define MON_DROP_WCET 322
 #endif
 #ifdef UMC_SWDROP
-	#define MON_WCET 365
-	#define MON_DROP_WCET 173
+	#define MON_WCET 389
+	#define MON_DROP_WCET 199
 #endif
 #ifdef UMC_HWDROP
-	#define MON_WCET 352
+	#define MON_WCET 390
 	#define MON_DROP_WCET 8
 #endif
 #ifdef UMC_HWFILTER
-	#define MON_WCET 340
+	#define MON_WCET 372
 	#define MON_DROP_WCET 8
 #endif
 #ifdef LRC_FULL
-	#define MON_WCET 170
+	#define MON_WCET 195
 	#define MON_DROP_WCET 128
 #endif
 #ifdef LRC_SWDROP

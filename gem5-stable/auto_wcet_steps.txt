@@ -3,7 +3,8 @@
     scripts/build_monitors.pl
 3. Run WCET on monitors (update tick per cycle):
     scripts/auto_monitor_wcet.pl
-4. Update configs/monitors.py with full monitoring numbers
+   Result is in tests/monitoring/monitor_timing.h.
+4. Update configs/example/monitors.py with full monitoring numbers
 5. Update auto_program_wcet.pl with drop monitoring numbers
 6. Run WCET:
     scripts/auto_program_wcet.pl
@@ -15,5 +16,7 @@
     scripts/run_sweep_local.sh
     OR
     scripts/run_sweep_cluster.sh
+   If running on cluster, remember to copy over .zip files for monitors,
+   malarden programs, monitors.py, and dual_core.py
 9. Generate CSVs:
     scripts/generate_csv.pl m5out/malarden/*/*

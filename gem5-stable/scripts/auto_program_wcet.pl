@@ -70,10 +70,10 @@ my $default_delay = 1000;
 
 my @monitors = ('UMC_FULL', 'UMC_SWDROP', 'LRC_FULL', 'LRC_SWDROP', 'LRC_HWDROP');
 my %defaliases = ( 'LRC_HWDROP' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER' );
-my %drop_delays = ('UMC_FULL'=>{'ATOMIC'=>4, 'TIMING'=>50}, 
-                   'UMC_SWDROP'=>{'ATOMIC'=>1, 'TIMING'=>29},
-                   'LRC_FULL'=>{'ATOMIC'=>3, 'TIMING'=>22},
-                   'LRC_SWDROP'=>{'ATOMIC'=>2, 'TIMING'=>18});
+my %drop_delays = ('UMC_FULL'=>{'ATOMIC'=>22, 'TIMING'=>322}, 
+                   'UMC_SWDROP'=>{'ATOMIC'=>6, 'TIMING'=>199},
+                   'LRC_FULL'=>{'ATOMIC'=>15, 'TIMING'=>128},
+                   'LRC_SWDROP'=>{'ATOMIC'=>19, 'TIMING'=>104});
 my @models = ('ATOMIC', 'TIMING');
 
 foreach my $model (@models){

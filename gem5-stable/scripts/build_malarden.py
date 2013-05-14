@@ -11,7 +11,8 @@ import re
 import subprocess
 
 models = ['ATOMIC', 'TIMING']
-monitors = ['UMC_HWDROP'] #['UMC_SWDROP', 'UMC_HWDROP', 'UMC_HWFILTER', 'LRC_SWDROP', 'LRC_HWDROP', 'LRC_HWFILTER']
+#monitors = ['UMC_HWDROP'] #['UMC_SWDROP', 'UMC_HWDROP', 'UMC_HWFILTER', 'LRC_SWDROP', 'LRC_HWDROP', 'LRC_HWFILTER']
+monitors = ['UMC_SWDROP', 'UMC_HWDROP', 'UMC_HWFILTER', 'LRC_SWDROP', 'LRC_HWDROP', 'LRC_HWFILTER']
 
 # WCET per task to try (in cycles)
 wcets = [i for i in range(97,100,1) + range(100,301,25)]
@@ -41,6 +42,7 @@ for monitor in monitors:
         p.wait()
     
     # Zip executables
-    p = subprocess.Popen("zip generated.%s.%s.zip malarden*.arm" % (monitor, model), cwd=compile_dir, shell=True)
+    #p = subprocess.Popen("zip generated.%s.%s.zip malarden*.arm" % (monitor, model), cwd=compile_dir, shell=True)
+    p = subprocess.Popen("tar -cjvf generated.%s.%s.bz2 malarden*.arm" % (monitor, model), cwd=compile_dir, shell=True)
     p.wait()
 
