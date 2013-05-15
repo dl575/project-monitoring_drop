@@ -1202,9 +1202,11 @@ int
 statemate(void)
 {
 
-	init();
+	INIT_MONITOR;
     
-    INIT_MONITOR;
+    init();
+    
+    DISABLE_MONITOR;
     while (!READ_FIFO_EMPTY);
     ENABLE_MONITOR;
     
@@ -1221,7 +1223,6 @@ statemate(void)
     END_SUBTASK;
     
     END_TASK(FIFO_SIZE*MON_DROP_WCET);
-    DISABLE_MONITOR;
 
 	return 1;
 }

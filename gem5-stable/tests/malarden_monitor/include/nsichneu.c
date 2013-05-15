@@ -65,6 +65,7 @@ nsichneu()
 
 
     INIT_MONITOR;
+    DISABLE_MONITOR;
     while (!READ_FIFO_EMPTY);
     ENABLE_MONITOR;
     
@@ -4052,7 +4053,6 @@ nsichneu()
     END_SUBTASK;
     
     END_TASK(FIFO_SIZE*MON_DROP_WCET);
-    DISABLE_MONITOR;
 
 	return 1;
 

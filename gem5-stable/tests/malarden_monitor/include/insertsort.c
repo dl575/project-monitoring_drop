@@ -53,7 +53,7 @@ int
 insertsort()
 {
 
-
+    INIT_MONITOR;
 
 	int             i, j, temp;
     unsigned int    a[11];
@@ -71,7 +71,7 @@ insertsort()
 	a[10] = 2;
 	i = 2;
     
-    INIT_MONITOR;
+    DISABLE_MONITOR;
     while (!READ_FIFO_EMPTY);
     ENABLE_MONITOR;
 
@@ -96,7 +96,6 @@ insertsort()
     END_SUBTASK;
     
     END_TASK(FIFO_SIZE*MON_DROP_WCET);
-    DISABLE_MONITOR;
     
 	return 1;
 }

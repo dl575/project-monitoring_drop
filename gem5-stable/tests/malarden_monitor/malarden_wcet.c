@@ -22,6 +22,8 @@ int main(int argc, char* argv[]) {
   INIT_CODE;
   INIT_TIMER;
   
+  ENABLE_MONITOR;
+  
   register int result = 0;
   int i, bench;
 
@@ -30,6 +32,8 @@ int main(int argc, char* argv[]) {
       result += (*benchmarks[bench])(); 
     }
   }
+  
+  DISABLE_MONITOR;
   
   printf("Result is: %d\n", result);
   

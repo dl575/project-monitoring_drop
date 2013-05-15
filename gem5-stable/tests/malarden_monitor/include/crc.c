@@ -121,8 +121,10 @@ icrc(unsigned short crc, unsigned long len,
 int 
 crc(void)
 {
+	
+    INIT_MONITOR;
     
-	unsigned short  i1, i2;
+    unsigned short  i1, i2;
 	unsigned long   n;
     int j;
 
@@ -131,7 +133,7 @@ crc(void)
         rchr[j] = (uchar) (it[j & 0xF] << 4 | it[j >> 4]);
     }
     
-    INIT_MONITOR;
+    DISABLE_MONITOR;
     while (!READ_FIFO_EMPTY);
     ENABLE_MONITOR;
     
@@ -152,8 +154,6 @@ crc(void)
     END_SUBTASK;
     
     END_TASK(FIFO_SIZE*MON_DROP_WCET);
-    
-    DISABLE_MONITOR;
     
 	return 1;
 }

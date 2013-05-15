@@ -392,6 +392,8 @@ int
 jfdc(void)
 {
 
+    INIT_MONITOR;
+
 	int             i, seed;
 
 	/* Worst case settings */
@@ -402,7 +404,7 @@ jfdc(void)
 		data[i] = seed;
 	}
     
-    INIT_MONITOR;
+    DISABLE_MONITOR;
     while (!READ_FIFO_EMPTY);
     ENABLE_MONITOR;
     
@@ -415,7 +417,6 @@ jfdc(void)
     END_SUBTASK;
     
     END_TASK(FIFO_SIZE*MON_DROP_WCET);
-    DISABLE_MONITOR;
 
 	return 1;
 }

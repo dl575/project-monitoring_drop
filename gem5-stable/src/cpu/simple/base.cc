@@ -1209,11 +1209,11 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
             printf("Drops = %d, Non-drops = %d, Filtered = %d, Aliased = %d\n", drops, not_drops, num_filtered, num_aliased);
             printf("Drop breakdown:\n");
             for (int i = 0; i < num_inst_types; ++i){
-                printf("\tDrop_%6s: %d\n", instTypeToString(i).data(), dropstats[i]);
+                printf("\tDrop_%s: %d\n", instTypeToString(i).data(), dropstats[i]);
             }
             printf("Filter breakdown:\n");
             for (int i = 0; i < num_inst_types; ++i){
-                printf("\tFilter_%6s: %d\n", instTypeToString(i).data(), filterstats[i]);
+                printf("\tFilter_%s: %d\n", instTypeToString(i).data(), filterstats[i]);
             }
         }
 

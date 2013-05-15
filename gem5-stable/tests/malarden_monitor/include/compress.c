@@ -205,6 +205,9 @@ int
 compress(void)
 {
 
+    INIT_MONITOR;
+    
+
 	int             count = IN_COUNT;
 
 	initbuffer();
@@ -222,7 +225,7 @@ compress(void)
 	InBuff = (unsigned char *) orig_text_buffer;
 	OutBuff = (unsigned char *) comp_text_buffer;
     
-    INIT_MONITOR;
+    DISABLE_MONITOR;
     while (!READ_FIFO_EMPTY);
     ENABLE_MONITOR;
     
@@ -235,7 +238,6 @@ compress(void)
     END_SUBTASK;
     
     END_TASK(FIFO_SIZE*MON_DROP_WCET);
-    DISABLE_MONITOR;
 
 	return result;
 
