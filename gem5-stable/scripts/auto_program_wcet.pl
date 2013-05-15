@@ -70,12 +70,12 @@ my $default_delay = 1000;
 
 my @monitors = ('UMC_FULL', 'UMC_SWDROP', 'LRC_FULL', 'LRC_SWDROP', 'LRC_HWDROP', 'DIFT_FULL', 'DIFT_SWDROP');
 my %defaliases = ( 'LRC_HWDROP' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER' );
-my %drop_delays = ('UMC_FULL'=>{'ATOMIC'=>22, 'TIMING'=>32}, 
-                   'UMC_SWDROP'=>{'ATOMIC'=>6, 'TIMING'=>16},
-                   'LRC_FULL'=>{'ATOMIC'=>15, 'TIMING'=>16},
-                   'LRC_SWDROP'=>{'ATOMIC'=>12, 'TIMING'=>13},
-                   'DIFT_FULL'=>{'ATOMIC'=>30, 'TIMING'=>42},
-                   'DIFT_SWDROP'=>{'ATOMIC'=>20, 'TIMING'=>26},
+my %drop_delays = ('UMC_FULL'=>{'ATOMIC'=>2, 'TIMING'=>22}, 
+                   'UMC_SWDROP'=>{'ATOMIC'=>1, 'TIMING'=>13},
+                   'LRC_FULL'=>{'ATOMIC'=>2, 'TIMING'=>9},
+                   'LRC_SWDROP'=>{'ATOMIC'=>1, 'TIMING'=>7},
+                   'DIFT_FULL'=>{'ATOMIC'=>2, 'TIMING'=>26},
+                   'DIFT_SWDROP'=>{'ATOMIC'=>2, 'TIMING'=>19},
                    );
 my @models = ('ATOMIC', 'TIMING');
 
