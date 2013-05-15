@@ -14,7 +14,7 @@ models = ['TIMING'] #, 'ATOMIC']
 monitors = ['UMC_HWDROP', 'UMC_HWFILTER', 'LRC_HWDROP', 'LRC_HWFILTER', 'DIFT_HWDROP', 'DIFT_HWFILTER']
 
 # WCET per task to try (in cycles)
-wcets = [range(100,801,200), range(100,801,200), range(100,201,25), range(100,201,25), range(100,1001,200), range(100,1001,200)]
+wcets = [range(100,301,25), range(100,301,25), range(100,301,25), range(100,301,25), range(100,301,25), range(100,301,25)]
 # Directory where generated sources are
 compile_dir = os.environ["GEM5"] + "/tests/malarden_monitor/generated/"
 

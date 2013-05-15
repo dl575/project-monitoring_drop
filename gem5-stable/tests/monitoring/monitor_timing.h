@@ -59,52 +59,52 @@
 #endif
 #ifdef TIMING
 #ifdef UMC_FULL
-	#define MON_WCET 242
-	#define MON_DROP_WCET 239
+	#define MON_WCET 121
+	#define MON_DROP_WCET 121
 #endif
 #ifdef UMC_SWDROP
-	#define MON_WCET 384
-	#define MON_DROP_WCET 196
+	#define MON_WCET 173
+	#define MON_DROP_WCET 137
 #endif
 #ifdef UMC_HWDROP
-	#define MON_WCET 404
-	#define MON_DROP_WCET 8
+	#define MON_WCET 167
+	#define MON_DROP_WCET 1
 #endif
 #ifdef UMC_HWFILTER
-	#define MON_WCET 352
-	#define MON_DROP_WCET 7
+	#define MON_WCET 150
+	#define MON_DROP_WCET 1
 #endif
 #ifdef LRC_FULL
-	#define MON_WCET 96
-	#define MON_DROP_WCET 64
+	#define MON_WCET 76
+	#define MON_DROP_WCET 16
 #endif
 #ifdef LRC_SWDROP
-	#define MON_WCET 105
-	#define MON_DROP_WCET 65
+	#define MON_WCET 21
+	#define MON_DROP_WCET 13
 #endif
 #ifdef LRC_HWDROP
-	#define MON_WCET 138
-	#define MON_DROP_WCET 6
+	#define MON_WCET 23
+	#define MON_DROP_WCET 1
 #endif
 #ifdef LRC_HWFILTER
-	#define MON_WCET 105
-	#define MON_DROP_WCET 5
+	#define MON_WCET 21
+	#define MON_DROP_WCET 1
 #endif
 #ifdef DIFT_FULL
-	#define MON_WCET 405
-	#define MON_DROP_WCET 387
+	#define MON_WCET 167
+	#define MON_DROP_WCET 165
 #endif
 #ifdef DIFT_SWDROP
-	#define MON_WCET 591
-	#define MON_DROP_WCET 314
+	#define MON_WCET 345
+	#define MON_DROP_WCET 166
 #endif
 #ifdef DIFT_HWDROP
-	#define MON_WCET 808
-	#define MON_DROP_WCET 12
+	#define MON_WCET 454
+	#define MON_DROP_WCET 1
 #endif
 #ifdef DIFT_HWFILTER
-	#define MON_WCET 717
-	#define MON_DROP_WCET 12
+	#define MON_WCET 265
+	#define MON_DROP_WCET 2
 #endif
 #endif
 

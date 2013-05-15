@@ -73,6 +73,9 @@ FlagCache::FlagCache(const Params* p) :
     fa_size = p->flagarr_size;
     if (fa_size < 1) fa_size = 1;
     flag_array = new bool[fa_size];
+    for (int i = 0; i < fa_size; ++i){
+        flag_array[i] = false;
+    }
     
     // Create bloom filter
     // unsigned capacity = p->bloom_cap;
@@ -90,6 +93,8 @@ FlagCache::FlagCache(const Params* p) :
     cache_array = new cacheLine[fc_size];
     for(int i = 0; i < fc_size; ++i){
         cache_array[i].tags = new Addr[num_ways];
+        cache_array[i].num_valid = 0;
+        cache_array[i].aliased = false;
     }
     
 }
@@ -145,7 +150,7 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
     // Check that address is within bounds
     assert(pkt->getAddr() >= range.start &&
            (pkt->getAddr() + pkt->getSize() - 1) <= range.end);
-
+  
     // Read request
     if (pkt->isRead()) {
         if (pmemAddr){
@@ -161,7 +166,7 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
             } else if (read_addr == FC_GET_FLAG_A){
                 if (addr >= 0 && addr < fa_size){
                     // Lookup flag
-                    send_data = flag_array[addr];
+                    send_data = (flag_array[addr])? 1 : 0;
                     DPRINTF(FlagCache, "Flag array lookup @ %x: value? %d\n", addr, send_data);
                 }
             } else if (read_addr == FC_GET_FLAG_C) { 
@@ -252,9 +257,12 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
             // Clear flag
             } else if (write_addr == FC_CLEAR_FLAG) {
                 if (get_data == 0) {
-                    Addr aA = arrayAddr(addr);
-                    flag_array[aA] = false;
-                    DPRINTF(FlagCache, "Flag array clear @ %x -> %x\n", addr, aA);
+                    if(addr >= 0 && addr < fa_size){
+                        flag_array[addr] = false;
+                        DPRINTF(FlagCache, "Flag array clear @ %x\n", addr);
+                    } else {
+                        DPRINTF(FlagCache, "Flag array not cleared @ %x\n", addr);
+                    }
                 } else if (get_data == 1) {
                     // Clear bloom filter with address
                     // counting_bloom_remove(bloom, (const char *)&addr, sizeof(addr));

@@ -59,10 +59,12 @@ def config_cache(options, system):
             else:
                 icache = L1Cache(size = options.l1i_size,
                                  assoc = options.l1i_assoc,
-                                 block_size=options.cacheline_size)
+                                 block_size=options.cacheline_size,
+                                 latency = options.l1i_latency)
                 dcache = L1Cache(size = options.l1d_size,
                                  assoc = options.l1d_assoc,
-                                 block_size=options.cacheline_size)
+                                 block_size=options.cacheline_size,
+                                 latency = options.l1d_latency)
 
             if buildEnv['TARGET_ISA'] == 'x86':
                 system.cpu[i].addPrivateSplitL1Caches(icache, dcache,

@@ -10,7 +10,7 @@
     scripts/auto_program_wcet.pl
 7. Create malardens:
     scripts/create_malardens.py
-7. Build binaries:
+7. Build binaries (change sweep ranges):
     scripts/build_malarden.py
 8. Run binaries (update monitor and model at top of file):
     scripts/run_sweep_local.sh

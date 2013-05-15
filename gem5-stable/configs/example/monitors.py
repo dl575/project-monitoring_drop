@@ -21,6 +21,8 @@ system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
 # Kindle-like configuration
 options.l1i_size = '16kB'
 options.l1d_size = '16kB'
+options.l1i_latency = '1ps'
+options.l1d_latency = '1ps'
 # options.l1i_size = '32kB'
 # options.l1d_size = '32kB'
 
@@ -35,7 +37,7 @@ if monitor == "UMC_FULL":
   if model == 'ATOMIC':
     delay = 22
   if model == 'TIMING':
-    delay = 242
+    delay = 121
   # Define monitoring executable
   monitor_bin = "umc_full"
 elif monitor == "UMC_SWDROP":
@@ -46,7 +48,7 @@ elif monitor == "UMC_SWDROP":
   if model == 'ATOMIC':
     delay = 30
   if model == 'TIMING':
-    delay = 384
+    delay = 173
   # Define monitoring executable
   monitor_bin = "umc_swdrop"
 elif monitor == "UMC_HWDROP":
@@ -82,7 +84,7 @@ elif monitor == "LRC_FULL":
   if model == 'ATOMIC':
     delay = 15
   if model == 'TIMING':
-    delay = 96
+    delay = 76
   # Define monitoring executable
   monitor_bin = "lrc_full"
 elif monitor == "LRC_SWDROP":
@@ -93,7 +95,7 @@ elif monitor == "LRC_SWDROP":
   if model == 'ATOMIC':
     delay = 19
   if model == 'TIMING':
-    delay = 105
+    delay = 21
   # Define monitoring executable
   monitor_bin = "lrc_swdrop"
 elif monitor == "LRC_HWDROP":
@@ -131,7 +133,7 @@ elif monitor == "DIFT_FULL":
   if model == 'ATOMIC':
     delay = 30
   if model == 'TIMING':
-    delay = 405
+    delay = 167
   # Define monitoring executable
   monitor_bin = "dift_full"
 # Drop handled in software
@@ -145,7 +147,7 @@ elif monitor == "DIFT_SWDROP":
   if model == 'ATOMIC':
     delay = 34
   if model == 'TIMING':
-    delay = 591
+    delay = 345
   # Define monitoring executable
   monitor_bin = "dift_swdrop"
 # Drop handled in hardware without filtering
