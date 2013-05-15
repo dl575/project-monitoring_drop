@@ -6,7 +6,7 @@ use warnings;
 my $gem5 = $ENV{'GEM5'};
 die "GEM5 path not defined" unless defined $gem5;
 
-my @models = ('ATOMIC', 'TIMING');
+my @models = ('ATOMIC', 'TIMING', 'FLEX');
 my @monitors = ("UMC_FULL", "UMC_SWDROP", "UMC_HWDROP", "UMC_HWFILTER", "LRC_FULL", "LRC_SWDROP", "LRC_HWDROP", "LRC_HWFILTER", "DIFT_FULL", "DIFT_SWDROP", "DIFT_HWDROP", "DIFT_HWFILTER");
 my @monitor_exes = map { (lc $_).".arm" } @monitors;
 

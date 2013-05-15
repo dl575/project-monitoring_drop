@@ -5,5 +5,5 @@ if [ $1 ]; then
         gem5.debug $GEM5/configs/example/dual_core.py -c $1 --cpu-type=timing --caches
     fi
 else
-  echo "usage: run_dual_timing.sh executable.arm [debug_flags (comma seperated)]"
+  echo "usage: run_dual.sh executable.arm [debug_flags (comma seperated)]"
 fi

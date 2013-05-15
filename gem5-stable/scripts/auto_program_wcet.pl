@@ -70,14 +70,14 @@ my $default_delay = 1000;
 
 my @monitors = ('UMC_FULL', 'UMC_SWDROP', 'LRC_FULL', 'LRC_SWDROP', 'LRC_HWDROP', 'DIFT_FULL', 'DIFT_SWDROP');
 my %defaliases = ( 'LRC_HWDROP' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER' );
-my %drop_delays = ('UMC_FULL'=>{'ATOMIC'=>2, 'TIMING'=>11}, 
-                   'UMC_SWDROP'=>{'ATOMIC'=>1, 'TIMING'=>10},
-                   'LRC_FULL'=>{'ATOMIC'=>2, 'TIMING'=>11},
-                   'LRC_SWDROP'=>{'ATOMIC'=>1, 'TIMING'=>2},
-                   'DIFT_FULL'=>{'ATOMIC'=>2, 'TIMING'=>12},
-                   'DIFT_SWDROP'=>{'ATOMIC'=>2, 'TIMING'=>10},
+my %drop_delays = ('UMC_FULL'=>{'ATOMIC'=>22, 'TIMING'=>32, 'FLEX'=>10}, 
+                   'UMC_SWDROP'=>{'ATOMIC'=>6, 'TIMING'=>16, 'FLEX'=>8},
+                   'LRC_FULL'=>{'ATOMIC'=>15, 'TIMING'=>16, 'FLEX'=>9},
+                   'LRC_SWDROP'=>{'ATOMIC'=>12, 'TIMING'=>13, 'FLEX'=>2},
+                   'DIFT_FULL'=>{'ATOMIC'=>30, 'TIMING'=>42, 'FLEX'=>10},
+                   'DIFT_SWDROP'=>{'ATOMIC'=>20, 'TIMING'=>26, 'FLEX'=>9},
                    );
-my @models = ('ATOMIC', 'TIMING');
+my @models = ('ATOMIC', 'TIMING', 'FLEX');
 
 foreach my $model (@models){
 
@@ -90,7 +90,7 @@ foreach my $model (@models){
         my $mon_drop_delays = (defined $drop_delays{$monitor})? $drop_delays{$monitor} : {};
         my $drop_delay = (defined $mon_drop_delays->{$model})? $mon_drop_delays->{$model} : 0;
         
-        $ENV{'WCET_SCALE'} = ($drop_delay > 0)? 5 : 1;
+        $ENV{'WCET_SCALE'} = ($drop_delay > 0)? 4 : 1;
         $ENV{'MONITOR'} = $monitor;
         $ENV{'MODEL'} = $model;
 
@@ -100,6 +100,8 @@ foreach my $model (@models){
             $wcet_cmd = "gem5.debug --debug-flags=Task $gem5/configs/example/wcet.py -c $gem5/tests/malarden_monitor/malarden_wcet.arm --cpu-type=atomic | $gem5/scripts/calculate_wcet.pl -d $drop_delay";
         } elsif ($model eq 'TIMING'){
             $wcet_cmd = "gem5.debug --debug-flags=Task $gem5/configs/example/wcet.py -c $gem5/tests/malarden_monitor/malarden_wcet.arm --cpu-type=timing --caches | $gem5/scripts/calculate_wcet.pl -d $drop_delay";
+        } elsif ($model eq 'FLEX'){
+            $wcet_cmd = "gem5.debug --debug-flags=Task $gem5/configs/example/wcet.py -c $gem5/tests/malarden_monitor/malarden_wcet.arm --cpu-type=atomic --caches | $gem5/scripts/calculate_wcet.pl -d $drop_delay";
         }
         print "$wcet_cmd\n";
 

@@ -10,7 +10,7 @@ import os
 import re
 import subprocess
 
-models = ['TIMING'] #, 'ATOMIC']
+models = ['FLEX', 'TIMING'] #, 'ATOMIC']
 monitors = ['UMC_HWDROP', 'UMC_HWFILTER', 'LRC_HWDROP', 'LRC_HWFILTER', 'DIFT_HWDROP', 'DIFT_HWFILTER']
 
 # WCET per task to try (in cycles)

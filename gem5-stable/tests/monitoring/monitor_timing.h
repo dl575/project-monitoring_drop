@@ -59,23 +59,23 @@
 #endif
 #ifdef TIMING
 #ifdef UMC_FULL
-	#define MON_WCET 121
-	#define MON_DROP_WCET 121
+	#define MON_WCET 32
+	#define MON_DROP_WCET 32
 #endif
 #ifdef UMC_SWDROP
-	#define MON_WCET 173
-	#define MON_DROP_WCET 137
+	#define MON_WCET 40
+	#define MON_DROP_WCET 16
 #endif
 #ifdef UMC_HWDROP
-	#define MON_WCET 167
+	#define MON_WCET 40
 	#define MON_DROP_WCET 1
 #endif
 #ifdef UMC_HWFILTER
-	#define MON_WCET 150
+	#define MON_WCET 37
 	#define MON_DROP_WCET 1
 #endif
 #ifdef LRC_FULL
-	#define MON_WCET 76
+	#define MON_WCET 16
 	#define MON_DROP_WCET 16
 #endif
 #ifdef LRC_SWDROP
@@ -91,19 +91,69 @@
 	#define MON_DROP_WCET 1
 #endif
 #ifdef DIFT_FULL
-	#define MON_WCET 167
-	#define MON_DROP_WCET 165
+	#define MON_WCET 42
+	#define MON_DROP_WCET 40
 #endif
 #ifdef DIFT_SWDROP
-	#define MON_WCET 345
-	#define MON_DROP_WCET 166
+	#define MON_WCET 54
+	#define MON_DROP_WCET 26
 #endif
 #ifdef DIFT_HWDROP
-	#define MON_WCET 454
+	#define MON_WCET 54
 	#define MON_DROP_WCET 1
 #endif
 #ifdef DIFT_HWFILTER
-	#define MON_WCET 265
+	#define MON_WCET 52
+	#define MON_DROP_WCET 1
+#endif
+#endif
+#ifdef FLEX
+#ifdef UMC_FULL
+	#define MON_WCET 103
+	#define MON_DROP_WCET 103
+#endif
+#ifdef UMC_SWDROP
+	#define MON_WCET 135
+	#define MON_DROP_WCET 118
+#endif
+#ifdef UMC_HWDROP
+	#define MON_WCET 137
+	#define MON_DROP_WCET 1
+#endif
+#ifdef UMC_HWFILTER
+	#define MON_WCET 123
+	#define MON_DROP_WCET 1
+#endif
+#ifdef LRC_FULL
+	#define MON_WCET 62
+	#define MON_DROP_WCET 15
+#endif
+#ifdef LRC_SWDROP
+	#define MON_WCET 19
+	#define MON_DROP_WCET 12
+#endif
+#ifdef LRC_HWDROP
+	#define MON_WCET 22
+	#define MON_DROP_WCET 1
+#endif
+#ifdef LRC_HWFILTER
+	#define MON_WCET 20
+	#define MON_DROP_WCET 1
+#endif
+#ifdef DIFT_FULL
+	#define MON_WCET 140
+	#define MON_DROP_WCET 140
+#endif
+#ifdef DIFT_SWDROP
+	#define MON_WCET 159
+	#define MON_DROP_WCET 142
+#endif
+#ifdef DIFT_HWDROP
+	#define MON_WCET 218
+	#define MON_DROP_WCET 1
+#endif
+#ifdef DIFT_HWFILTER
+	#define MON_WCET 218
 	#define MON_DROP_WCET 2
 #endif
 #endif

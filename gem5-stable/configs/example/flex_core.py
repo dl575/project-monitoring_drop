@@ -73,9 +73,12 @@ if '--ruby' in sys.argv:
 if args:
     print "Error: script doesn't take any positional arguments"
     sys.exit(1)
-    
+
 # Number of threads per CPU
 numThreads = 1
+
+# Fixme: Both cores must be atomic at this point
+options.cpu_type = 'atomic'
 
 # Create new CPU type for main core
 (MainCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
@@ -84,56 +87,67 @@ MainCPUClass.fifo_enabled = True
 MainCPUClass.monitoring_enabled = False
 # Enable slack timer so it can write to it
 MainCPUClass.timer_enabled = True
-if options.caches and options.cpu_type == 'atomic':
-  # Simulate cache stalls
-  MainCPUClass.simulate_inst_stalls = True
-  MainCPUClass.simulate_data_stalls = True
-# Use WCET core for 'monitoring'
-options.cpu_type = 'wcet'
+# Don't need flag cache for main core
+MainCPUClass.flagcache_enabled = False
+# Simulate cache stalls
+MainCPUClass.simulate_inst_stalls = True
+MainCPUClass.simulate_data_stalls = True
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True
 MonCPUClass.monitoring_enabled = False
-MonCPUClass.timer_enabled = False
+# Enable slack timer so it can read from it
+MonCPUClass.timer_enabled = True
+# Need flag cache for monitoring core
+MonCPUClass.flagcache_enabled = True
+# Simulate d cache stalls
+MonCPUClass.simulate_data_stalls = True
 
-delay = 0
-
+# Set up monitoring filter
 execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
 
-MonCPUClass.delay = delay
-
 # Number of CPUs
-options.num_cpus = 1
+options.num_cpus = 2
 
 # Create a "fifo" memory
 fifo = Fifo(range=AddrRange(start=0x30000000, size="64kB")) 
+# fifo.fifo_size = 32
 system.fifo = fifo
-# Connect CPU to fifo
-if system.cpu[0].fifo_enabled:
-  system.cpu[0].fifo_port = system.fifo.port
-# Connect CPU to fifo
-if system.cpu[1].fifo_enabled:
-  system.cpu[1].fifo_port = system.fifo.port
-
 # Create timer
 timer = Timer(range=AddrRange(start=0x30010000, size="64kB"))
 system.timer = timer
-# Connect cpu 0
-if system.cpu[0].timer_enabled:
-  system.cpu[0].timer_port = system.timer.port
-# Connect cpu 1
-if system.cpu[1].timer_enabled:
-  system.cpu[1].timer_port = system.timer.port
+# Create flag cache
+flagcache = FlagCache(range=AddrRange(start=0x30020000, size="64kB"))
+system.flagcache = flagcache
+
+for i in range(options.num_cpus):
+  # Connect CPU to fifo
+  if system.cpu[i].fifo_enabled:
+    system.cpu[i].fifo_port = system.fifo.port
+  # Connect CPU to timer
+  if system.cpu[i].timer_enabled:
+    system.cpu[i].timer_port = system.timer.port
+  # Connect CPU to flag cache
+  if system.cpu[i].flagcache_enabled:
+    system.cpu[i].flagcache_port = system.flagcache.port
 
 # Assign programs
 process0 = LiveProcess()
-process0.executable = options.cmd
-process0.cmd = [options.cmd] + options.options.split()
+# If passed a program from script options
+if options.cmd:
+  process0.executable = options.cmd
+  process0.cmd = [options.cmd] + options.options.split()
+else:
+  #process0.executable = os.environ["GEM5"] + "/tests/malarden_monitor/malarden_wcet.arm"
+  process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer_monitor.arm"
+  # process0.executable = os.environ["GEM5"] + "../../papabench/sw/airborne/autopilot/autopilot.elf"
+  process0.cmd = ""
 system.cpu[0].workload = process0
+
 process1 = LiveProcess()
-process1.executable = options.cmd
+process1.executable = os.environ["GEM5"] + ("/tests/monitoring/%s.arm" % monitor_bin)
 process1.cmd = ""
 system.cpu[1].workload = process1
 
@@ -141,10 +155,6 @@ system.cpu[1].workload = process1
 system.system_port = system.membus.slave
 # Connect memory to bus
 system.physmem.port = system.membus.master
-# Connect CPU1 to the memory bus
-system.cpu[1].connectAllPorts(system.membus)
-# Setup interrupt controllers on CPU1
-system.cpu[1].createInterruptController()
 # Set up caches if enabled, connect to memory bus, and set up interrupts
 CacheConfig.config_cache(options, system)
 
