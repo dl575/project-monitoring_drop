@@ -1,0 +1,26 @@
+
+#ifndef __MALARDEN_H__
+#define __MALARDEN_H__
+
+#include "../../monitoring/timer.h"
+#include "../../monitoring/monitoring.h"
+
+
+#ifndef WCET_SCALE
+    #define WCET_SCALE 1
+#endif
+
+/** Function definitions **/
+int insertsort();
+int crc(void);
+int edn(void);
+int compress(void);
+int fir(void);
+int jfdc(void);
+int nsichneu();
+int statemate(void);
+
+<INSERT_WCET>
+
+#endif // __MALARDEN_H__
+

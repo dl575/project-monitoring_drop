@@ -1,0 +1,5 @@
+//opcode    sel1      sel2    op       c    location
+
+  LOAD      -         -       -        -    -
+  INDCTRL   -         -       -        -    -
+  INTALU    RS2       c       add      0    array
