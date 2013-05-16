@@ -12,5 +12,7 @@ if [ $1 ]; then
         gem5.debug --remote-gdb-port=0 $GEM5/configs/example/dual_core.py -c $1 --cpu-type=atomic > $GEM5/m5out/malarden/$MONITOR/$MODEL/$(basename ${1%arm})log
     elif [ $MODEL = TIMING ]; then
         gem5.debug --remote-gdb-port=0 $GEM5/configs/example/dual_core.py -c $1 --cpu-type=timing --caches > $GEM5/m5out/malarden/$MONITOR/$MODEL/$(basename ${1%arm})log
+    elif [ $MODEL = FLEX ]; then
+        gem5.debug --remote-gdb-port=0 $GEM5/configs/example/flex_core.py -c $1 --cpu-type=atomic --caches > $GEM5/m5out/malarden/$MONITOR/$MODEL/$(basename ${1%arm})log
     fi
 fi
