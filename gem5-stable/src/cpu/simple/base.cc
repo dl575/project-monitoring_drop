@@ -87,7 +87,7 @@ using namespace TheISA;
 
 BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     : BaseCPU(p), traceData(NULL), thread(NULL), 
-    num_filtered(0), dropstats(), filterstats(),
+    num_filtered(0), dropstats(), filterstats(), fullstats(),
     fifoPort(name() + "-iport", this),
     timerPort(name() + "-iport", this),
     fcPort(name() + "-iport", this),
@@ -1070,8 +1070,8 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         readFromTimer(TIMER_NOT_DROPS, (uint8_t *)&not_drops, sizeof(not_drops), ArmISA::TLB::AllowUnaligned);
         DPRINTF(SlackTimer, "read from timer: drop? %d, numdrops: %d, numfull: %d\n", !read_timer, drops, not_drops);
     #endif
+        instType itp = readFifoInstType();
         if (!read_timer){
-            instType itp = readFifoInstType();
             dropstats[itp]++;
             // Hardware invalidation
             if (invtab.initialized){
@@ -1083,6 +1083,12 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                     DPRINTF(Invalidation, "Staying in HW.\n");
                     return ReExecFault; // Stay in HW
                 }  
+            }
+        } else {
+            bool istaskpacket = false;
+            readFromTimer(TIMER_TASK_PACKET, (uint8_t *)&istaskpacket, sizeof(istaskpacket), ArmISA::TLB::AllowUnaligned);
+            if (istaskpacket){
+                fullstats[itp]++;
             }
         }
         DPRINTF(Invalidation, "Using software with return code %d\n", read_timer);
@@ -1210,6 +1216,10 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
             printf("Drop breakdown:\n");
             for (int i = 0; i < num_inst_types; ++i){
                 printf("\tDrop_%s: %d\n", instTypeToString(i).data(), dropstats[i]);
+            }
+            printf("Non-drop breakdown:\n");
+            for (int i = 0; i < num_inst_types; ++i){
+                printf("\tFull_%s: %d\n", instTypeToString(i).data(), fullstats[i]);
             }
             printf("Filter breakdown:\n");
             for (int i = 0; i < num_inst_types; ++i){

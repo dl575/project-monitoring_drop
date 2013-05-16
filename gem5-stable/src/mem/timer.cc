@@ -150,6 +150,8 @@ Timer::doFunctionalAccess(PacketPtr pkt)
                 send_data = drops;
             } else if (read_addr == TIMER_NOT_DROPS){
                 send_data = not_drops;
+            } else if (read_addr == TIMER_TASK_PACKET){
+                send_data = (stored_tp.intask || curTick() < stored_tp.WCET_end);
             }
             
             pkt->setData((uint8_t *)&send_data);

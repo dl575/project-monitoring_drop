@@ -539,6 +539,8 @@ class BaseSimpleCPU : public BaseCPU
     unsigned dropstats [num_inst_types];
     // Filters by instruction type
     unsigned filterstats [num_inst_types];
+    // Full monitoring by instruction type
+    unsigned fullstats [num_inst_types];
 
   protected:
     // Port for monitoring fifo
