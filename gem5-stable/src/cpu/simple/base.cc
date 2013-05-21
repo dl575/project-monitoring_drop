@@ -896,8 +896,8 @@ BaseSimpleCPU::selectValue(std::string &select, Addr c)
     return value;
 }
 
-template <unsigned size> void
-BaseSimpleCPU::setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx)
+template <unsigned size> Addr
+BaseSimpleCPU::getInvalidationAddr(InvalidationTable <size> & it, unsigned idx)
 {
     Addr a = selectValue(it.sel1[idx], (Addr)it.constant[idx]);
     Addr b = selectValue(it.sel2[idx], (Addr)it.constant[idx]);
@@ -909,6 +909,13 @@ BaseSimpleCPU::setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx)
         DPRINTF(Invalidation, "Calculate address = %x\n", fc_addr);
     }
 #endif
+    return fc_addr;
+}
+
+template <unsigned size> void
+BaseSimpleCPU::setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx)
+{
+    Addr fc_addr = getInvalidationAddr(it, idx);
     // Update address in flag cache
     writeToFlagCache(FC_SET_ADDR, (uint8_t *)&fc_addr, sizeof(fc_addr), ArmISA::TLB::AllowUnaligned);
 }

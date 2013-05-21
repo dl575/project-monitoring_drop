@@ -157,6 +157,12 @@ class TimingSimpleCPU : public BaseSimpleCPU
          * Snooping a coherence request, do nothing.
          */
         virtual void recvTimingSnoopReq(PacketPtr pkt) { }
+        
+        virtual Tick recvAtomicSnoop(PacketPtr pkt)
+        {
+            // Snooping a coherence request, just return
+            return 0;
+        }
 
         TimingSimpleCPU* cpu;
 

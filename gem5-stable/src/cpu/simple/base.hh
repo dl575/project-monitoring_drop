@@ -518,8 +518,6 @@ class BaseSimpleCPU : public BaseCPU
         void printTable();
     };
     
-    // Get the type of instruction from fifo entry
-    instType readFifoInstType();
     // Convert the type of instruction to string
     std::string instTypeToString(int inst_type);
     // Get the type of instruction from a string
@@ -630,6 +628,12 @@ class BaseSimpleCPU : public BaseCPU
     }
 
     Fault ReExecFault;
+    
+    // Get the flagcache address based on invalidation table entry
+    template <unsigned size>
+    Addr getInvalidationAddr(InvalidationTable <size> & it, unsigned idx);
+    // Get the type of instruction from fifo entry
+    instType readFifoInstType();
     
     // Read from fifo into data
     Fault readFromFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags);

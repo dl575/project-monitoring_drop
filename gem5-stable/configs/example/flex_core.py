@@ -77,9 +77,6 @@ if args:
 # Number of threads per CPU
 numThreads = 1
 
-# Fixme: Both cores must be atomic at this point
-options.cpu_type = 'atomic'
-
 # Create new CPU type for main core
 (MainCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 MainCPUClass.numThreads = numThreads;
@@ -89,9 +86,13 @@ MainCPUClass.monitoring_enabled = False
 MainCPUClass.timer_enabled = True
 # Don't need flag cache for main core
 MainCPUClass.flagcache_enabled = False
-# Simulate cache stalls
-MainCPUClass.simulate_inst_stalls = True
-MainCPUClass.simulate_data_stalls = True
+if (options.cpu_type == 'atomic'):
+    # Simulate cache stalls in atomic
+    MainCPUClass.simulate_inst_stalls = True
+    MainCPUClass.simulate_data_stalls = True
+
+# Monitoring core
+options.cpu_type = 'monitor'
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 MonCPUClass.numThreads = numThreads;

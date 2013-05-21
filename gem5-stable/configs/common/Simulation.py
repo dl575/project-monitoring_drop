@@ -59,6 +59,9 @@ def setCPUClass(options):
     elif options.cpu_type == "wcet":
         class TmpClass(WCETSimpleCPU): pass
         atomic = True
+    elif options.cpu_type == "monitor":
+        class TmpClass(MonitorSimpleCPU): pass
+        atomic = True
     else:
         class TmpClass(AtomicSimpleCPU): pass
         atomic = True
