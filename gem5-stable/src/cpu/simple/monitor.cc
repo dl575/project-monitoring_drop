@@ -513,9 +513,9 @@ MonitorSimpleCPU::tick()
         if (fault == NoFault){
             bool isdrop = false;
             if (timer_enabled){
-                int slack = 0;
+                long long int slack = 0;
                 readFromTimer(TIMER_READ_SLACK, (uint8_t *)&slack, sizeof(slack), ArmISA::TLB::AllowUnaligned);
-                isdrop = slack < ticks(1);
+                isdrop = slack < 1;
             }
             instType itp = readFifoInstType();
             // Invalidation
