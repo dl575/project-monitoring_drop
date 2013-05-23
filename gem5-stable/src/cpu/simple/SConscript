@@ -46,6 +46,11 @@ if 'WCETSimpleCPU' in env['CPU_MODELS']:
     SimObject('WCETSimpleCPU.py')
     Source('wcet.cc')
 
+if 'AtomicSimpleMonitor' in env['CPU_MODELS']:
+    need_simple_base = True
+    SimObject('AtomicSimpleMonitor.py')
+    Source('atomic_monitor.cc')
+
 if 'TimingSimpleCPU' in env['CPU_MODELS']:
     need_simple_base = True
     SimObject('TimingSimpleCPU.py')
@@ -53,6 +58,7 @@ if 'TimingSimpleCPU' in env['CPU_MODELS']:
 
 if 'AtomicSimpleCPU' in env['CPU_MODELS'] or \
        'WCETSimpleCPU' in env['CPU_MODELS'] or \
+       'AtomicSimpleMonitor' in env['CPU_MODELS'] or \
        'TimingSimpleCPU' in env['CPU_MODELS']:
     DebugFlag('SimpleCPU')
 
@@ -68,4 +74,5 @@ DebugFlag('Monitoring')
 DebugFlag('Task')
 DebugFlag('FlagCache')
 DebugFlag('Invalidation')
+DebugFlag('Monitor')
 

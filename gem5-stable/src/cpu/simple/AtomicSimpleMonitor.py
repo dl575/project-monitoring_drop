@@ -1,6 +1,16 @@
-# -*- mode:python -*-
-
-# Copyright (c) 2006 The Regents of The University of Michigan
+# Copyright (c) 2012 ARM Limited
+# All rights reserved.
+#
+# The license below extends only to copyright in the software and shall
+# not be construed as granting a license to any other intellectual
+# property including but not limited to intellectual property relating
+# to a hardware implementation of the functionality of the software
+# licensed hereunder.  You may use the software subject to the license
+# terms below provided that you ensure that this notice is replicated
+# unmodified and in its entirety in all distributions of the software,
+# modified or unmodified, in source code or in binary form.
+#
+# Copyright (c) 2007 The Regents of The University of Michigan
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,25 +38,13 @@
 #
 # Authors: Nathan Binkert
 
-Import('*')
+from m5.params import *
+from BaseSimpleCPU import BaseSimpleCPU
 
-CpuModel('AtomicSimpleCPU', 'atomic_simple_cpu_exec.cc',
-         '#include "cpu/simple/atomic.hh"',
-         { 'CPU_exec_context': 'AtomicSimpleCPU' },
-         default=True)
-CpuModel('MonitorSimpleCPU', 'monitor_simple_cpu_exec.cc',
-         '#include "cpu/simple/monitor.hh"',
-         { 'CPU_exec_context': 'MonitorSimpleCPU' },
-         default=True)
-CpuModel('WCETSimpleCPU', 'wcet_simple_cpu_exec.cc',
-         '#include "cpu/simple/wcet.hh"',
-         { 'CPU_exec_context': 'WCETSimpleCPU' },
-         default=True)
-CpuModel('AtomicSimpleMonitor', 'atomic_simple_monitor_exec.cc',
-         '#include "cpu/simple/atomic_monitor.hh"',
-         { 'CPU_exec_context': 'AtomicSimpleMonitor' },
-         default=True)
-CpuModel('TimingSimpleCPU', 'timing_simple_cpu_exec.cc',
-         '#include "cpu/simple/timing.hh"',
-         { 'CPU_exec_context': 'TimingSimpleCPU' },
-         default=True)
+class AtomicSimpleMonitor(BaseSimpleCPU):
+    type = 'AtomicSimpleMonitor'
+    width = Param.Int(1, "CPU width")
+    simulate_data_stalls = Param.Bool(False, "Simulate dcache stall cycles")
+    simulate_inst_stalls = Param.Bool(False, "Simulate icache stall cycles")
+    fastmem = Param.Bool(False, "Access memory directly")
+    monitor_port = MasterPort("Monitor Port")

@@ -52,6 +52,8 @@ class BaseSimpleCPU(BaseCPU):
     monitoring_filter_intalu = Param.Bool(False, "monitoring integer ALU instructions")
     monitoring_filter_indctrl = Param.Bool(False, "monitoring indirect control instructions")
 
+    monitor_type = Param.Int(0, "Type of monitor")
+
     if fifo_enabled:
       fifo_port = MasterPort("Fifo Port")
 

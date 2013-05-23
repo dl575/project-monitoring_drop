@@ -140,6 +140,25 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     }
 #endif
 
+    monitor_type = p->monitor_type;
+
+    // monitoring extension
+    if (monitor_type == MONITOR_NONE) {
+        monitorExt = MONITOR_NONE;
+    } else if (monitor_type == MONITOR_UMC) {
+        monitorExt = MONITOR_UMC;
+    } else if (monitor_type == MONITOR_DIFT) {
+        monitorExt = MONITOR_DIFT;
+    } else if (monitor_type == MONITOR_BC) {
+        monitorExt = MONITOR_BC;
+    } else if (monitor_type == MONITOR_SEC) {
+        monitorExt = MONITOR_SEC;
+    } else if (monitor_type == MONITOR_HB) {
+        monitorExt = MONITOR_HB;
+    } else {
+        panic("Invalid monitor type\n");
+    }
+
     if (FullSystem)
         thread = new SimpleThread(this, 0, p->system, p->itb, p->dtb);
     else
