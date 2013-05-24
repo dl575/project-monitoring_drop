@@ -464,19 +464,6 @@ class BaseSimpleCPU : public BaseCPU
     };
 
   private:
-    class FifoPort : public CpuPort
-    {
-      public:
-        FifoPort(const std::string &_name, BaseCPU* _cpu)
-          : CpuPort(_name, _cpu)
-        { }
-        
-      protected:
-        virtual bool recvTimingResp(PacketPtr pkt)
-        {
-          return true;
-        }
-    };
     
     template <unsigned add_size = 0> 
     class InvalidationTable
@@ -539,10 +526,12 @@ class BaseSimpleCPU : public BaseCPU
     unsigned filterstats [num_inst_types];
     // Full monitoring by instruction type
     unsigned fullstats [num_inst_types];
+    // hard wcet deadline
+    bool hard_wcet;
 
   protected:
     // Port for monitoring fifo
-    FifoPort fifoPort;
+    CpuPort fifoPort;
     // Port for accessing timer
     CpuPort timerPort;
     // Port for accessing flag cache

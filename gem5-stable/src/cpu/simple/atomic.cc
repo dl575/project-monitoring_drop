@@ -580,8 +580,8 @@ AtomicSimpleCPU::tick()
                 Tick aligned_stall_ticks = ticks(stall_cycles);
 
                 if (aligned_stall_ticks < stall_ticks)
-                    aligned_stall_ticks += 1;
-
+                    aligned_stall_ticks += ticks(1);
+                    
                 latency += aligned_stall_ticks;
             }
 

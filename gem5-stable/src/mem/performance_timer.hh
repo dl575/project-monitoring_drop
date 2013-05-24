@@ -46,43 +46,20 @@
  * SimpleMemory declaration
  */
 
-#ifndef __TIMER_HH__
-#define __TIMER_HH__
+#ifndef __PERFORMANCE_TIMER_HH__
+#define __PERFORMANCE_TIMER_HH__
 
 #include "mem/abstract_mem.hh"
 #include "mem/tport.hh"
-#include "params/Timer.hh"
-
-#define TIMER_ADDR 0x30010000
-#define TIMER_ADDR_START TIMER_ADDR
-#define TIMER_ADDR_END   TIMER_ADDR + 0x0000ffff
-
-// read registers
-#define TIMER_READ_SLACK       (TIMER_ADDR + 0x00)
-#define TIMER_READ_DROP        (TIMER_ADDR + 0x04)
-// hidden read registers (should not be used by the program)
-#define TIMER_DROPS            (TIMER_ADDR + 0x100)
-#define TIMER_NOT_DROPS        (TIMER_ADDR + 0x104)
-#define TIMER_TASK_PACKET      (TIMER_ADDR + 0x108)
-
-// write registers
-#define TIMER_START_TASK       (TIMER_ADDR + 0x00)
-#define TIMER_END_TASK         (TIMER_ADDR + 0x04)
-#define TIMER_START_SUBTASK    (TIMER_ADDR + 0x08)
-#define TIMER_END_SUBTASK      (TIMER_ADDR + 0x0c)
-#define TIMER_ENDSTART_SUBTASK (TIMER_ADDR + 0x10)
-#define TIMER_SET_THRES        (TIMER_ADDR + 0x14)
-// hidden write registers (should not be used by the program)
-#define TIMER_START_DECREMENT  (TIMER_ADDR + 0x100)
-#define TIMER_END_DECREMENT    (TIMER_ADDR + 0x104)
-
+#include "mem/timer.hh"
+#include "params/PerformanceTimer.hh"
 
 /**
  * The simple memory is a basic multi-ported memory with an infinite
  * throughput and a fixed latency, potentially with a variance added
  * to it. It uses a SimpleTimingPort to implement the timing accesses.
  */
-class Timer : public AbstractMemory
+class PerformanceTimer : public AbstractMemory
 {
 
   private:
@@ -90,10 +67,8 @@ class Timer : public AbstractMemory
     // Packet that is written to timer
     class timerPacket {
       public:
-        // Start time of subtask
-        Tick subtaskStart;
-        // WCET of current subtask
-        long long int subtaskWCET;
+        // Start time of task
+        Tick taskStart;
         // Accumulated slack
         long long int slack;
         // currently executing a task
@@ -107,11 +82,10 @@ class Timer : public AbstractMemory
 
         // Reset all variables
         void init() {
+          taskStart = 0;
+          slack = 0;
           intask = false;
           isDecrement = false;
-          subtaskStart = 0;
-          subtaskWCET = 0;
-          slack = 0;
           decrementStart = 0;
           WCET_end = 0;
         }
@@ -119,11 +93,11 @@ class Timer : public AbstractMemory
   
     class MemoryPort : public SimpleTimingPort
     {
-        Timer& memory;
+        PerformanceTimer& memory;
 
       public:
 
-        MemoryPort(const std::string& _name, Timer& _memory);
+        MemoryPort(const std::string& _name, PerformanceTimer& _memory);
 
       protected:
 
@@ -135,6 +109,8 @@ class Timer : public AbstractMemory
 
     };
 
+    long long int effectiveSlack();
+    
     std::vector<MemoryPort*> ports;
 
     Tick lat;
@@ -145,12 +121,14 @@ class Timer : public AbstractMemory
     long long int drop_thres;
     // Drop Statistics
     unsigned drops, not_drops;
+    // Overhead
+    float povr;
 
   public:
 
-    typedef TimerParams Params;
-    Timer(const Params *p);
-    virtual ~Timer() { }
+    typedef PerformanceTimerParams Params;
+    PerformanceTimer(const Params *p);
+    virtual ~PerformanceTimer() { }
 
     unsigned int drain(Event* de);
 
@@ -171,4 +149,4 @@ class Timer : public AbstractMemory
 
 };
 
-#endif //__TIMER_HH__
+#endif //__PERFORMANCE_TIMER_HH__

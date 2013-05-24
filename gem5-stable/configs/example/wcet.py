@@ -99,8 +99,14 @@ MonCPUClass.monitoring_enabled = False
 MonCPUClass.timer_enabled = False
 
 delay = 0
+invalidation_cpu = MonCPUClass
 
 execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
+
+# Create system, CPUs, bus, and memory
+system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
+                physmem = SimpleMemory(range=AddrRange("512MB"), latency=mem_latency),
+                membus = CoherentBus(), mem_mode = test_mem_mode)
 
 MonCPUClass.delay = delay
 

@@ -45,14 +45,14 @@
 #include "arch/utility.hh"
 #include "base/bigint.hh"
 #include "config/the_isa.hh"
-#include "cpu/simple/monitor.hh"
+#include "cpu/simple/drop.hh"
 #include "cpu/exetrace.hh"
 #include "debug/ExecFaulting.hh"
 #include "debug/SimpleCPU.hh"
 #include "mem/packet.hh"
 #include "mem/packet_access.hh"
 #include "mem/physical.hh"
-#include "params/MonitorSimpleCPU.hh"
+#include "params/DropSimpleCPU.hh"
 #include "sim/faults.hh"
 #include "sim/system.hh"
 #include "sim/full_system.hh"
@@ -64,26 +64,26 @@
 using namespace std;
 using namespace TheISA;
 
-MonitorSimpleCPU::TickEvent::TickEvent(MonitorSimpleCPU *c)
+DropSimpleCPU::TickEvent::TickEvent(DropSimpleCPU *c)
     : Event(CPU_Tick_Pri), cpu(c)
 {
 }
 
 
 void
-MonitorSimpleCPU::TickEvent::process()
+DropSimpleCPU::TickEvent::process()
 {
     cpu->tick();
 }
 
 const char *
-MonitorSimpleCPU::TickEvent::description() const
+DropSimpleCPU::TickEvent::description() const
 {
-    return "MonitorSimpleCPU tick";
+    return "DropSimpleCPU tick";
 }
 
 void
-MonitorSimpleCPU::init()
+DropSimpleCPU::init()
 {
     BaseSimpleCPU::init();
 
@@ -103,19 +103,41 @@ MonitorSimpleCPU::init()
     ifetch_req.setThreadContext(_cpuId, 0); // Add thread ID if we add MT
     data_read_req.setThreadContext(_cpuId, 0); // Add thread ID here too
     data_write_req.setThreadContext(_cpuId, 0); // Add thread ID here too
+    
+    // Write threshold to timer
+    if (timer_enabled){
+        // Create request
+        Request *timer_write_req = &data_write_req;
+        // set physical address
+        timer_write_req->setPhys(TIMER_SET_THRES, sizeof(full_ticks), ArmISA::TLB::AllowUnaligned, dataMasterId());
+        // Create write packet
+        MemCmd cmd = MemCmd::WriteReq;
+        PacketPtr timerpkt = new Packet(timer_write_req, cmd);
+        // Set data
+        timerpkt->dataStatic(&full_ticks);
+
+        // Send read request packet on timer port
+        timerPort.sendFunctional(timerpkt);
+
+        // Clean up
+        delete timerpkt;
+    }
+    
 }
 
-MonitorSimpleCPU::MonitorSimpleCPU(MonitorSimpleCPUParams *p)
+DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
     : BaseSimpleCPU(p), tickEvent(this), width(p->width), locked(false),
       simulate_data_stalls(p->simulate_data_stalls),
       icachePort(name() + "-iport", this), dcachePort(name() + "-iport", this),
-      fastmem(p->fastmem), drop_tick(p->drop_clock)
+      fastmem(p->fastmem),
+      forwardFifoPort(name() + "-iport", this),
+      full_ticks(p->full_clock)
 {
-    _status = Idle;
+    _status = Idle;    
 }
 
 
-MonitorSimpleCPU::~MonitorSimpleCPU()
+DropSimpleCPU::~DropSimpleCPU()
 {
     if (tickEvent.scheduled()) {
         deschedule(tickEvent);
@@ -123,7 +145,7 @@ MonitorSimpleCPU::~MonitorSimpleCPU()
 }
 
 void
-MonitorSimpleCPU::serialize(ostream &os)
+DropSimpleCPU::serialize(ostream &os)
 {
     SimObject::State so_state = SimObject::getState();
     SERIALIZE_ENUM(so_state);
@@ -134,7 +156,7 @@ MonitorSimpleCPU::serialize(ostream &os)
 }
 
 void
-MonitorSimpleCPU::unserialize(Checkpoint *cp, const string &section)
+DropSimpleCPU::unserialize(Checkpoint *cp, const string &section)
 {
     SimObject::State so_state;
     UNSERIALIZE_ENUM(so_state);
@@ -144,7 +166,7 @@ MonitorSimpleCPU::unserialize(Checkpoint *cp, const string &section)
 }
 
 void
-MonitorSimpleCPU::resume()
+DropSimpleCPU::resume()
 {
     if (_status == Idle || _status == SwitchedOut)
         return;
@@ -161,7 +183,7 @@ MonitorSimpleCPU::resume()
 }
 
 void
-MonitorSimpleCPU::switchOut()
+DropSimpleCPU::switchOut()
 {
     assert(_status == Running || _status == Idle);
     _status = SwitchedOut;
@@ -171,7 +193,7 @@ MonitorSimpleCPU::switchOut()
 
 
 void
-MonitorSimpleCPU::takeOverFrom(BaseCPU *oldCPU)
+DropSimpleCPU::takeOverFrom(BaseCPU *oldCPU)
 {
     BaseCPU::takeOverFrom(oldCPU);
 
@@ -199,7 +221,7 @@ MonitorSimpleCPU::takeOverFrom(BaseCPU *oldCPU)
 
 
 void
-MonitorSimpleCPU::activateContext(ThreadID thread_num, int delay)
+DropSimpleCPU::activateContext(ThreadID thread_num, int delay)
 {
     DPRINTF(SimpleCPU, "ActivateContext %d (%d cycles)\n", thread_num, delay);
 
@@ -219,7 +241,7 @@ MonitorSimpleCPU::activateContext(ThreadID thread_num, int delay)
 
 
 void
-MonitorSimpleCPU::suspendContext(ThreadID thread_num)
+DropSimpleCPU::suspendContext(ThreadID thread_num)
 {
     DPRINTF(SimpleCPU, "SuspendContext %d\n", thread_num);
 
@@ -242,7 +264,7 @@ MonitorSimpleCPU::suspendContext(ThreadID thread_num)
 
 
 Fault
-MonitorSimpleCPU::readMem(Addr addr, uint8_t * data,
+DropSimpleCPU::readMem(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags)
 {
 
@@ -330,7 +352,7 @@ MonitorSimpleCPU::readMem(Addr addr, uint8_t * data,
 }
 
 Fault
-MonitorSimpleCPU::writeMem(uint8_t *data, unsigned size,
+DropSimpleCPU::writeMem(uint8_t *data, unsigned size,
                           Addr addr, unsigned flags, uint64_t *res)
 {
 
@@ -433,7 +455,7 @@ MonitorSimpleCPU::writeMem(uint8_t *data, unsigned size,
 }
 
 Fault
-MonitorSimpleCPU::readMemPageAllocate(Addr addr, uint8_t * data,
+DropSimpleCPU::readMemPageAllocate(Addr addr, uint8_t * data,
                                       unsigned size, unsigned flags)
 {
     //TODO: Fix page faults
@@ -441,59 +463,15 @@ MonitorSimpleCPU::readMemPageAllocate(Addr addr, uint8_t * data,
 }
 
 Fault
-MonitorSimpleCPU::writeMemPageAllocate(uint8_t *data, unsigned size,
+DropSimpleCPU::writeMemPageAllocate(uint8_t *data, unsigned size,
                                        Addr addr, unsigned flags, uint64_t *res)
 {
     //TODO: Fix page faults
     return writeMem(data, size, addr, flags, res);
 }
 
-Fault
-MonitorSimpleCPU::performInvalidation(unsigned idx, Addr tag_addr)
-{   
-    Fault result = NoFault;
-    
-    if (invtab.action[idx] == "HW_set_byte"){
-        Addr eff_addr = (tag_addr >> 3) << 3;
-        DPRINTF(Invalidation, "Setting byte @ %x -> %x\n", tag_addr, eff_addr);
-        unsigned data = 0xFFFFFFFF;
-        uint64_t res = 0;
-        result = writeMemPageAllocate((uint8_t *)&data, 1, eff_addr, ArmISA::TLB::AlignByte, &res);
-    } else if (invtab.action[idx] == "HW_clear_byte"){
-        Addr eff_addr = (tag_addr >> 3) << 3;
-        DPRINTF(Invalidation, "Clearing byte @ %x -> %x\n", tag_addr, eff_addr);
-        unsigned data = 0;
-        uint64_t res = 0;
-        result = writeMemPageAllocate((uint8_t *)&data, 1, eff_addr, ArmISA::TLB::AlignByte, &res);
-    } else if (invtab.action[idx] == "HW_set_word"){
-        Addr eff_addr = (tag_addr >> 5) << 5;
-        DPRINTF(Invalidation, "Setting word @ %x -> %x\n", tag_addr, eff_addr);
-        unsigned data = 0xFFFFFFFF;
-        uint64_t res = 0;
-        result = writeMemPageAllocate((uint8_t *)&data, 4, eff_addr, ArmISA::TLB::AlignWord, &res);
-    } else if (invtab.action[idx] == "HW_clear_word"){
-        Addr eff_addr = (tag_addr >> 5) << 5;
-        DPRINTF(Invalidation, "Clearing word @ %x -> %x\n", tag_addr, eff_addr);
-        unsigned data = 0;
-        uint64_t res = 0;
-        result = writeMemPageAllocate((uint8_t *)&data, 4, eff_addr, ArmISA::TLB::AlignWord, &res);
-    } else if (invtab.action[idx] == "HW_set_array"){
-        DPRINTF(Invalidation, "Setting array\n");
-        unsigned type = 0;
-        result = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
-    } else if (invtab.action[idx] == "HW_clear_array") {
-        DPRINTF(Invalidation, "Clearing array\n");
-        unsigned type = 0;
-        result = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
-    } else {
-        DPRINTF(Invalidation, "No invalidation operation performed\n");
-    }
-    
-    return result;
-}
-
 void
-MonitorSimpleCPU::tick()
+DropSimpleCPU::tick()
 {
     DPRINTF(SimpleCPU, "Tick\n");
 
@@ -505,56 +483,32 @@ MonitorSimpleCPU::tick()
     dcache_access = false;
     
     Tick stall_ticks = 0;
-    Tick base_ticks = drop_tick;
-
-    if (fifo_enabled) {
-        // You need to pop the fifo
-        Fault fault = writeToFifo(FIFO_NEXT, (uint8_t *)&fifo_enabled, sizeof(fifo_enabled), ArmISA::TLB::AllowUnaligned);
-        if (fault == NoFault){
-            bool isdrop = false;
-            if (timer_enabled){
-                long long int slack = 0;
-                readFromTimer(TIMER_READ_SLACK, (uint8_t *)&slack, sizeof(slack), ArmISA::TLB::AllowUnaligned);
-                isdrop = slack < 1;
-            }
-            instType itp = readFifoInstType();
-            // Invalidation
-            if (isdrop && invtab.initialized && invtab.action[itp].size()) {
-                DPRINTF(Invalidation, "Performing invalidation.\n");
-                // Calculate effective address
-                Addr tag_addr = getInvalidationAddr(invtab, itp);
-                // Perform invalidation
-                fault = performInvalidation(itp, tag_addr);
-                // Result is fault
-                if (fault != NoFault){
-                    fault->invoke(tc, curStaticInst);
-                }
-            } else {
-                DPRINTF(Invalidation, "Performing monitoring.\n");
-                base_ticks = ticks(1);
-                // TODO: Monitoring code goes here
-            }
-        } else {
-            fault->invoke(tc, curStaticInst);
-        }
+    
+    bool drop = false;
+    Fault fault = readFromTimer(TIMER_READ_DROP, (uint8_t *)&drop, sizeof(drop), ArmISA::TLB::AllowUnaligned);
+    if (fault == NoFault){
+        DPRINTF(Invalidation, "Perform full monitoring.\n");
+        //TODO: Add fifo forwarding code here
+    } else {
+        fault->invoke(tc, curStaticInst);
     }
     
     if (simulate_data_stalls && dcache_access)
         stall_ticks += dcache_latency;
 
     if (stall_ticks) {
-        Tick stall_cycles = stall_ticks / base_ticks;
-        Tick aligned_stall_ticks = base_ticks * stall_cycles;
+        Tick stall_cycles = stall_ticks / ticks(1);
+        Tick aligned_stall_ticks = ticks(stall_cycles);
 
         if (aligned_stall_ticks < stall_ticks)
-            aligned_stall_ticks += 1;
+            aligned_stall_ticks += ticks(1);
 
         latency += aligned_stall_ticks;
     }
     
     // instruction takes at least one cycle
-    if (latency < base_ticks)
-        latency = base_ticks;
+    if (latency < ticks(1))
+        latency = ticks(1);
 
     if (_status != Idle) {
         schedule(tickEvent, curTick() + latency);
@@ -563,21 +517,30 @@ MonitorSimpleCPU::tick()
 }
 
 void
-MonitorSimpleCPU::printAddr(Addr a)
+DropSimpleCPU::printAddr(Addr a)
 {
     dcachePort.printAddr(a);
 }
 
+MasterPort &
+DropSimpleCPU::getMasterPort(const std::string &if_name, int idx)
+{
+  if (if_name == "forward_fifo_port") {
+    return forwardFifoPort;
+  } else {
+    return BaseSimpleCPU::getMasterPort(if_name, idx);
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////
 //
-//  MonitorSimpleCPU Simulation Object
+//  DropSimpleCPU Simulation Object
 //
-MonitorSimpleCPU *
-MonitorSimpleCPUParams::create()
+DropSimpleCPU *
+DropSimpleCPUParams::create()
 {
     numThreads = 1;
     if (!FullSystem && workload.size() != 1)
         panic("only one workload allowed");
-    return new MonitorSimpleCPU(this);
+    return new DropSimpleCPU(this);
 }

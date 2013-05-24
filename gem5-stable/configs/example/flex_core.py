@@ -86,13 +86,13 @@ MainCPUClass.monitoring_enabled = False
 MainCPUClass.timer_enabled = True
 # Don't need flag cache for main core
 MainCPUClass.flagcache_enabled = False
+# Not hard real-time
+MainCPUClass.hard_wcet = False
 if (options.cpu_type == 'atomic'):
     # Simulate cache stalls in atomic
     MainCPUClass.simulate_inst_stalls = True
     MainCPUClass.simulate_data_stalls = True
 
-# Monitoring core
-options.cpu_type = 'monitor'
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 MonCPUClass.numThreads = numThreads;
@@ -102,31 +102,67 @@ MonCPUClass.monitoring_enabled = False
 # Enable slack timer so it can read from it
 MonCPUClass.timer_enabled = True
 # Need flag cache for monitoring core
-MonCPUClass.flagcache_enabled = True
+MonCPUClass.flagcache_enabled = False
+if (options.cpu_type == 'atomic'):
+    # Simulate d cache stalls
+    MonCPUClass.simulate_data_stalls = True
+
+# Create drop core
+options.cpu_type = 'drop'
+(DropCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
+DropCPUClass.numThreads = numThreads;
+# Has port to access fifo, but does not enqueue monitoring events
+DropCPUClass.fifo_enabled = True
+DropCPUClass.monitoring_enabled = False
+# Enable slack timer so it can read from it
+DropCPUClass.timer_enabled = True
+# Need flag cache for monitoring core
+DropCPUClass.flagcache_enabled = True
 # Simulate d cache stalls
-MonCPUClass.simulate_data_stalls = True
+DropCPUClass.simulate_data_stalls = True
+
+invalidation_cpu = DropCPUClass
 
 # Set up monitoring filter
 execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
 
+DropCPUClass.clock = MainCPUClass.clock
+DropCPUClass.full_clock = MonCPUClass.clock
+
+# Create system, CPUs, bus, and memory
+system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1), DropCPUClass(cpu_id=2)],
+                physmem = SimpleMemory(range=AddrRange("512MB"), latency=mem_latency),
+                membus = CoherentBus(), mem_mode = test_mem_mode)
+
 # Number of CPUs
-options.num_cpus = 2
+options.num_cpus = 3
 
 # Create a "fifo" memory
-fifo = Fifo(range=AddrRange(start=0x30000000, size="64kB")) 
+fifo_main_to_dc = Fifo(range=AddrRange(start=0x30000000, size="64kB")) 
 # fifo.fifo_size = 32
-system.fifo = fifo
+system.fifo_main_to_dc = fifo_main_to_dc
+# Create a second fifo
+fifo_dc_to_mon = Fifo(range=AddrRange(start=0x30030000, size="64kB")) 
+fifo_dc_to_mon.fifo_size = 2
+system.fifo_dc_to_mon = fifo_dc_to_mon
 # Create timer
-timer = Timer(range=AddrRange(start=0x30010000, size="64kB"))
+timer = PerformanceTimer(range=AddrRange(start=0x30010000, size="64kB"))
+timer.percent_overhead = 0.2
 system.timer = timer
 # Create flag cache
 flagcache = FlagCache(range=AddrRange(start=0x30020000, size="64kB"))
 system.flagcache = flagcache
 
+# Connect CPU to fifo
+if system.cpu[0].fifo_enabled:
+  system.cpu[0].fifo_port = system.fifo_main_to_dc.port
+if system.cpu[1].fifo_enabled:
+  system.cpu[1].fifo_port = system.fifo_dc_to_mon.port
+if system.cpu[2].fifo_enabled:
+  system.cpu[2].fifo_port = system.fifo_main_to_dc.port
+  
+
 for i in range(options.num_cpus):
-  # Connect CPU to fifo
-  if system.cpu[i].fifo_enabled:
-    system.cpu[i].fifo_port = system.fifo.port
   # Connect CPU to timer
   if system.cpu[i].timer_enabled:
     system.cpu[i].timer_port = system.timer.port
@@ -151,6 +187,11 @@ process1 = LiveProcess()
 process1.executable = os.environ["GEM5"] + ("/tests/monitoring/%s.arm" % monitor_bin)
 process1.cmd = ""
 system.cpu[1].workload = process1
+
+process2 = LiveProcess()
+process2.executable = process0.executable
+process2.cmd = process0.cmd
+system.cpu[2].workload = process2
 
 # Connect system to the bus
 system.system_port = system.membus.slave

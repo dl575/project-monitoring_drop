@@ -51,6 +51,8 @@ class BaseSimpleCPU(BaseCPU):
     monitoring_filter_ret = Param.Bool(False, "monitoring return instructions")
     monitoring_filter_intalu = Param.Bool(False, "monitoring integer ALU instructions")
     monitoring_filter_indctrl = Param.Bool(False, "monitoring indirect control instructions")
+    # Check if WCET violated
+    hard_wcet = Param.Bool(True, "check if hard real-time deadline met")
 
     if fifo_enabled:
       fifo_port = MasterPort("Fifo Port")

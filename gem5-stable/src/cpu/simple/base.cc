@@ -86,8 +86,11 @@ using namespace std;
 using namespace TheISA;
 
 BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
-    : BaseCPU(p), traceData(NULL), thread(NULL), 
+    : BaseCPU(p), traceData(NULL), thread(NULL),
+    monitoring_enabled(p->monitoring_enabled), fifo_enabled(p->fifo_enabled),
+    timer_enabled(p->timer_enabled), flagcache_enabled(p->flagcache_enabled),
     num_filtered(0), dropstats(), filterstats(), fullstats(),
+    hard_wcet(p->hard_wcet),
     fifoPort(name() + "-iport", this),
     timerPort(name() + "-iport", this),
     fcPort(name() + "-iport", this),
@@ -98,11 +101,7 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     fifoStall(false), timerStalled(false),
     fifoEmpty(false)
 {
-    // Store monitoring parameters
-    fifo_enabled = p->fifo_enabled;
-    monitoring_enabled = p->monitoring_enabled;
-    timer_enabled = p->timer_enabled;
-    flagcache_enabled = p->flagcache_enabled;
+
     // Monitoring filter parameters
     mf.load = p->monitoring_filter_load;
     mf.store = p->monitoring_filter_store;
@@ -1327,7 +1326,7 @@ BaseSimpleCPU::writeToTimer(Addr addr, uint8_t * data,
     // Clean up
     delete timerpkt;
     
-    if (addr == TIMER_END_TASK && stall_length < 0){
+    if (hard_wcet && addr == TIMER_END_TASK && stall_length < 0){
         panic("Did not meet WCET. Slack is negative: %d.\n", stall_length/ticks(1));
     }
     

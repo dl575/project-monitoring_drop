@@ -40,18 +40,18 @@
  * Authors: Steve Reinhardt
  */
 
-#ifndef __CPU_SIMPLE_MONITOR_HH__
-#define __CPU_SIMPLE_MONITOR_HH__
+#ifndef __CPU_SIMPLE_DROP_HH__
+#define __CPU_SIMPLE_DROP_HH__
 
 #include "cpu/simple/base.hh"
-#include "params/MonitorSimpleCPU.hh"
+#include "params/DropSimpleCPU.hh"
 
-class MonitorSimpleCPU : public BaseSimpleCPU
+class DropSimpleCPU : public BaseSimpleCPU
 {
   public:
 
-    MonitorSimpleCPU(MonitorSimpleCPUParams *params);
-    virtual ~MonitorSimpleCPU();
+    DropSimpleCPU(DropSimpleCPUParams *params);
+    virtual ~DropSimpleCPU();
 
     virtual void init();
 
@@ -59,9 +59,9 @@ class MonitorSimpleCPU : public BaseSimpleCPU
 
     struct TickEvent : public Event
     {
-        MonitorSimpleCPU *cpu;
+        DropSimpleCPU *cpu;
 
-        TickEvent(MonitorSimpleCPU *c);
+        TickEvent(DropSimpleCPU *c);
         void process();
         const char *description() const;
     };
@@ -76,15 +76,15 @@ class MonitorSimpleCPU : public BaseSimpleCPU
     void tick();
 
     /**
-     * An MonitorCPUPort overrides the default behaviour of the
+     * An DropCPUPort overrides the default behaviour of the
      * recvAtomic and ignores the packet instead of panicking.
      */
-    class MonitorCPUPort : public CpuPort
+    class DropCPUPort : public CpuPort
     {
 
       public:
 
-        MonitorCPUPort(const std::string &_name, BaseCPU* _cpu)
+        DropCPUPort(const std::string &_name, BaseCPU* _cpu)
             : CpuPort(_name, _cpu)
         { }
 
@@ -100,8 +100,8 @@ class MonitorSimpleCPU : public BaseSimpleCPU
 
     };
 
-    MonitorCPUPort icachePort;
-    MonitorCPUPort dcachePort;
+    DropCPUPort icachePort;
+    DropCPUPort dcachePort;
 
     bool fastmem;
     Request ifetch_req;
@@ -128,6 +128,8 @@ class MonitorSimpleCPU : public BaseSimpleCPU
 
     virtual void activateContext(ThreadID thread_num, int delay);
     virtual void suspendContext(ThreadID thread_num);
+    
+    MasterPort & getMasterPort(const std::string &if_name, int idx);
 
     Fault readMem(Addr addr, uint8_t *data, unsigned size, unsigned flags);
 
@@ -144,14 +146,15 @@ class MonitorSimpleCPU : public BaseSimpleCPU
 
     // function to handle end_task command
     void endTask() {}
-    // Drop tick time
-    Tick drop_tick;
-    // function to handle invalidation
-    Fault performInvalidation(unsigned idx, Addr tag_addr);
     // prevent page fault errors
     Fault readMemPageAllocate(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     Fault writeMemPageAllocate(uint8_t *data, unsigned size, Addr addr, unsigned flags, uint64_t *res);
     
+    // Port for monitoring fifo
+    CpuPort forwardFifoPort;
+    // Full monitoring ticks
+    Tick full_ticks;
+    
 };
 
-#endif // __CPU_SIMPLE_MONITOR_HH__
+#endif // __CPU_SIMPLE_DROP_HH__

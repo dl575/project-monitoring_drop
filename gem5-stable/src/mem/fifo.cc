@@ -128,8 +128,10 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
     /* Based on AbstractMemory::functionalAccess */
     
     // Check that address is within bounds
-    assert(pkt->getAddr() >= range.start &&
-           (pkt->getAddr() + pkt->getSize() - 1) <= range.end);
+    /* assert(pkt->getAddr() >= range.start &&
+           (pkt->getAddr() + pkt->getSize() - 1) <= range.end); */
+    assert(pkt->getAddr() >= FIFO_ADDR_START &&
+           (pkt->getAddr() + pkt->getSize() - 1) <= FIFO_ADDR_END);
 
     // "Local" address
     // uint8_t *hostAddr = pmemAddr + pkt->getAddr() - range.start;

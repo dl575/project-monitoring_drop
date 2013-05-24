@@ -2,20 +2,13 @@ monitor = os.environ["MONITOR"]
 model = os.environ["MODEL"]
 
 # Kindle config
-MainCPUClass.clock = '500MHz'
+MainCPUClass.clock = '2GHz'
 MonCPUClass.clock = '500MHz'
 # Flexcore config
 # MainCPUClass.clock = '1250MHz'
 # MonCPUClass.clock = '7500MHz'
 
-# Create system, CPUs, bus, and memory
-# Kindle-like configuration
-system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
-                physmem = SimpleMemory(range=AddrRange("512MB"), latency='15ns'),
-                membus = CoherentBus(), mem_mode = test_mem_mode)
-# system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
-#                 physmem = SimpleMemory(range=AddrRange("512MB"), latency='12ns'),
-#                 membus = CoherentBus(), mem_mode = test_mem_mode)
+mem_latency = '15ns'
 
 # Configure cache size
 # Kindle-like configuration
@@ -61,7 +54,7 @@ elif monitor == "UMC_HWDROP":
   if model == 'FLEX':
     MonCPUClass.clock = '7250MHz'
   # Load the invalidation file
-  MonCPUClass.invalidation_file = "tables/umc_invalidation.txt"
+  invalidation_cpu.invalidation_file = "tables/umc_invalidation.txt"
   # Define monitoring executable
   monitor_bin = "umc_hwdrop"
 elif monitor == "UMC_HWFILTER":
@@ -71,12 +64,23 @@ elif monitor == "UMC_HWFILTER":
   if model == 'FLEX':
     MonCPUClass.clock = '6500MHz'
   # Load the invalidation file
-  MonCPUClass.invalidation_file = "tables/umc_invalidation.txt"
-  MonCPUClass.filter_file_1 = "tables/umc_filter.txt"
-  MonCPUClass.filter_ptr_file = "tables/umc_filter_ptrs.txt"
+  invalidation_cpu.invalidation_file = "tables/umc_invalidation.txt"
+  invalidation_cpu.filter_file_1 = "tables/umc_filter.txt"
+  invalidation_cpu.filter_ptr_file = "tables/umc_filter_ptrs.txt"
   # Define monitoring executable
   monitor_bin = "umc_hwfilter"
-  
+elif monitor == "UMC_FLEX":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  if model == 'FLEX':
+    MonCPUClass.clock = '6500MHz'
+  # Load the invalidation file
+  invalidation_cpu.invalidation_file = "tables/umc_invalidation.txt"
+  invalidation_cpu.filter_file_1 = "tables/umc_filter.txt"
+  invalidation_cpu.filter_ptr_file = "tables/umc_filter_ptrs.txt"
+  # Define monitoring executable
+  monitor_bin = "umc_full"
 
 #######################################
 # LRC
@@ -114,7 +118,7 @@ elif monitor == "LRC_HWDROP":
   if model == 'FLEX':
     MonCPUClass.clock = '5500MHz'
   # Load the invalidation file
-  MonCPUClass.invalidation_file = "tables/lrc_invalidation.txt"
+  invalidation_cpu.invalidation_file = "tables/lrc_invalidation.txt"
   # Define monitoring executable
   monitor_bin = "lrc_hwdrop"
 elif monitor == "LRC_HWFILTER":
@@ -124,9 +128,9 @@ elif monitor == "LRC_HWFILTER":
   if model == 'FLEX':
     MonCPUClass.clock = '5000MHz'
   # Load the invalidation file
-  MonCPUClass.invalidation_file = "tables/lrc_invalidation.txt"
-  MonCPUClass.filter_file_1 = "tables/lrc_filter.txt"
-  MonCPUClass.filter_ptr_file = "tables/lrc_filter_ptrs.txt"
+  invalidation_cpu.invalidation_file = "tables/lrc_invalidation.txt"
+  invalidation_cpu.filter_file_1 = "tables/lrc_filter.txt"
+  invalidation_cpu.filter_ptr_file = "tables/lrc_filter_ptrs.txt"
   # Define monitoring executable
   monitor_bin = "lrc_hwfilter"
 
@@ -175,7 +179,7 @@ elif monitor == "DIFT_HWDROP":
   if model == 'FLEX':
     MonCPUClass.clock = '11500MHz'
   # Load the invalidation file
-  MonCPUClass.invalidation_file = "tables/dift_invalidation.txt"
+  invalidation_cpu.invalidation_file = "tables/dift_invalidation.txt"
   # Define monitoring executable
   monitor_bin = "dift_hwdrop"
 # Drop handled in hardware with filtering
@@ -188,11 +192,11 @@ elif monitor == "DIFT_HWFILTER":
   if model == 'FLEX':
     MonCPUClass.clock = '11500MHz'
   # Load the invalidation file
-  MonCPUClass.invalidation_file = "tables/dift_invalidation.txt"
+  invalidation_cpu.invalidation_file = "tables/dift_invalidation.txt"
   # Load the filter tables
-  MonCPUClass.filter_file_1 = "tables/dift_filter1.txt"
-  MonCPUClass.filter_file_2 = "tables/dift_filter2.txt"
-  MonCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
+  invalidation_cpu.filter_file_1 = "tables/dift_filter1.txt"
+  invalidation_cpu.filter_file_2 = "tables/dift_filter2.txt"
+  invalidation_cpu.filter_ptr_file = "tables/dift_filter_ptrs.txt"
   # Define monitoring executable
   monitor_bin = "dift_hwfilter"
 

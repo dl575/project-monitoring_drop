@@ -98,8 +98,15 @@ MonCPUClass.timer_enabled = True
 # Need flag cache for monitoring core
 MonCPUClass.flagcache_enabled = True
 
+invalidation_cpu = MonCPUClass
+
 # Set up monitoring filter
 execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
+
+# Create system, CPUs, bus, and memory
+system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
+                physmem = SimpleMemory(range=AddrRange("512MB"), latency=mem_latency),
+                membus = CoherentBus(), mem_mode = test_mem_mode)
 
 # Number of CPUs
 options.num_cpus = 2

@@ -34,9 +34,9 @@ CpuModel('AtomicSimpleCPU', 'atomic_simple_cpu_exec.cc',
          '#include "cpu/simple/atomic.hh"',
          { 'CPU_exec_context': 'AtomicSimpleCPU' },
          default=True)
-CpuModel('MonitorSimpleCPU', 'monitor_simple_cpu_exec.cc',
-         '#include "cpu/simple/monitor.hh"',
-         { 'CPU_exec_context': 'MonitorSimpleCPU' },
+CpuModel('DropSimpleCPU', 'drop_simple_cpu_exec.cc',
+         '#include "cpu/simple/drop.hh"',
+         { 'CPU_exec_context': 'DropSimpleCPU' },
          default=True)
 CpuModel('WCETSimpleCPU', 'wcet_simple_cpu_exec.cc',
          '#include "cpu/simple/wcet.hh"',

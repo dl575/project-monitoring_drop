@@ -10,7 +10,7 @@
 # unmodified and in its entirety in all distributions of the software,
 # modified or unmodified, in source code or in binary form.
 #
-# Copyright (c) 2007 The Regents of The University of Michigan
+# Copyright (c) 2005-2008 The Regents of The University of Michigan
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,13 +37,14 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # Authors: Nathan Binkert
+#          Andreas Hansson
 
 from m5.params import *
-from BaseSimpleCPU import BaseSimpleCPU
+from AbstractMemory import *
 
-class MonitorSimpleCPU(BaseSimpleCPU):
-    type = 'MonitorSimpleCPU'
-    width = Param.Int(1, "CPU width")
-    simulate_data_stalls = Param.Bool(False, "Simulate dcache stall cycles")
-    fastmem = Param.Bool(False, "Access memory directly")
-    drop_clock = Param.Clock("2GHz", "Drop clock cycle")
+class PerformanceTimer(AbstractMemory):
+    type = 'PerformanceTimer'
+    port = VectorSlavePort("Slave ports")
+    latency = Param.Latency('30ns', "Request to response latency")
+    latency_var = Param.Latency('0ns', "Request to response latency variance")
+    percent_overhead = Param.Float(0, "Percent overhead for slack increment")
