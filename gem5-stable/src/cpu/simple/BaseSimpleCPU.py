@@ -54,6 +54,8 @@ class BaseSimpleCPU(BaseCPU):
     # Check if WCET violated
     hard_wcet = Param.Bool(True, "check if hard real-time deadline met")
 
+    monitor_type = Param.Int(0, "Type of monitor")
+
     if fifo_enabled:
       fifo_port = MasterPort("Fifo Port")
 

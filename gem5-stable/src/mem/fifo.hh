@@ -98,6 +98,9 @@ class monitoringPacket {
     Addr instAddr;        // program counter
     Addr memAddr;         // address of memory access
     Addr memEnd;          // range of memory address
+    Addr virtAddr;        // virtual address of memory access
+    Addr physAddr;        // physical address of memory access
+    size_t size;          // size of memory access
     uint64_t data;        // data for memory access
     bool store;           // true if store instruction
     bool load;            // true if load instruction
@@ -113,6 +116,8 @@ class monitoringPacket {
     bool indctrl;         // indirect control instruction
     uint64_t lr;          // link register
     uint64_t nextpc;      // next program counter
+    uint8_t opcode;       // opcode for integer ALU instructions
+    bool settag;          // manually set tag
 
     // Clear all variables
     void init() {
@@ -120,6 +125,9 @@ class monitoringPacket {
       instAddr = 0;
       memAddr = 0;
       memEnd = 0;
+      virtAddr = 0;
+      physAddr = 0;
+      size = 0;
       data = 0;
       store = false;
       load = false;
@@ -135,6 +143,8 @@ class monitoringPacket {
       indctrl = false;
       lr = 0;
       nextpc = 0;
+      opcode = 0;
+      settag = false;
     }
 };
 
