@@ -334,6 +334,9 @@ SyscallReturn getegidFunc(SyscallDesc *desc, int num,
 SyscallReturn cloneFunc(SyscallDesc *desc, int num,
                                LiveProcess *p, ThreadContext *tc);
 
+/// Target access() handler
+SyscallReturn accessFunc(SyscallDesc *desc, int num,
+                               LiveProcess *p, ThreadContext *tc);
 
 /// Pseudo Funcs  - These functions use a different return convension,
 /// returning a second value in a register other than the normal return register
