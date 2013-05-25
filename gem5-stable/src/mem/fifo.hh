@@ -78,11 +78,17 @@
 #define FIFO_LOAD          (FIFO_ADDR + 0x40)       // load flag
 #define FIFO_INTALU        (FIFO_ADDR + 0x44)       // integer ALU instruction flag
 #define FIFO_INDCTRL       (FIFO_ADDR + 0x48)       // indirect control instruction flag
+#define FIFO_VIRTADDR      (FIFO_ADDR + 0x4c)       // virtual memory address
+#define FIFO_PHYSADDR      (FIFO_ADDR + 0x50)       // physical memory address
+#define FIFO_MEMSIZE       (FIFO_ADDR + 0x54)       // size of memory access
+#define FIFO_OPCODE        (FIFO_ADDR + 0x58)       // alu opcode
+#define FIFO_SETTAG        (FIFO_ADDR + 0x5c)       // manually set the tag
 
 // Fifo registers
 #define FIFO_REG_START (FIFO_ADDR + 0x1000) 
 #define FIFO_FULL      (FIFO_REG_START)       // returns 1 if fifo full
 #define FIFO_EMPTY     (FIFO_REG_START + 0x4) // returns 1 if fifo empty
+#define FIFO_PACKET    (FIFO_REG_START + 0x8) // returns full fifo packet
 
 // Fifo operations
 #define FIFO_OP_RANGE_START FIFO_ADDR                    //Start of op range

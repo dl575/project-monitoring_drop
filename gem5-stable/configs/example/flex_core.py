@@ -128,6 +128,8 @@ execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
 
 DropCPUClass.clock = MainCPUClass.clock
 DropCPUClass.full_clock = MonCPUClass.clock
+# Enable output to second fifo
+DropCPUClass.forward_fifo_enabled = True
 
 # Create system, CPUs, bus, and memory
 system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1), DropCPUClass(cpu_id=2)],
@@ -160,6 +162,8 @@ if system.cpu[1].fifo_enabled:
   system.cpu[1].fifo_port = system.fifo_dc_to_mon.port
 if system.cpu[2].fifo_enabled:
   system.cpu[2].fifo_port = system.fifo_main_to_dc.port
+if system.cpu[2].forward_fifo_enabled:
+  system.cpu[2].forward_fifo_port = system.fifo_dc_to_mon.port
   
 
 for i in range(options.num_cpus):

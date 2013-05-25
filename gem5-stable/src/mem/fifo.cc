@@ -143,13 +143,12 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
             Addr read_addr = pkt->getAddr();
             //This is the data we will send
             uint64_t send_data = 0;
+            //This is the monitoring packet we will read
+            monitoringPacket mp = invalidPacket;
             
             if (read_addr == FIFO_FULL) { send_data = full(); }
             else if (read_addr == FIFO_EMPTY) { send_data = empty(); }
             else {
-                //This is the monitoring packet we will read
-                monitoringPacket mp = invalidPacket;
-                //if (!empty()) { mp = fifo_array[tail_pointer]; }
                 
                 //Skip invalid packets
                 while (!empty() && !mp.valid) {
@@ -184,12 +183,23 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
                 else if (read_addr == FIFO_LOAD) { send_data = mp.load; }                
                 else if (read_addr == FIFO_INTALU) { send_data = mp.intalu; }
                 else if (read_addr == FIFO_INDCTRL) { send_data = mp.indctrl; }
+                else if (read_addr == FIFO_VIRTADDR) { send_data = mp.virtAddr; }
+                else if (read_addr == FIFO_PHYSADDR) { send_data = mp.physAddr; }
+                else if (read_addr == FIFO_MEMSIZE) { send_data = mp.size; }
+                else if (read_addr == FIFO_OPCODE) { send_data = mp.opcode; }
+                else if (read_addr == FIFO_SETTAG) { send_data = mp.settag; }
+                else if (read_addr == FIFO_PACKET) { /* We will send full packet below */}
                 else {
                   warn("Unrecognized read from fifo address %x\n", read_addr);
                 }
             }
-            //Send data
-            pkt->setData((uint8_t *)&send_data);
+            if (read_addr == FIFO_PACKET) {
+                //Send full packet
+                pkt->setData((uint8_t *)&mp);
+            } else {
+                //Send data
+                pkt->setData((uint8_t *)&send_data);
+            }
         }
         pkt->makeResponse();
     // Write request

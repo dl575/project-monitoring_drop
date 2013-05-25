@@ -149,11 +149,15 @@ class DropSimpleCPU : public BaseSimpleCPU
     // prevent page fault errors
     Fault readMemPageAllocate(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     Fault writeMemPageAllocate(uint8_t *data, unsigned size, Addr addr, unsigned flags, uint64_t *res);
+    // forward the fifo packet to monitoring core
+    bool forwardFifoPacket();
     
     // Port for monitoring fifo
     CpuPort forwardFifoPort;
     // Full monitoring ticks
     Tick full_ticks;
+    // Tracks whether last forwarding failed
+    bool forward_unsuccessful;
     
 };
 

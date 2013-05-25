@@ -65,6 +65,27 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
 
   private:
 
+    // monitoring extensions
+    enum MonitoringExtension {
+      // no monitoring
+      MONITOR_NONE,
+      // uninitialized memory check
+      MONITOR_UMC,
+      // dynamic information flow tracking
+      MONITOR_DIFT,
+      // boundary checking
+      MONITOR_BC,
+      // soft error checking
+      MONITOR_SEC,
+      // hard bound
+      MONITOR_HB,
+      // number of monitoring extensions
+      NUM_MONITORING_EXTENSIONS
+    };
+    
+    // monitoring extension
+    enum MonitoringExtension monitorExt;
+  
     struct TickEvent : public Event
     {
         AtomicSimpleMonitor *cpu;
@@ -180,10 +201,6 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     virtual void regStats();
     virtual void resetStats();
     void setTagProxy(Addr addr, int nbytes, uint8_t tag);
-
-  private:
-    // Monitoring packet that is received from FIFO
-    monitoringPacket mp;
 
   protected:
     // status registers

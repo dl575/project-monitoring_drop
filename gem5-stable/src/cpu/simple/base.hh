@@ -457,24 +457,6 @@ class BaseSimpleCPU : public BaseCPU
     bool misspeculating() { return thread->misspeculating(); }
     ThreadContext *tcBase() { return tc; }
 
-    // monitoring extensions
-    enum MonitoringExtension {
-      // no monitoring
-      MONITOR_NONE,
-      // uninitialized memory check
-      MONITOR_UMC,
-      // dynamic information flow tracking
-      MONITOR_DIFT,
-      // boundary checking
-      MONITOR_BC,
-      // soft error checking
-      MONITOR_SEC,
-      // hard bound
-      MONITOR_HB,
-      // number of monitoring extensions
-      NUM_MONITORING_EXTENSIONS
-    };
-
     // Whether monitoring is enabled
     bool monitoring_enabled;
     // Whether fifo port is enabled
@@ -496,11 +478,6 @@ class BaseSimpleCPU : public BaseCPU
         inst_indctrl,     // Indirect control instruction
         num_inst_types    // Number of instruction types
     };
-
-    // monitoring extension
-    enum MonitoringExtension monitorExt;
-    // for initialization
-    int monitor_type;
 
   private:
     
@@ -638,10 +615,8 @@ class BaseSimpleCPU : public BaseCPU
     };
     monitorFilter mf;
 
-    // Monitoring packet that is written to fifo
+    // Fifo monitoring packet
     monitoringPacket mp;
-    // Monitoring packet that is read from fifo
-    monitoringPacket read_mp;
 
 
 #ifdef DEBUG

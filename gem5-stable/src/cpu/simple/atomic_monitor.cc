@@ -127,6 +127,18 @@ AtomicSimpleMonitor::AtomicSimpleMonitor(AtomicSimpleMonitorParams *p)
       fastmem(p->fastmem)
 {
     _status = Idle;
+    
+    // monitoring extension type
+    switch(p->monitor_type) {
+        case MONITOR_NONE: monitorExt = MONITOR_NONE; break;
+        case MONITOR_UMC: monitorExt = MONITOR_UMC; break;
+        case MONITOR_DIFT: monitorExt = MONITOR_DIFT; break;
+        case MONITOR_BC: monitorExt = MONITOR_BC; break;
+        case MONITOR_SEC: monitorExt = MONITOR_SEC; break;
+        case MONITOR_HB: monitorExt = MONITOR_HB; break;
+        default: panic("Invalid monitor type\n");
+    }
+    
 }
 
 
@@ -989,7 +1001,7 @@ AtomicSimpleMonitor::preExecute()
     // maintain r0=0 semantic
     thread->setIntReg(ZeroReg, 0);
     // read a packet from FIFO
-    readFromFifo(FIFO_ADDR, (uint8_t *)&read_mp, sizeof(read_mp), ArmISA::TLB::AllowUnaligned);
+    readFromFifo(FIFO_ADDR, (uint8_t *)&mp, sizeof(mp), ArmISA::TLB::AllowUnaligned);
 }
 
 /*

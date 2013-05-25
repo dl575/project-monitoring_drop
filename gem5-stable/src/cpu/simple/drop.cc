@@ -131,7 +131,8 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
       icachePort(name() + "-iport", this), dcachePort(name() + "-iport", this),
       fastmem(p->fastmem),
       forwardFifoPort(name() + "-iport", this),
-      full_ticks(p->full_clock)
+      full_ticks(p->full_clock),
+      forward_unsuccessful(false)
 {
     _status = Idle;    
 }
@@ -470,6 +471,35 @@ DropSimpleCPU::writeMemPageAllocate(uint8_t *data, unsigned size,
     return writeMem(data, size, addr, flags, res);
 }
 
+// Send monitoring packet to monitoring core
+bool 
+DropSimpleCPU::forwardFifoPacket() {
+  // Read the monitoring packet
+  monitoringPacket read_mp;
+  readFromFifo(FIFO_PACKET, (uint8_t *)&read_mp, sizeof(read_mp), ArmISA::TLB::AllowUnaligned);
+  
+  // Create request
+  Request *req = &data_write_req;
+  // set physical address
+  req->setPhys((Addr)FIFO_ADDR, sizeof(read_mp), ArmISA::TLB::AllowUnaligned, dataMasterId());
+
+  // Create write packet
+  PacketPtr fifopkt = new Packet(req, MemCmd::WriteReq);
+  // Set data
+  fifopkt->dataStatic(&read_mp);
+  // Send request
+  bool success = forwardFifoPort.sendTimingReq(fifopkt);
+  // Clean up
+  delete fifopkt;
+  if (success){
+    #ifdef DEBUG
+      DPRINTF(Fifo, "Forwarded packet with values: %x, %x, %x, %x, %x, %x, %x\n", read_mp.valid, read_mp.instAddr, read_mp.memAddr, read_mp.memEnd, read_mp.data, read_mp.store, read_mp.done);
+    #endif
+  }
+  
+  return success;
+}
+
 void
 DropSimpleCPU::tick()
 {
@@ -484,13 +514,17 @@ DropSimpleCPU::tick()
     
     Tick stall_ticks = 0;
     
-    bool drop = false;
-    Fault fault = readFromTimer(TIMER_READ_DROP, (uint8_t *)&drop, sizeof(drop), ArmISA::TLB::AllowUnaligned);
-    if (fault == NoFault){
-        DPRINTF(Invalidation, "Perform full monitoring.\n");
-        //TODO: Add fifo forwarding code here
+    if (forward_unsuccessful){
+        forward_unsuccessful = !forwardFifoPacket();
     } else {
-        fault->invoke(tc, curStaticInst);
+        bool drop = false;
+        Fault fault = readFromTimer(TIMER_READ_DROP, (uint8_t *)&drop, sizeof(drop), ArmISA::TLB::AllowUnaligned);
+        if (fault == NoFault){
+            DPRINTF(Invalidation, "Perform full monitoring.\n");
+            forward_unsuccessful = !forwardFifoPacket();
+        } else {
+            fault->invoke(tc, curStaticInst);
+        }
     }
     
     if (simulate_data_stalls && dcache_access)
