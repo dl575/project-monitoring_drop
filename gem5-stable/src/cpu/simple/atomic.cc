@@ -253,6 +253,8 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
     }
     // Save address for monitoring
     fed.memAddr = addr;
+    fed.dataVirtAddr = addr;
+    fed.dataSize = size;
 
     // Read from fifo
     if (fifo_enabled && addr >= FIFO_ADDR_START && addr <= FIFO_ADDR_END) {
@@ -294,6 +296,8 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data,
 
         // Now do the access.
         if (fault == NoFault && !req->getFlags().isSet(Request::NO_ACCESS)) {
+            // save physical memory address for monitoring
+            fed.dataPhysAddr = req->getPaddr();
             Packet pkt = Packet(req,
                                 req->isLLSC() ? MemCmd::LoadLockedReq :
                                 MemCmd::ReadReq);
@@ -363,6 +367,8 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
     }
     // Save memory address for monitoring
     fed.memAddr = addr;
+    fed.dataVirtAddr = addr;
+    fed.dataSize = size;
     // Save data being written
     fed.data = 0;
     memcpy(&fed.data, data, size);
@@ -408,6 +414,9 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
 
         // Now do the access.
         if (fault == NoFault) {
+            // save physical memory address for monitoring
+            fed.dataPhysAddr = req->getPaddr();
+
             MemCmd cmd = MemCmd::WriteReq; // default
             bool do_access = true;  // flag to suppress cache access
 

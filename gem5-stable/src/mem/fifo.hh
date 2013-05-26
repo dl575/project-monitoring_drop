@@ -95,7 +95,9 @@
 #define FIFO_START_CUSTOM   (FIFO_OP_RANGE_START + 0x04) //Start a custom packet
 #define FIFO_END_CUSTOM     (FIFO_OP_RANGE_START + 0x08) //End the custom packet and send
 #define FIFO_NEXT           (FIFO_OP_RANGE_START + 0x0c) //Pop the fifo
-#define FIFO_OP_RANGE_END   (FIFO_OP_RANGE_START + 0x10) //End of op range
+#define FIFO_CUSTOM_SIZE    (FIFO_OP_RANGE_START + 0x10) //Custom data to be sent
+#define FIFO_CUSTOM_DATA    (FIFO_OP_RANGE_START + 0x14) //Custom data to be sent
+#define FIFO_OP_RANGE_END   (FIFO_OP_RANGE_START + 0x18) //End of op range
 
 // Monitoring packet that is stored as each fifo entry
 class monitoringPacket {

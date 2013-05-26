@@ -993,7 +993,7 @@ AtomicSimpleMonitor::setTagProxy(Addr addr, int nbytes, uint8_t tag)
 
 /*
  * Pre-execute
- *  Try to read a monitoring packet from main core.
+ *  Try to read a monitoring packet from FIFO.
  */
 void
 AtomicSimpleMonitor::preExecute()
@@ -1001,7 +1001,10 @@ AtomicSimpleMonitor::preExecute()
     // maintain r0=0 semantic
     thread->setIntReg(ZeroReg, 0);
     // read a packet from FIFO
-    readFromFifo(FIFO_ADDR, (uint8_t *)&mp, sizeof(mp), ArmISA::TLB::AllowUnaligned);
+    readFromFifo(FIFO_PACKET, (uint8_t *)&mp, sizeof(mp), ArmISA::TLB::AllowUnaligned);
+    // pop FIFO entry
+    uint32_t data = 1;
+    writeToFifo(FIFO_NEXT, (uint8_t*)&data, sizeof(uint32_t), ArmISA::TLB::AllowUnaligned);
 }
 
 /*

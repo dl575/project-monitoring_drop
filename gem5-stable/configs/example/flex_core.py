@@ -65,6 +65,23 @@ parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
 
+# Monitor
+parser.add_option("--monitor", type="string", default="dift")
+# Monitor frequency
+parser.add_option("--monfreq", type="string", default="0.5GHz")
+# Modeling atomic cache stalls
+parser.add_option("--simulatestalls", action="store_true")
+
+available_monitors = {
+  "none" : 0,
+  "umc"  : 1,
+  "dift" : 2,
+  "bc"   : 3,
+  "sec"  : 4,
+  "hb"   : 5
+}
+
+
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
 
@@ -94,7 +111,8 @@ if (options.cpu_type == 'atomic'):
     MainCPUClass.simulate_data_stalls = True
 
 # Create new CPU type for monitoring core
-(MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
+(MonCPUClass, test_mem_mode, FutureClass) = (AtomicSimpleMonitor, test_mem_mode, None)
+MonCPUClass.clock = options.monfreq
 MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True
@@ -103,6 +121,8 @@ MonCPUClass.monitoring_enabled = False
 MonCPUClass.timer_enabled = True
 # Need flag cache for monitoring core
 MonCPUClass.flagcache_enabled = False
+MonCPUClass.monitor_type = available_monitors[options.monitor]
+
 if (options.cpu_type == 'atomic'):
     # Simulate d cache stalls
     MonCPUClass.simulate_data_stalls = True
@@ -188,7 +208,8 @@ else:
 system.cpu[0].workload = process0
 
 process1 = LiveProcess()
-process1.executable = os.environ["GEM5"] + ("/tests/monitoring/%s.arm" % monitor_bin)
+# load a dummy executable file to avoid polluting tag memory space
+process1.executable = os.environ["GEM5"] + "/tests/test-progs/dummy/dummy.arm"
 process1.cmd = ""
 system.cpu[1].workload = process1
 

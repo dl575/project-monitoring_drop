@@ -10,6 +10,8 @@
 #define MAXNUMSRCREGS 27
 #define PCREG 0xf
 
+#define ISA_PAGE_SIZE 4096
+
 // Address of monitoring fifo (for read)
 #define MONITOR_ADDR 0x30000000
 
@@ -95,5 +97,11 @@ struct monitoring_packet {
 // Fifo flags
 #define READ_FIFO_FULL    *(fifo + 0x400)
 #define READ_FIFO_EMPTY   *(fifo + 0x400 + 1)
+
+inline void set_tag(unsigned addr, unsigned size, unsigned value);
+inline void set_tag_base(unsigned addr, unsigned value);
+inline void set_tag_bound(unsigned addr, unsigned value);
+
+void init_section_tags();
 
 #endif // __MONITORING_H__

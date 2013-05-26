@@ -583,7 +583,30 @@ BaseSimpleCPU::performMonitoring() {
         // Monitoring packet to be sent
         mp.instAddr = tc->instAddr();
         mp.memEnd = fed.data;
+        mp.size = mp.memEnd - mp.memAddr + 1;
         mp.store = true;
+        mp.settag = true;
+        
+        // Send packet on fifo port, stall if not successful
+        fifoStall = !sendFifoPacket();
+        // Any additional functionality needed for stall
+        if (fifoStall) {
+            stallFromFifo();
+        }
+        
+    }
+    // writing to FIFO_CUSTOM_DATA sends a packet to set tags
+    // FIFO_END_CUSTOM is kept for backward compatibility
+    if (fifo_enabled && predicate_result && curStaticInst->isStore() && 
+        fed.memAddr == FIFO_CUSTOM_DATA){
+        
+        // Monitoring packet to be sent
+        mp.instAddr = tc->instAddr();
+        mp.data = fed.data;
+        mp.store = true;
+        mp.settag = true;
+        DPRINTF(Fifo, "Create custom packet at %d, PC=%x, Set tag[0x%x:0x%x]=0x%x\n", 
+            curTick(), tc->instAddr(), mp.memAddr, mp.memAddr+mp.size-1, mp.data);        
         
         // Send packet on fifo port, stall if not successful
         fifoStall = !sendFifoPacket();
@@ -626,6 +649,9 @@ BaseSimpleCPU::performMonitoring() {
         mp.memAddr = fed.memAddr; // memory access instruction
         mp.memEnd = fed.memAddr;
         mp.data = fed.data;       // memory access data
+        mp.virtAddr = fed.dataVirtAddr;
+        mp.physAddr = fed.dataPhysAddr;
+        mp.size = fed.dataSize;
         
         unsigned numSrc = curStaticInst->numSrcRegs();
         if (TheISA::isISAReg(curStaticInst->srcRegIdx(numSrc-2))){
@@ -1167,6 +1193,9 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
     mp.valid = true;
     mp.memAddr = fed.data;
     DPRINTF(Fifo, "Starting custom packet\n");
+  } else if (addr == FIFO_CUSTOM_SIZE) {
+    mp.size = fed.data;
+    mp.memEnd = mp.memAddr + mp.size - 1;
   } else if (addr == FIFO_NEXT){
     
     bool wasEmpty = fifoEmpty;
