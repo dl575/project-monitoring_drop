@@ -1000,11 +1000,15 @@ AtomicSimpleMonitor::preExecute()
 {
     // maintain r0=0 semantic
     thread->setIntReg(ZeroReg, 0);
-    // read a packet from FIFO
-    readFromFifo(FIFO_PACKET, (uint8_t *)&mp, sizeof(mp), ArmISA::TLB::AllowUnaligned);
     // pop FIFO entry
     uint32_t data = 1;
-    writeToFifo(FIFO_NEXT, (uint8_t*)&data, sizeof(uint32_t), ArmISA::TLB::AllowUnaligned);
+    Fault fault = writeToFifo(FIFO_NEXT, (uint8_t*)&data, sizeof(uint32_t), ArmISA::TLB::AllowUnaligned);
+    // read a packet from FIFO
+    if (fault == NoFault) {
+        readFromFifo(FIFO_PACKET, (uint8_t *)&mp, sizeof(mp), ArmISA::TLB::AllowUnaligned);
+    } else {
+        mp.valid = false;
+    }
 }
 
 /*
@@ -1336,8 +1340,15 @@ AtomicSimpleMonitor::HBExecute()
         numStoreInsts++;
         numMonitorInsts++;
     } else if (mp.store && mp.settag) {
-        DPRINTF(Monitor, "HardBound: Set tag mem[0x%x]=%lx\n", mp.memAddr, mp.data);
-        writeDWordTag(mp.physAddr, mp.data);
+        if (mp.size == 0) {
+            // set base address
+            setTagData = mp.data;
+        } else if (mp.size == 1) {
+            // set bound address
+            setTagData = setTagData | (mp.data << 32);
+            DPRINTF(Monitor, "HardBound: Set tag mem[0x%x]=%lx\n", mp.memAddr, setTagData);
+            writeDWordTag(mp.physAddr, setTagData);
+        }
     } else {
         DPRINTF(Monitor, "Unknown instruction\n");
         numMonitorInsts++;

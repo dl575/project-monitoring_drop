@@ -206,6 +206,10 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     // status registers
     bool enabled;
     bool initialized;
+
+    // variables for setting and clearing tags
+    uint64_t setTagData;
+
     // Fifo
     bool recvFifoPacket();
     

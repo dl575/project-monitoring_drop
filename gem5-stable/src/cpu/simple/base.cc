@@ -585,6 +585,7 @@ BaseSimpleCPU::performMonitoring() {
         mp.memEnd = fed.data;
         mp.size = mp.memEnd - mp.memAddr + 1;
         mp.store = true;
+        mp.data = 1;
         mp.settag = true;
         
         // Send packet on fifo port, stall if not successful
@@ -675,6 +676,9 @@ BaseSimpleCPU::performMonitoring() {
         mp.indctrl = curStaticInst->isIndirectCtrl() && mf.indctrl; // indirect control
         mp.lr      = tc->readIntReg(14); // Link register
         mp.nextpc  = tc->nextInstAddr(); // Next program counter
+
+        // ALU opcode
+        mp.opcode = (uint8_t)curStaticInst->machInst.opcode;
 
         // Send packet on fifo port, stall if not successful
         fifoStall = !sendFifoPacket();
