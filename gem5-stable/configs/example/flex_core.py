@@ -223,7 +223,21 @@ system.system_port = system.membus.slave
 # Connect memory to bus
 system.physmem.port = system.membus.master
 # Set up caches if enabled, connect to memory bus, and set up interrupts
+options.num_cpus = 2
 CacheConfig.config_cache(options, system)
+
+if options.caches:
+    icache = L1Cache(size = options.l1i_size,
+                     assoc = options.l1i_assoc,
+                     block_size=options.cacheline_size,
+                     latency = options.l1i_latency)
+    dcache = L1Cache(size = '2kB',
+                     assoc = options.l1d_assoc,
+                     block_size=options.cacheline_size,
+                     latency = options.l1d_latency)
+    system.cpu[2].addPrivateSplitL1Caches(icache, dcache)
+system.cpu[2].connectAllPorts(system.membus)
+system.cpu[2].createInterruptController()
 
 # Run simulation
 root = Root(full_system = False, system = system)

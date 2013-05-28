@@ -105,11 +105,11 @@ class DropSimpleCPU : public BaseSimpleCPU
 
     class MonitorPort : public SimpleTimingPort
     {
-        BaseSimpleCPU *cpu;
+        DropSimpleCPU *cpu;
 
       public:
 
-        MonitorPort(const std::string& _name, BaseSimpleCPU *_cpu);
+        MonitorPort(const std::string& _name, DropSimpleCPU *_cpu);
 
       protected:
 
@@ -136,13 +136,13 @@ class DropSimpleCPU : public BaseSimpleCPU
 
     /** Return a reference to the instruction port. */
     virtual CpuPort &getInstPort() { return icachePort; }
-    
+
+  public:
+  
     // Read from flag cache into data
     Fault readFromFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     // Write to flag cache
     Fault writeToFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
-
-  public:
 
     virtual void serialize(std::ostream &os);
     virtual void unserialize(Checkpoint *cp, const std::string &section);
@@ -155,6 +155,7 @@ class DropSimpleCPU : public BaseSimpleCPU
     virtual void suspendContext(ThreadID thread_num);
     
     MasterPort & getMasterPort(const std::string &if_name, int idx);
+    SlavePort & getSlavePort(const std::string &if_name, int idx);
 
     Fault readMem(Addr addr, uint8_t *data, unsigned size, unsigned flags);
 
