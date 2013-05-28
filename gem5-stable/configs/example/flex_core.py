@@ -156,6 +156,9 @@ system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1), DropCPUCla
                 physmem = SimpleMemory(range=AddrRange("512MB"), latency=mem_latency),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
+# Connect port between drop and monitoring cpu
+system.cpu[1].monitor_port = system.cpu[2].monitor_port
+
 # Number of CPUs
 options.num_cpus = 3
 
@@ -169,7 +172,7 @@ fifo_dc_to_mon.fifo_size = 2
 system.fifo_dc_to_mon = fifo_dc_to_mon
 # Create timer
 timer = PerformanceTimer(range=AddrRange(start=0x30010000, size="64kB"))
-# timer.percent_overhead = 0.2
+timer.percent_overhead = 0.2
 system.timer = timer
 # Create flag cache
 flagcache = FlagCache(range=AddrRange(start=0x30020000, size="64kB"))
@@ -214,8 +217,8 @@ process1.cmd = ""
 system.cpu[1].workload = process1
 
 process2 = LiveProcess()
-process2.executable = process0.executable
-process2.cmd = process0.cmd
+process2.executable = process1.executable
+process2.cmd = process1.cmd
 system.cpu[2].workload = process2
 
 # Connect system to the bus
