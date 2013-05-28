@@ -715,13 +715,8 @@ AtomicSimpleMonitor::handlePageTableFault(Addr addr)
     Addr page_base_addr = roundDown(addr, VMPageSize);
     p->allocateMem(page_base_addr, VMPageSize);
     // clear page
-    unsigned blockSize = dcachePort.peerBlockSize();
-    uint8_t *buf = new uint8_t[blockSize];
-    std::memset(buf, 0, blockSize);
-    for (int i = 0; i < VMPageSize; i+=blockSize) {
-        writeMemFunctional(buf, blockSize, page_base_addr+i, TheISA::TLB::MustBeOne, NULL);
-    }
-    delete [] buf;
+    SETranslatingPortProxy &tp = tc->getMemProxy();
+    tp.memsetBlob(page_base_addr, 0, VMPageSize);
 }
 
 /*
