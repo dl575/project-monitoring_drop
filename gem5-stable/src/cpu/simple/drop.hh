@@ -103,6 +103,26 @@ class DropSimpleCPU : public BaseSimpleCPU
     DropCPUPort icachePort;
     DropCPUPort dcachePort;
 
+    class MonitorPort : public SimpleTimingPort
+    {
+        BaseSimpleCPU *cpu;
+
+      public:
+
+        MonitorPort(const std::string& _name, BaseSimpleCPU *_cpu);
+
+      protected:
+
+        virtual Tick recvAtomic(PacketPtr pkt);
+
+        virtual void recvFunctional(PacketPtr pkt);
+        virtual bool recvTimingReq(PacketPtr pkt);
+        
+        virtual AddrRangeList getAddrRanges();
+    };
+
+    MonitorPort monitorPort;
+
     bool fastmem;
     Request ifetch_req;
 

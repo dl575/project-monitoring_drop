@@ -131,6 +131,7 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
     : BaseSimpleCPU(p), tickEvent(this), width(p->width), locked(false),
       simulate_data_stalls(p->simulate_data_stalls),
       icachePort(name() + "-iport", this), dcachePort(name() + "-iport", this),
+      monitorPort(name() + "-iport", this),
       fastmem(p->fastmem),
       forwardFifoPort(name() + "-iport", this),
       full_ticks(p->full_clock)
@@ -830,6 +831,51 @@ DropSimpleCPU::getMasterPort(const std::string &if_name, int idx)
     return BaseSimpleCPU::getMasterPort(if_name, idx);
   }
 }
+
+DropSimpleCPU::MonitorPort::MonitorPort(const std::string& _name,
+                                        BaseSimpleCPU *_cpu)
+    : SimpleTimingPort(_name, _cpu), cpu(_cpu)
+{ }
+
+AddrRangeList
+DropSimpleCPU::MonitorPort::getAddrRanges()
+{
+    AddrRangeList ranges;
+    return ranges;
+}
+
+Tick
+DropSimpleCPU::MonitorPort::recvAtomic(PacketPtr pkt)
+{
+    recvFunctional(pkt);
+    // FIXME: zero latency
+    return 0;
+}
+
+void
+DropSimpleCPU::MonitorPort::recvFunctional(PacketPtr pkt)
+{
+    if (!queue.checkFunctional(pkt)) {
+        if (pkt->cmd == MemCmd::WriteReq) {
+            // write re-validation data
+            // address can be obtained by pkt->getAddr()
+            // pointer to data can be obtained by pkt->getPtr<typename>()
+        } else if (pkt->cmd == MemCmd::ReadReq) {
+
+        }
+    }
+}
+
+bool
+DropSimpleCPU::MonitorPort::recvTimingReq(PacketPtr pkt)
+{
+    // Use functional function to handle writing
+    recvFunctional(pkt);
+    // Indicate write accepted
+    return true;
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 //
