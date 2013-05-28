@@ -116,6 +116,11 @@ class DropSimpleCPU : public BaseSimpleCPU
 
     /** Return a reference to the instruction port. */
     virtual CpuPort &getInstPort() { return icachePort; }
+    
+    // Read from flag cache into data
+    Fault readFromFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
+    // Write to flag cache
+    Fault writeToFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
 
   public:
 
@@ -146,9 +151,13 @@ class DropSimpleCPU : public BaseSimpleCPU
 
     // function to handle end_task command
     void endTask() {}
+    // functional memory operations
+    Fault readMemFunctional(Addr addr, uint8_t *data, unsigned size, unsigned flags);
+    Fault writeMemFunctional(uint8_t *data, unsigned size, Addr addr, unsigned flags, uint64_t *res);
     // prevent page fault errors
-    Fault readMemPageAllocate(Addr addr, uint8_t * data, unsigned size, unsigned flags);
-    Fault writeMemPageAllocate(uint8_t *data, unsigned size, Addr addr, unsigned flags, uint64_t *res);
+    void pageAllocate(Addr addr);
+    // get correct flags for writing
+    unsigned getCacheFlags(size_t size);
     // forward the fifo packet to monitoring core
     bool forwardFifoPacket();
     
@@ -156,8 +165,6 @@ class DropSimpleCPU : public BaseSimpleCPU
     CpuPort forwardFifoPort;
     // Full monitoring ticks
     Tick full_ticks;
-    // Tracks whether last forwarding failed
-    bool forward_unsuccessful;
     
 };
 

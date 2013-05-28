@@ -284,14 +284,14 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     Stats::Scalar numTaintedLoadInsts;
     Stats::Scalar numTaintedStoreInsts;
     Stats::Scalar numTaintedIndirectCtrlInsts;
-    Stats::Formula numTaintedInsts = numTaintedIntegerInsts
-                                   + numTaintedLoadInsts
-                                   + numTaintedStoreInsts
-                                   + numTaintedIndirectCtrlInsts;
+    // Stats::Formula numTaintedInsts = numTaintedIntegerInsts
+                                   // + numTaintedLoadInsts
+                                   // + numTaintedStoreInsts
+                                   // + numTaintedIndirectCtrlInsts;
     // BC statistics
     Stats::Scalar numBCLoadErrors;
     Stats::Scalar numBCStoreErrors;
-    Stats::Formula numBCErrors = numBCLoadErrors + numBCStoreErrors;
+    // Stats::Formula numBCErrors = numBCLoadErrors + numBCStoreErrors;
 };
 
 #endif // __MONITOR_SIMPLE_ATOMIC_HH__

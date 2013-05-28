@@ -531,9 +531,9 @@ class BaseSimpleCPU : public BaseCPU
     Addr selectValue(std::string &select, Addr c);
     // Set the flagcache address based on invalidation table entry
     template <unsigned size>
-    void setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx);
+    Fault setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx);
     // Perform invalidation in the flag cache
-    void performInvalidation(unsigned idx);
+    Fault performInvalidation(unsigned idx);
     // Number of filtering operations
     unsigned num_filtered;
     // Drops by instruction type
@@ -656,13 +656,13 @@ class BaseSimpleCPU : public BaseCPU
     // Read from slack timer into data
     Fault readFromTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     // Read from flag cache into data
-    Fault readFromFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
+    virtual Fault readFromFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     // Write to fifo
     Fault writeToFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     // Write to timer
     Fault writeToTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     // Write to flag cache
-    Fault writeToFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
+    virtual Fault writeToFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
 
     // Checks whether the head packet has the done flag asserted
     bool isFifoDone();

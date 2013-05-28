@@ -941,36 +941,40 @@ BaseSimpleCPU::getInvalidationAddr(InvalidationTable <size> & it, unsigned idx)
     return fc_addr;
 }
 
-template <unsigned size> void
+template <unsigned size> Fault
 BaseSimpleCPU::setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx)
 {
     Addr fc_addr = getInvalidationAddr(it, idx);
     // Update address in flag cache
-    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&fc_addr, sizeof(fc_addr), ArmISA::TLB::AllowUnaligned);
+    return writeToFlagCache(FC_SET_ADDR, (uint8_t *)&fc_addr, sizeof(fc_addr), ArmISA::TLB::AllowUnaligned);
 }
 
-void
+Fault
 BaseSimpleCPU::performInvalidation(unsigned idx)
 {   
+    Fault fault = NoFault;
+    
     if (invtab.action[idx] == "HW_set_cache"){
         DPRINTF(Invalidation, "Setting cache\n");
         unsigned type = 1;
-        writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        fault = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
     } else if (invtab.action[idx] == "HW_clear_cache"){
         DPRINTF(Invalidation, "Clearing cache\n");
         unsigned type = 1;
-        writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
     } else if (invtab.action[idx] == "HW_set_array"){
         DPRINTF(Invalidation, "Setting array\n");
         unsigned type = 0;
-        writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        fault = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
     } else if (invtab.action[idx] == "HW_clear_array") {
         DPRINTF(Invalidation, "Clearing array\n");
         unsigned type = 0;
-        writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
     } else {
         DPRINTF(Invalidation, "No invalidation operation performed\n");
     }
+    
+    return fault;
 }
 
 Fault
@@ -1001,14 +1005,19 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags)
 {
     
-    if (addr == TIMER_READ_DROP){
+    bool skip_drop = false;
+    
+    if (addr == TIMER_READ_DROP && fifo_enabled){
         // Pop the fifo entry
         bool pop = true;
         Fault result = writeToFifo(FIFO_NEXT, (uint8_t *)&pop, sizeof(pop), ArmISA::TLB::AllowUnaligned);
         if (result != NoFault) { return result; }
         
+        // Fixme: Prevents settag packets from being dropped. Does not work in real-time settings.
+        readFromFifo(FIFO_SETTAG, (uint8_t *)&skip_drop, sizeof(skip_drop), ArmISA::TLB::AllowUnaligned);
+        
         // Perform filtering
-        if (invtab.initialized && fptab.initialized 
+        if (!skip_drop && flagcache_enabled && invtab.initialized && fptab.initialized 
             && (filtertab1.initialized || filtertab2.initialized))
         {
             DPRINTF(Invalidation, "Begin filtering\n");
@@ -1022,10 +1031,11 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                 if (filtertab1.action[itp].size()){
                     setFlagCacheAddr(filtertab1, itp);
                     if (filtertab1.action[itp] == "cache"){
-                        readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                        result = readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
                     } else if (filtertab1.action[itp] == "array"){
-                        readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                        result = readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
                     }
+                    if (result != NoFault){ warn("Read from flag cache failed @ %llx\n", curTick()); flag = false; }
                     // Write back original address
                     writeToFlagCache(FC_SET_ADDR, (uint8_t *)&saved_addr, sizeof(saved_addr), ArmISA::TLB::AllowUnaligned);
                 }
@@ -1036,10 +1046,11 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                 if (filtertab2.action[itp].size()){
                     setFlagCacheAddr(filtertab2, itp);
                     if (filtertab2.action[itp] == "cache"){
-                        readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                        result = readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
                     } else if (filtertab2.action[itp] == "array"){
-                        readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                        result = readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
                     }
+                    if (result != NoFault){ warn("Read from flag cache failed @ %llx\n", curTick()); flag = false; }
                     // Write back original address
                     writeToFlagCache(FC_SET_ADDR, (uint8_t *)&saved_addr, sizeof(saved_addr), ArmISA::TLB::AllowUnaligned);
                 }
@@ -1062,9 +1073,9 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                     return NoFault;
                 } else {
                     setFlagCacheAddr(invtab, itidx);
-                    performInvalidation(itidx);
+                    result = performInvalidation(itidx);
                     DPRINTF(Invalidation, "Filtered in HW.\n");
-                    return ReExecFault; // Stay in HW
+                    return (result != NoFault)? result : ReExecFault; // Stay in HW
                 }
             }
             DPRINTF(Invalidation, "Entry not filtered\n");
@@ -1075,20 +1086,25 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     Request *req = &data_read_req;
     // read data
     long long int read_timer = 0;
-    // Create request at timer location
-    req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
-    // Read command
-    MemCmd cmd = MemCmd::ReadReq;
-    // Create packet
-    PacketPtr pkt = new Packet(req, cmd);
-    // Point packet to data pointer
-    pkt->dataStatic(&read_timer);
-
-    // Send read request
-    timerPort.sendFunctional(pkt);
     
-    // Clean up
-    delete pkt;
+    if (!skip_drop){
+        // Create request at timer location
+        req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
+        // Read command
+        MemCmd cmd = MemCmd::ReadReq;
+        // Create packet
+        PacketPtr pkt = new Packet(req, cmd);
+        // Point packet to data pointer
+        pkt->dataStatic(&read_timer);
+
+        // Send read request
+        timerPort.sendFunctional(pkt);
+        
+        // Clean up
+        delete pkt;
+    } else {
+        read_timer = 1;
+    }
     
     if (addr == TIMER_READ_SLACK) {
         // Print out for debug
@@ -1106,25 +1122,27 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         readFromTimer(TIMER_NOT_DROPS, (uint8_t *)&not_drops, sizeof(not_drops), ArmISA::TLB::AllowUnaligned);
         DPRINTF(SlackTimer, "read from timer: drop? %d, numdrops: %d, numfull: %d\n", !read_timer, drops, not_drops);
     #endif
-        instType itp = readFifoInstType();
-        if (!read_timer){
-            dropstats[itp]++;
-            // Hardware invalidation
-            if (invtab.initialized){
-                DPRINTF(Invalidation, "Starting hardware invalidation.\n");
-                // Check if LUT says to go back to software
-                if (invtab.action[itp].size() && (invtab.action[itp] != "SW")){
-                    setFlagCacheAddr(invtab, itp);
-                    performInvalidation(itp);
-                    DPRINTF(Invalidation, "Staying in HW.\n");
-                    return ReExecFault; // Stay in HW
-                }  
-            }
-        } else {
-            bool istaskpacket = false;
-            readFromTimer(TIMER_TASK_PACKET, (uint8_t *)&istaskpacket, sizeof(istaskpacket), ArmISA::TLB::AllowUnaligned);
-            if (istaskpacket){
-                fullstats[itp]++;
+        if (fifo_enabled){
+            instType itp = readFifoInstType();
+            if (!read_timer){
+                dropstats[itp]++;
+                // Hardware invalidation
+                if (flagcache_enabled && invtab.initialized){
+                    DPRINTF(Invalidation, "Starting hardware invalidation.\n");
+                    // Check if LUT says to go back to software
+                    if (invtab.action[itp].size() && (invtab.action[itp] != "SW")){
+                        setFlagCacheAddr(invtab, itp);
+                        Fault result = performInvalidation(itp);
+                        DPRINTF(Invalidation, "Staying in HW.\n");
+                        return (result != NoFault)? result : ReExecFault; // Stay in HW
+                    }  
+                }
+            } else {
+                bool istaskpacket = false;
+                readFromTimer(TIMER_TASK_PACKET, (uint8_t *)&istaskpacket, sizeof(istaskpacket), ArmISA::TLB::AllowUnaligned);
+                if (istaskpacket){
+                    fullstats[itp]++;
+                }
             }
         }
         DPRINTF(Invalidation, "Using software with return code %d\n", read_timer);

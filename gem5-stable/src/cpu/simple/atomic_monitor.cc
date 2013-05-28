@@ -296,10 +296,10 @@ AtomicSimpleMonitor::regStats()
         .name(name() + ".numIndirectCtrlInsts")
         .desc("Number of indirect control instructions processed by monitor")
         ;
-    numTaintedInsts
-        .name(name() + ".numTaintedInsts")
-        .desc("Number of tainted instructions")
-        ;
+    // numTaintedInsts
+        // .name(name() + ".numTaintedInsts")
+        // .desc("Number of tainted instructions")
+        // ;
     numTaintedIntegerInsts
         .name(name() + ".numTaintedIntegerInsts")
         .desc("Number of tainted integer instructions")
@@ -328,10 +328,10 @@ AtomicSimpleMonitor::regStats()
         .name(name() + ".numBCStoreErrors")
         .desc("Number of BC Store errors")
         ;
-    numBCErrors
-        .name(name() + ".numBCErrors")
-        .desc("Number of BC errors")
-        ;
+    // numBCErrors
+        // .name(name() + ".numBCErrors")
+        // .desc("Number of BC errors")
+        // ;
 }
 
 void

@@ -62,7 +62,7 @@ using namespace std;
 FlagCache::FlagCache(const Params* p) :
     AbstractMemory(p),
     lat(p->latency), lat_var(p->latency_var),
-    addr(), last_access(), num_aliased()
+    addr(), last_access(), num_aliased(0)
 {
     for (size_t i = 0; i < p->port_port_connection_count; ++i) {
         ports.push_back(new MemoryPort(csprintf("%s-port-%d", name(), i),

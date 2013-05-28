@@ -66,7 +66,7 @@ Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
 
 # Monitor
-parser.add_option("--monitor", type="string", default="dift")
+parser.add_option("--monitor", type="string", default="umc")
 # Monitor frequency
 parser.add_option("--monfreq", type="string", default="0.5GHz")
 # Modeling atomic cache stalls
@@ -112,7 +112,6 @@ if (options.cpu_type == 'atomic'):
 
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = (AtomicSimpleMonitor, test_mem_mode, None)
-MonCPUClass.clock = options.monfreq
 MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True
@@ -146,6 +145,7 @@ invalidation_cpu = DropCPUClass
 # Set up monitoring filter
 execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
 
+MonCPUClass.clock = options.monfreq
 DropCPUClass.clock = MainCPUClass.clock
 DropCPUClass.full_clock = MonCPUClass.clock
 # Enable output to second fifo
@@ -169,7 +169,7 @@ fifo_dc_to_mon.fifo_size = 2
 system.fifo_dc_to_mon = fifo_dc_to_mon
 # Create timer
 timer = PerformanceTimer(range=AddrRange(start=0x30010000, size="64kB"))
-timer.percent_overhead = 0.2
+# timer.percent_overhead = 0.2
 system.timer = timer
 # Create flag cache
 flagcache = FlagCache(range=AddrRange(start=0x30020000, size="64kB"))

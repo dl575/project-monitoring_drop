@@ -61,6 +61,8 @@
 #include "mem/timer.hh"
 #include "mem/flag_cache.hh"
 
+#include "debug/FlagCache.hh"
+
 using namespace std;
 using namespace TheISA;
 
@@ -131,8 +133,7 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
       icachePort(name() + "-iport", this), dcachePort(name() + "-iport", this),
       fastmem(p->fastmem),
       forwardFifoPort(name() + "-iport", this),
-      full_ticks(p->full_clock),
-      forward_unsuccessful(false)
+      full_ticks(p->full_clock)
 {
     _status = Idle;    
 }
@@ -353,6 +354,83 @@ DropSimpleCPU::readMem(Addr addr, uint8_t * data,
 }
 
 Fault
+DropSimpleCPU::readMemFunctional(Addr addr, uint8_t * data,
+                                       unsigned size, unsigned flags)
+{
+    // use the CPU's statically allocated read request and packet objects
+    Request *req = &data_read_req;
+
+    //The block size of our peer.
+    unsigned blockSize = dcachePort.peerBlockSize();
+    //The size of the data we're trying to read.
+    int fullSize = size;
+
+    //The address of the second part of this access if it needs to be split
+    //across a cache line boundary.
+    Addr secondAddr = roundDown(addr + size - 1, blockSize);
+
+    if (secondAddr > addr)
+        size = secondAddr - addr;
+
+    while (1) {
+        req->setVirt(0, addr, size, flags, dataMasterId(), thread->pcState().instAddr());
+
+        // translate to physical address
+        Fault fault = thread->dtb->translateAtomic(req, tc, BaseTLB::Read);
+
+        // Now do the access.
+        if (fault == NoFault && !req->getFlags().isSet(Request::NO_ACCESS)) {
+            Packet pkt = Packet(req,
+                                req->isLLSC() ? MemCmd::LoadLockedReq :
+                                MemCmd::ReadReq);
+            pkt.dataStatic(data);
+
+
+            if (fastmem && system->isMemAddr(pkt.getAddr()))
+                system->getPhysMem().access(&pkt);
+            else
+                dcachePort.sendFunctional(&pkt);
+
+            assert(!pkt.isError());
+
+            if (req->isLLSC()) {
+                TheISA::handleLockedRead(thread, req);
+            }
+        }
+
+        //If there's a fault, return it
+        if (fault != NoFault) {
+            if (req->isPrefetch()) {
+                return NoFault;
+            } else {
+                return fault;
+            }
+        }
+
+        //If we don't need to access a second cache line, stop now.
+        if (secondAddr <= addr)
+        {
+            if (req->isLocked() && fault == NoFault) {
+                assert(!locked);
+                locked = true;
+            }
+            return fault;
+        }
+
+        /*
+         * Set up for accessing the second cache line.
+         */
+
+        //Move the pointer we're reading into to the correct location.
+        data += size;
+        //Adjust the size to get the remaining bytes.
+        size = addr + fullSize - secondAddr;
+        //And access the right address.
+        addr = secondAddr;
+    }
+}
+
+Fault
 DropSimpleCPU::writeMem(uint8_t *data, unsigned size,
                           Addr addr, unsigned flags, uint64_t *res)
 {
@@ -456,44 +534,225 @@ DropSimpleCPU::writeMem(uint8_t *data, unsigned size,
 }
 
 Fault
-DropSimpleCPU::readMemPageAllocate(Addr addr, uint8_t * data,
-                                      unsigned size, unsigned flags)
+DropSimpleCPU::writeMemFunctional(uint8_t *data, unsigned size,
+                                        Addr addr, unsigned flags, uint64_t *res)
 {
-    //TODO: Fix page faults
-    return readMem(addr, data, size, flags);
+    // use the CPU's statically allocated write request and packet objects
+    Request *req = &data_write_req;
+
+    //The block size of our peer.
+    unsigned blockSize = dcachePort.peerBlockSize();
+    //The size of the data we're trying to read.
+    int fullSize = size;
+
+    //The address of the second part of this access if it needs to be split
+    //across a cache line boundary.
+    Addr secondAddr = roundDown(addr + size - 1, blockSize);
+
+    if(secondAddr > addr)
+        size = secondAddr - addr;
+
+    while(1) {
+        req->setVirt(0, addr, size, flags, dataMasterId(), thread->pcState().instAddr());
+
+        // translate to physical address
+        Fault fault = thread->dtb->translateAtomic(req, tc, BaseTLB::Write);
+
+        // Now do the access.
+        if (fault == NoFault) {
+            MemCmd cmd = MemCmd::WriteReq; // default
+            bool do_access = true;  // flag to suppress cache access
+
+            if (req->isLLSC()) {
+                cmd = MemCmd::StoreCondReq;
+                do_access = TheISA::handleLockedWrite(thread, req);
+            } else if (req->isSwap()) {
+                cmd = MemCmd::SwapReq;
+                if (req->isCondSwap()) {
+                    assert(res);
+                    req->setExtraData(*res);
+                }
+            }
+
+            if (do_access && !req->getFlags().isSet(Request::NO_ACCESS)) {
+                Packet pkt = Packet(req, cmd);
+                pkt.dataStatic(data);
+
+                if (fastmem && system->isMemAddr(pkt.getAddr()))
+                    system->getPhysMem().access(&pkt);
+                else
+                    dcachePort.sendFunctional(&pkt);
+
+                assert(!pkt.isError());
+
+                if (req->isSwap()) {
+                    assert(res);
+                    memcpy(res, pkt.getPtr<uint8_t>(), fullSize);
+                }
+            }
+
+            if (res && !req->isSwap()) {
+                *res = req->getExtraData();
+            }
+        }
+
+        //If there's a fault or we don't need to access a second cache line,
+        //stop now.
+        if (fault != NoFault || secondAddr <= addr)
+        {
+            if (req->isLocked() && fault == NoFault) {
+                assert(locked);
+                locked = false;
+            }
+            if (fault != NoFault && req->isPrefetch()) {
+                return NoFault;
+            } else {
+                return fault;
+            }
+        }
+
+        /*
+         * Set up for accessing the second cache line.
+         */
+
+        //Move the pointer we're reading into to the correct location.
+        data += size;
+        //Adjust the size to get the remaining bytes.
+        size = addr + fullSize - secondAddr;
+        //And access the right address.
+        addr = secondAddr;
+    }
+}
+
+void
+DropSimpleCPU::pageAllocate(Addr addr)
+{
+    Process *p = tc->getProcessPtr();
+    // check if page exists
+    if (!p->pTable->translate(addr)){
+        // allocate page
+        Addr page_addr = roundDown(addr, VMPageSize);
+        p->allocateMem(page_addr, VMPageSize);
+        // clear page
+        uint8_t zero  = 0;
+        SETranslatingPortProxy &tp = tc->getMemProxy();
+        tp.memsetBlob(page_addr, zero, VMPageSize);
+    }
+}
+
+unsigned
+DropSimpleCPU::getCacheFlags(size_t size)
+{
+    unsigned cache_flags;
+    switch (size){
+        case 1: cache_flags = ArmISA::TLB::AlignByte | TheISA::TLB::MustBeOne; break;
+        case 2: cache_flags = ArmISA::TLB::AlignHalfWord | TheISA::TLB::MustBeOne; break;
+        case 4: cache_flags = ArmISA::TLB::AlignWord | TheISA::TLB::MustBeOne; break;
+        default: panic("Unsupported read size.\n");
+    }
+    return cache_flags;
 }
 
 Fault
-DropSimpleCPU::writeMemPageAllocate(uint8_t *data, unsigned size,
-                                       Addr addr, unsigned flags, uint64_t *res)
+DropSimpleCPU::readFromFlagCache(Addr addr, uint8_t * data,
+                         unsigned size, unsigned flags)
+{    
+    Fault fault = NoFault;
+    
+    // On flag cache read
+    if (addr == FC_GET_FLAG_C){
+        DPRINTF(FlagCache, "Reading memory-backed cache\n");
+        uint8_t invalid_bits = 0;
+        // Get read address
+        Addr fc_addr = 0;
+        BaseSimpleCPU::readFromFlagCache(FC_GET_ADDR, (uint8_t *)&fc_addr, sizeof(fc_addr), ArmISA::TLB::AllowUnaligned);
+        // Get aligned address
+        Addr cache_addr = roundDown(fc_addr, 8*sizeof(invalid_bits));
+        // Allocate page if it doesn't exist
+        pageAllocate(cache_addr);
+        // Read byte address (with latency)
+        unsigned cache_flags = getCacheFlags(sizeof(invalid_bits));
+        fault = readMem(cache_addr, &invalid_bits, sizeof(invalid_bits), cache_flags);
+        // Bit mask read
+        invalid_bits &= (1 << (fc_addr&(8*sizeof(invalid_bits)-1)));
+        // Convert to flag
+        uint64_t value = (invalid_bits != 0);
+        // Copy back data
+        memcpy(data, &value, size);
+        DPRINTF(FlagCache, "Flag cache read @ %x -> %x: %x -> %d\n", fc_addr, cache_addr, invalid_bits, value);
+    } else {
+        fault = BaseSimpleCPU::readFromFlagCache(addr, data, size, flags);
+    }
+    
+    return fault;
+}
+
+Fault
+DropSimpleCPU::writeToFlagCache(Addr addr, uint8_t * data,
+                         unsigned size, unsigned flags)
 {
-    //TODO: Fix page faults
-    return writeMem(data, size, addr, flags, res);
+    Fault fault;
+    uint64_t get_data = 0;
+    memcpy(&get_data, data, size);
+    
+    // On flag cache write
+    if ((addr == FC_SET_FLAG || addr == FC_CLEAR_FLAG) && get_data == 1){
+        DPRINTF(FlagCache, "Setting memory-backed cache\n");
+        uint8_t invalid_bits = 0;
+        // Get write address
+        Addr fc_addr = 0;
+        BaseSimpleCPU::readFromFlagCache(FC_GET_ADDR, (uint8_t *)&fc_addr, sizeof(fc_addr), ArmISA::TLB::AllowUnaligned);
+        // Get aligned address
+        Addr cache_addr = roundDown(fc_addr, 8*sizeof(invalid_bits));
+        // Allocate page if it doesn't exist
+        pageAllocate(cache_addr);
+        // Read byte address (with latency)
+        unsigned cache_flags = getCacheFlags(sizeof(invalid_bits));
+        fault = readMem(cache_addr, &invalid_bits, sizeof(invalid_bits), cache_flags);
+        if (fault != NoFault) { return fault; }
+        // Bit mask write
+        uint8_t invalid_bits_new = 0;
+        uint8_t mask = (1 << (fc_addr&7));
+        if (addr == FC_SET_FLAG) {
+            invalid_bits_new = invalid_bits | mask;
+        } else if (addr == FC_CLEAR_FLAG) {
+            invalid_bits_new = invalid_bits & ~mask;
+        }
+        // Write back byte (functional)
+        fault = writeMemFunctional(&invalid_bits_new, sizeof(invalid_bits_new), cache_addr, cache_flags, NULL);
+        
+        if (addr == FC_SET_FLAG) {
+            DPRINTF(FlagCache, "Flag cache set @ %x -> %x: invalid bits are %x -> %x\n", fc_addr, cache_addr, invalid_bits, invalid_bits_new);
+        } else if (addr == FC_CLEAR_FLAG) {
+            DPRINTF(FlagCache, "Flag cache clear @ %x -> %x: invalid bits are %x -> %x\n", fc_addr, cache_addr, invalid_bits, invalid_bits_new);
+        }
+        
+    } else {
+        fault = BaseSimpleCPU::writeToFlagCache(addr, data, size, flags);
+    }
+
+    return fault;
 }
 
 // Send monitoring packet to monitoring core
 bool 
 DropSimpleCPU::forwardFifoPacket() {
-  // Read the monitoring packet
-  monitoringPacket read_mp;
-  readFromFifo(FIFO_PACKET, (uint8_t *)&read_mp, sizeof(read_mp), ArmISA::TLB::AllowUnaligned);
-  
   // Create request
   Request *req = &data_write_req;
   // set physical address
-  req->setPhys((Addr)FIFO_ADDR, sizeof(read_mp), ArmISA::TLB::AllowUnaligned, dataMasterId());
+  req->setPhys((Addr)FIFO_ADDR, sizeof(mp), ArmISA::TLB::AllowUnaligned, dataMasterId());
 
   // Create write packet
   PacketPtr fifopkt = new Packet(req, MemCmd::WriteReq);
   // Set data
-  fifopkt->dataStatic(&read_mp);
+  fifopkt->dataStatic(&mp);
   // Send request
   bool success = forwardFifoPort.sendTimingReq(fifopkt);
   // Clean up
   delete fifopkt;
   if (success){
     #ifdef DEBUG
-      DPRINTF(Fifo, "Forwarded packet with values: %x, %x, %x, %x, %x, %x, %x\n", read_mp.valid, read_mp.instAddr, read_mp.memAddr, read_mp.memEnd, read_mp.data, read_mp.store, read_mp.done);
+      DPRINTF(Fifo, "Forwarded packet with values: %x, %x, %x, %x, %x, %x, %x\n", mp.valid, mp.instAddr, mp.memAddr, mp.memEnd, mp.data, mp.store, mp.done);
     #endif
   }
   
@@ -514,14 +773,20 @@ DropSimpleCPU::tick()
     
     Tick stall_ticks = 0;
     
-    if (forward_unsuccessful){
-        forward_unsuccessful = !forwardFifoPacket();
-    } else {
+    bool forward_successful = true;
+    
+    if (mp.valid){
+        forward_successful = forwardFifoPacket();
+        mp.init();
+    }
+    
+    if (forward_successful){
         bool drop = false;
         Fault fault = readFromTimer(TIMER_READ_DROP, (uint8_t *)&drop, sizeof(drop), ArmISA::TLB::AllowUnaligned);
         if (fault == NoFault){
             DPRINTF(Invalidation, "Perform full monitoring.\n");
-            forward_unsuccessful = !forwardFifoPacket();
+            // Read the monitoring packet
+            readFromFifo(FIFO_PACKET, (uint8_t *)&mp, sizeof(mp), ArmISA::TLB::AllowUnaligned);
         } else {
             fault->invoke(tc, curStaticInst);
         }

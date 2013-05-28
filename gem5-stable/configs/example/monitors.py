@@ -14,9 +14,9 @@ mem_latency = '15ns'
 # Kindle-like configuration
 options.l1i_size = '16kB'
 options.l1d_size = '16kB'
-if model == 'FLEX':
-    options.l1i_latency = '1ps'
-    options.l1d_latency = '1ps'
+
+options.l1i_latency = '1ps'
+options.l1d_latency = '1ps'
 
 #######################################
 # UMC
