@@ -986,6 +986,61 @@ AtomicSimpleMonitor::setTagProxy(Addr addr, int nbytes, uint8_t tag)
     }
 }
 
+void
+AtomicSimpleMonitor::revalidateRegTag(int idx)
+{
+    // set address
+    // create request
+    Request *req = &monitor_req;
+    req->setVirt(0, 0x30020000, 4, TheISA::TLB::AllowUnaligned, dataMasterId(), thread->pcState().instAddr());
+    // create packet
+    PacketPtr p = new Packet(req, MemCmd::WriteReq);
+    p->dataStatic(&idx);
+    // send packet
+    monitorPort.sendFunctional(p);
+    // clean up
+    delete p;
+    // set data
+    // create request
+    req->setVirt(0, 0x30020000, 4, TheISA::TLB::AllowUnaligned, dataMasterId(), thread->pcState().instAddr());
+    // create packet
+    p = new Packet(req, MemCmd::WriteReq);
+    int data = 0;
+    p->dataStatic(&data);
+    // send packet
+    monitorPort.sendFunctional(p);
+    // clean up
+    delete p;
+}
+
+void
+AtomicSimpleMonitor::revalidateMemTag(Addr addr)
+{
+    // set address
+    // create request
+    Request *req = &monitor_req;
+    req->setVirt(0, 0x30020000, 4, TheISA::TLB::AllowUnaligned, dataMasterId(), thread->pcState().instAddr());
+    // create packet
+    PacketPtr p = new Packet(req, MemCmd::WriteReq);
+    unsigned word_addr = addr >> 2;
+    p->dataStatic(&word_addr);
+    // send packet
+    monitorPort.sendFunctional(p);
+    // clean up
+    delete p;
+    // set data
+    // create request
+    req->setVirt(0, 0x30020000, 4, TheISA::TLB::AllowUnaligned, dataMasterId(), thread->pcState().instAddr());
+    // create packet
+    p = new Packet(req, MemCmd::WriteReq);
+    int data = 1;
+    p->dataStatic(&data);
+    // send packet
+    monitorPort.sendFunctional(p);
+    // clean up
+    delete p;
+}
+
 /*
  * Pre-execute
  *  Try to read a monitoring packet from FIFO.

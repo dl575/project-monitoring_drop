@@ -240,7 +240,8 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     void finishMonitoring();
     void showMonitoringStats();
     void showDIFTStats();
-    void updateCoarseTag(Addr addr, unsigned size, bool tag);
+    void revalidateRegTag(int idx);
+    void revalidateMemTag(Addr addr);
 
     template <typename T>
     bool isMemoryCompactable(Addr addr, int blocksize, T tag);
