@@ -50,8 +50,8 @@ inline void set_tag_base(unsigned addr, unsigned value)
     register volatile unsigned int *fifo = (unsigned int *)MONITOR_ADDR;
     *(fifo+1) = addr;
     // use this field to distinguish between base and bound
-    *(fifo+2) = 0;
-    *(fifo+3) = value;
+    *(fifo+4) = 0;
+    *(fifo+5) = value;
 }
 
 inline void set_tag_bound(unsigned addr, unsigned value)
@@ -59,6 +59,6 @@ inline void set_tag_bound(unsigned addr, unsigned value)
     register volatile unsigned int *fifo = (unsigned int *)MONITOR_ADDR;
     *(fifo+1) = addr;
     // use this field to distinguish between base and bound
-    *(fifo+2) = 1;
-    *(fifo+3) = value;
+    *(fifo+4) = 1;
+    *(fifo+5) = value;
 }
