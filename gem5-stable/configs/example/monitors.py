@@ -2,8 +2,8 @@ monitor = os.environ["MONITOR"]
 model = os.environ["MODEL"]
 
 # Kindle config
-MainCPUClass.clock = '2GHz'
-MonCPUClass.clock = '500MHz'
+#MainCPUClass.clock = '2GHz'
+MonCPUClass.clock = '250MHz'
 # Flexcore config
 # MainCPUClass.clock = '1250MHz'
 # MonCPUClass.clock = '7500MHz'
@@ -12,8 +12,8 @@ mem_latency = '15ns'
 
 # Configure cache size
 # Kindle-like configuration
-options.l1i_size = '16kB'
-options.l1d_size = '16kB'
+#options.l1i_size = '64kB'
+#options.l1d_size = '64kB'
 
 options.l1i_latency = '1ps'
 options.l1d_latency = '1ps'
@@ -73,14 +73,10 @@ elif monitor == "UMC_FLEX":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
-  if model == 'FLEX':
-    MonCPUClass.clock = '6500MHz'
   # Load the invalidation file
   invalidation_cpu.invalidation_file = "tables/umc_invalidation.txt"
   invalidation_cpu.filter_file_1 = "tables/umc_filter.txt"
   invalidation_cpu.filter_ptr_file = "tables/umc_filter_ptrs.txt"
-  # Define monitoring executable
-  monitor_bin = "umc_full"
 
 #######################################
 # LRC
@@ -199,6 +195,25 @@ elif monitor == "DIFT_HWFILTER":
   invalidation_cpu.filter_ptr_file = "tables/dift_filter_ptrs.txt"
   # Define monitoring executable
   monitor_bin = "dift_hwfilter"
+elif monitor == "DIFT_FLEX":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_indctrl = True
+elif monitor == "BC_FLEX":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+elif monitor == "HB_FLEX":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+elif monitor == "NONE_FLEX":
+  # Set up monitoring filter
+  pass
 
 else:
   raise Exception("Monitor not recognized: %s" % monitor)
