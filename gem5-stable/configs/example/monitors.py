@@ -2,7 +2,7 @@ monitor = os.environ["MONITOR"]
 model = os.environ["MODEL"]
 
 # Kindle config
-#MainCPUClass.clock = '2GHz'
+MainCPUClass.clock = '2GHz'
 MonCPUClass.clock = '250MHz'
 # Flexcore config
 # MainCPUClass.clock = '1250MHz'
@@ -12,8 +12,8 @@ mem_latency = '15ns'
 
 # Configure cache size
 # Kindle-like configuration
-#options.l1i_size = '64kB'
-#options.l1d_size = '64kB'
+options.l1i_size = '16kB'
+options.l1d_size = '16kB'
 
 options.l1i_latency = '1ps'
 options.l1d_latency = '1ps'

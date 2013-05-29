@@ -68,9 +68,13 @@ Options.addSEOptions(parser)
 # Monitor
 parser.add_option("--monitor", type="string", default="umc")
 # Monitor frequency
-parser.add_option("--monfreq", type="string", default="0.5GHz")
+parser.add_option("--monfreq", type="string", default="250MHz")
 # Modeling atomic cache stalls
 parser.add_option("--simulatestalls", action="store_true")
+# Allow invalidations
+parser.add_option("--invalidation", action="store_true")
+# Set the desired overhead
+parser.add_option("--overhead", type="float", default=0.0)
 
 available_monitors = {
   "none" : 0,
@@ -80,7 +84,6 @@ available_monitors = {
   "sec"  : 4,
   "hb"   : 5
 }
-
 
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
@@ -96,6 +99,7 @@ numThreads = 1
 
 # Create new CPU type for main core
 (MainCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
+MainCPUClass.clock = options.clock
 MainCPUClass.numThreads = numThreads;
 MainCPUClass.fifo_enabled = True
 MainCPUClass.monitoring_enabled = False
@@ -105,13 +109,14 @@ MainCPUClass.timer_enabled = True
 MainCPUClass.flagcache_enabled = False
 # Not hard real-time
 MainCPUClass.hard_wcet = False
-if (options.cpu_type == 'atomic'):
+if (options.simulatestalls and options.cpu_type == 'atomic'):
     # Simulate cache stalls in atomic
     MainCPUClass.simulate_inst_stalls = True
     MainCPUClass.simulate_data_stalls = True
 
 # Create new CPU type for monitoring core
 (MonCPUClass, test_mem_mode, FutureClass) = (AtomicSimpleMonitor, test_mem_mode, None)
+MonCPUClass.clock = options.monfreq
 MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True
@@ -121,8 +126,7 @@ MonCPUClass.timer_enabled = True
 # Need flag cache for monitoring core
 MonCPUClass.flagcache_enabled = False
 MonCPUClass.monitor_type = available_monitors[options.monitor]
-
-if (options.cpu_type == 'atomic'):
+if (options.simulatestalls and options.cpu_type == 'atomic'):
     # Simulate d cache stalls
     MonCPUClass.simulate_data_stalls = True
 
@@ -133,27 +137,72 @@ DropCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 DropCPUClass.fifo_enabled = True
 DropCPUClass.monitoring_enabled = False
-# Enable slack timer so it can read from it
-DropCPUClass.timer_enabled = True
-# Need flag cache for monitoring core
-DropCPUClass.flagcache_enabled = True
-# Simulate d cache stalls
-DropCPUClass.simulate_data_stalls = True
+if options.invalidation:
+    # Enable slack timer so it can read from it
+    DropCPUClass.timer_enabled = True
+    # Need flag cache for monitoring core
+    DropCPUClass.flagcache_enabled = True
+if (options.simulatestalls):
+    # Simulate d cache stalls
+    DropCPUClass.simulate_data_stalls = True
 
-invalidation_cpu = DropCPUClass
-
-# Set up monitoring filter
-execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
-
-MonCPUClass.clock = options.monfreq
 DropCPUClass.clock = MainCPUClass.clock
 DropCPUClass.full_clock = MonCPUClass.clock
 # Enable output to second fifo
 DropCPUClass.forward_fifo_enabled = True
 
+if options.monitor == "umc":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  if options.invalidation:
+    # Load the invalidation file
+    DropCPUClass.invalidation_file = "tables/umc_invalidation.txt"
+    DropCPUClass.filter_file_1 = "tables/umc_filter.txt"
+    DropCPUClass.filter_ptr_file = "tables/umc_filter_ptrs.txt"
+elif options.monitor == "dift":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_indctrl = True
+  if options.invalidation:
+    # Load the invalidation file
+    DropCPUClass.invalidation_file = "tables/dift_invalidation.txt"
+    DropCPUClass.filter_file_1 = "tables/dift_filter1.txt"
+    DropCPUClass.filter_file_2 = "tables/dift_filter2.txt"
+    DropCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
+elif options.monitor == "bc":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  if options.invalidation:
+    # Load the invalidation file
+    DropCPUClass.invalidation_file = "tables/dift_invalidation.txt"
+    DropCPUClass.filter_file_1 = "tables/dift_filter1.txt"
+    DropCPUClass.filter_file_2 = "tables/dift_filter2.txt"
+    DropCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
+elif options.monitor == "hb":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  if options.invalidation:
+    # Load the invalidation file
+    DropCPUClass.invalidation_file = "tables/dift_invalidation.txt"
+    DropCPUClass.filter_file_1 = "tables/dift_filter1.txt"
+    DropCPUClass.filter_file_2 = "tables/dift_filter2.txt"
+    DropCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
+elif options.monitor == "none":
+  # Set up monitoring filter
+  pass
+else:
+  raise Exception("Monitor not recognized: %s" % monitor)
+
 # Create system, CPUs, bus, and memory
 system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1), DropCPUClass(cpu_id=2)],
-                physmem = SimpleMemory(range=AddrRange("512MB"), latency=mem_latency),
+                physmem = SimpleMemory(range=AddrRange("512MB"), latency='15ns'),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
 # Connect port between drop and monitoring cpu
@@ -172,7 +221,7 @@ fifo_dc_to_mon.fifo_size = 2
 system.fifo_dc_to_mon = fifo_dc_to_mon
 # Create timer
 timer = PerformanceTimer(range=AddrRange(start=0x30010000, size="64kB"))
-timer.percent_overhead = 0.2
+timer.percent_overhead = options.overhead
 system.timer = timer
 # Create flag cache
 flagcache = FlagCache(range=AddrRange(start=0x30020000, size="64kB"))
@@ -226,6 +275,8 @@ system.system_port = system.membus.slave
 # Connect memory to bus
 system.physmem.port = system.membus.master
 # Set up caches if enabled, connect to memory bus, and set up interrupts
+options.l1i_latency = '1ps'
+options.l1d_latency = '1ps'
 options.num_cpus = 2
 CacheConfig.config_cache(options, system)
 

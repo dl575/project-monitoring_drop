@@ -132,7 +132,7 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
       simulate_data_stalls(p->simulate_data_stalls),
       icachePort(name() + "-iport", this), dcachePort(name() + "-iport", this),
       monitorPort(name() + "-iport", this),
-      fastmem(p->fastmem),
+      fastmem(p->fastmem), forward_fifo_enabled(p->forward_fifo_enabled),
       forwardFifoPort(name() + "-iport", this),
       full_ticks(p->full_clock)
 {
@@ -777,17 +777,27 @@ DropSimpleCPU::tick()
     bool forward_successful = true;
     
     if (mp.valid){
-        forward_successful = forwardFifoPacket();
+        if (forward_fifo_enabled) {
+            forward_successful = forwardFifoPacket();
+        }
         mp.init();
     }
     
     if (forward_successful){
         bool drop = false;
-        Fault fault = readFromTimer(TIMER_READ_DROP, (uint8_t *)&drop, sizeof(drop), ArmISA::TLB::AllowUnaligned);
+        Fault fault = ReExecFault;
+        if (timer_enabled){
+            fault = readFromTimer(TIMER_READ_DROP, (uint8_t *)&drop, sizeof(drop), ArmISA::TLB::AllowUnaligned);
+        } else if (fifo_enabled){
+            bool pop = true;
+            fault = writeToFifo(FIFO_NEXT, (uint8_t *)&pop, sizeof(pop), ArmISA::TLB::AllowUnaligned);
+        }
         if (fault == NoFault){
             DPRINTF(Invalidation, "Perform full monitoring.\n");
-            // Read the monitoring packet
-            readFromFifo(FIFO_PACKET, (uint8_t *)&mp, sizeof(mp), ArmISA::TLB::AllowUnaligned);
+            if (fifo_enabled){
+                // Read the monitoring packet
+                readFromFifo(FIFO_PACKET, (uint8_t *)&mp, sizeof(mp), ArmISA::TLB::AllowUnaligned);
+            }
         } else {
             fault->invoke(tc, curStaticInst);
         }
@@ -867,9 +877,18 @@ DropSimpleCPU::MonitorPort::recvFunctional(PacketPtr pkt)
 {
     if (!queue.checkFunctional(pkt)) {
         if (pkt->cmd == MemCmd::WriteReq) {
-            cpu->readFromFlagCache(pkt->getAddr(), pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
-        } else if (pkt->cmd == MemCmd::ReadReq) {
-            cpu->writeToFlagCache(pkt->getAddr(), pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+            uint8_t type;
+            switch (pkt->getAddr()){
+                case DROP_CLEAR_ARRAY: type = 0; break;
+                case DROP_CLEAR_CACHE: type = 1; break;
+                default: panic ("Unimplemented port request");
+            }
+            if (cpu->flagcache_enabled){
+                cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                cpu->writeToFlagCache(FC_CLEAR_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+            }
+        } else {
+            panic ("Unimplemented port request");
         }
     }
 }

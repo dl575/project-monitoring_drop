@@ -46,6 +46,9 @@
 #include "cpu/simple/base.hh"
 #include "params/DropSimpleCPU.hh"
 
+#define DROP_CLEAR_ARRAY 0
+#define DROP_CLEAR_CACHE 1
+
 class DropSimpleCPU : public BaseSimpleCPU
 {
   public:
@@ -182,6 +185,7 @@ class DropSimpleCPU : public BaseSimpleCPU
     // forward the fifo packet to monitoring core
     bool forwardFifoPacket();
     
+    bool forward_fifo_enabled;
     // Port for monitoring fifo
     CpuPort forwardFifoPort;
     // Full monitoring ticks

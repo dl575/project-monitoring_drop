@@ -60,6 +60,8 @@
 #include "sim/system.hh"
 #include "sim/full_system.hh"
 
+#include "cpu/simple/drop.hh"
+
 using namespace std;
 using namespace TheISA;
 
@@ -296,10 +298,10 @@ AtomicSimpleMonitor::regStats()
         .name(name() + ".numIndirectCtrlInsts")
         .desc("Number of indirect control instructions processed by monitor")
         ;
-    // numTaintedInsts
-        // .name(name() + ".numTaintedInsts")
-        // .desc("Number of tainted instructions")
-        // ;
+    numTaintedInsts
+        .name(name() + ".numTaintedInsts")
+        .desc("Number of tainted instructions")
+        ;
     numTaintedIntegerInsts
         .name(name() + ".numTaintedIntegerInsts")
         .desc("Number of tainted integer instructions")
@@ -328,10 +330,10 @@ AtomicSimpleMonitor::regStats()
         .name(name() + ".numBCStoreErrors")
         .desc("Number of BC Store errors")
         ;
-    // numBCErrors
-        // .name(name() + ".numBCErrors")
-        // .desc("Number of BC errors")
-        // ;
+    numBCErrors
+        .name(name() + ".numBCErrors")
+        .desc("Number of BC errors")
+        ;
 }
 
 void
@@ -989,24 +991,12 @@ AtomicSimpleMonitor::setTagProxy(Addr addr, int nbytes, uint8_t tag)
 void
 AtomicSimpleMonitor::revalidateRegTag(int idx)
 {
-    // set address
     // create request
     Request *req = &monitor_req;
-    req->setVirt(0, 0x30020000, 4, TheISA::TLB::AllowUnaligned, dataMasterId(), thread->pcState().instAddr());
+    req->setPhys(DROP_CLEAR_ARRAY, sizeof(idx), ArmISA::TLB::AllowUnaligned, dataMasterId());
     // create packet
     PacketPtr p = new Packet(req, MemCmd::WriteReq);
     p->dataStatic(&idx);
-    // send packet
-    monitorPort.sendFunctional(p);
-    // clean up
-    delete p;
-    // set data
-    // create request
-    req->setVirt(0, 0x30020000, 4, TheISA::TLB::AllowUnaligned, dataMasterId(), thread->pcState().instAddr());
-    // create packet
-    p = new Packet(req, MemCmd::WriteReq);
-    int data = 0;
-    p->dataStatic(&data);
     // send packet
     monitorPort.sendFunctional(p);
     // clean up
@@ -1016,25 +1006,13 @@ AtomicSimpleMonitor::revalidateRegTag(int idx)
 void
 AtomicSimpleMonitor::revalidateMemTag(Addr addr)
 {
-    // set address
     // create request
     Request *req = &monitor_req;
-    req->setVirt(0, 0x30020000, 4, TheISA::TLB::AllowUnaligned, dataMasterId(), thread->pcState().instAddr());
+    Addr word_addr = addr >> 2;
+    req->setPhys(DROP_CLEAR_CACHE, sizeof(word_addr), ArmISA::TLB::AllowUnaligned, dataMasterId());
     // create packet
     PacketPtr p = new Packet(req, MemCmd::WriteReq);
-    unsigned word_addr = addr >> 2;
     p->dataStatic(&word_addr);
-    // send packet
-    monitorPort.sendFunctional(p);
-    // clean up
-    delete p;
-    // set data
-    // create request
-    req->setVirt(0, 0x30020000, 4, TheISA::TLB::AllowUnaligned, dataMasterId(), thread->pcState().instAddr());
-    // create packet
-    p = new Packet(req, MemCmd::WriteReq);
-    int data = 1;
-    p->dataStatic(&data);
     // send packet
     monitorPort.sendFunctional(p);
     // clean up
