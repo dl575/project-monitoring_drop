@@ -289,13 +289,11 @@ class BaseSimpleCPU : public BaseCPU
     // number of cycles stalled for D-cache retries
     Stats::Scalar dcacheRetryCycles;
     Counter lastDcacheRetry;
-
-    // monitoring statistics
-    Stats::Scalar numFwdInsts;
-    Stats::Scalar numFwdIntegerInsts;
-    Stats::Scalar numFwdLoadInsts;
-    Stats::Scalar numFwdStoreInsts;
-    Stats::Scalar numFwdIndirectCtrlInsts;
+    
+    // drop statistics
+    Stats::Vector dropstats;
+    Stats::Vector filterstats;
+    Stats::Vector fullstats;
 
     virtual void serialize(std::ostream &os);
     virtual void unserialize(Checkpoint *cp, const std::string &section);
@@ -534,14 +532,6 @@ class BaseSimpleCPU : public BaseCPU
     Fault setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx);
     // Perform invalidation in the flag cache
     Fault performInvalidation(unsigned idx);
-    // Number of filtering operations
-    unsigned num_filtered;
-    // Drops by instruction type
-    unsigned dropstats [num_inst_types];
-    // Filters by instruction type
-    unsigned filterstats [num_inst_types];
-    // Full monitoring by instruction type
-    unsigned fullstats [num_inst_types];
     // hard wcet deadline
     bool hard_wcet;
 

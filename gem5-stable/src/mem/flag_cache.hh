@@ -131,6 +131,8 @@ class FlagCache : public AbstractMemory
     {
         return dynamic_cast<const Params *>(_params);
     }
+    
+    void regStats();
 
   protected:
 
@@ -154,7 +156,7 @@ class FlagCache : public AbstractMemory
     // Last access tick
     Tick last_access;
     // Number of aliased events
-    unsigned num_aliased;
+    Stats::Scalar num_aliased;
     
     Addr cacheAddr (Addr fullAddr){
         return fullAddr % fc_size;

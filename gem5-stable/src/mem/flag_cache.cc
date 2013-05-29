@@ -62,7 +62,7 @@ using namespace std;
 FlagCache::FlagCache(const Params* p) :
     AbstractMemory(p),
     lat(p->latency), lat_var(p->latency_var),
-    addr(), last_access(), num_aliased(0)
+    addr(), last_access()
 {
     for (size_t i = 0; i < p->port_port_connection_count; ++i) {
         ports.push_back(new MemoryPort(csprintf("%s-port-%d", name(), i),
@@ -120,6 +120,17 @@ FlagCache::init()
             (*p)->sendRangeChange();
         }
     }
+}
+
+void
+FlagCache::regStats()
+{
+    AbstractMemory::regStats();
+    
+    num_aliased
+        .name(name()+".num_aliased")
+        .desc("Number of flag cache accesses which aliased")
+        ;
 }
 
 Tick
@@ -189,9 +200,9 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                     num_aliased++;
                     last_access = curTick();
                 }
-                DPRINTF(FlagCache, "Flag cache lookup @ %x -> %x: found? %d, aliased? %d, num_aliased = %d\n", addr, cA, found, cL->aliased, num_aliased);
+                DPRINTF(FlagCache, "Flag cache lookup @ %x -> %x: found? %d, aliased? %d, num_aliased = %d\n", addr, cA, found, cL->aliased, num_aliased.value());
             } else if (read_addr == FC_ALIASED) {
-                send_data = num_aliased;
+                send_data = num_aliased.value();
             } else {
               warn("Unrecognized read from flag cache read address %x\n", read_addr);
             }

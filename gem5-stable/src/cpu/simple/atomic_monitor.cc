@@ -334,6 +334,9 @@ AtomicSimpleMonitor::regStats()
         .name(name() + ".numBCErrors")
         .desc("Number of BC errors")
         ;
+    
+    numTaintedInsts = numTaintedIntegerInsts + numTaintedLoadInsts + numTaintedStoreInsts + numTaintedIndirectCtrlInsts;
+    numBCErrors = numBCLoadErrors + numBCStoreErrors;
 }
 
 void
