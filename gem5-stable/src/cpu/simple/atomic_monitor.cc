@@ -1071,11 +1071,17 @@ AtomicSimpleMonitor::UMCExecute()
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
             writeBitTag(pbyte, 1);
         }
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+            revalidateMemTag(pbyte);
+        }
     } else if (mp.store && mp.settag) {
         DPRINTF(Monitor, "UMC: Initializing mem[0x%x:0x%x]\n", mp.memAddr, mp.memEnd);
         numMonitorInsts++;
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
             writeBitTag(pbyte, 1);
+        }
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+            revalidateMemTag(pbyte);
         }
     } else {
         DPRINTF(Monitor, "Unknown instruction\n");
@@ -1101,6 +1107,7 @@ AtomicSimpleMonitor::DIFTExecute()
         if (TheISA::isISAReg(mp.rs2))
             tresult |= (DIFTTag)thread->readIntReg(mp.rs1);
         thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+        revalidateRegTag((int)mp.rd);
 
         if (trd || tresult) {
             numTaintedIntegerInsts++;
@@ -1115,6 +1122,7 @@ AtomicSimpleMonitor::DIFTExecute()
             tresult |= (DIFTTag)readBitTag(pbyte);
         }
         thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+        revalidateRegTag((int)mp.rd);
         
         if (trd || tresult) {
             numTaintedLoadInsts++;
@@ -1130,6 +1138,9 @@ AtomicSimpleMonitor::DIFTExecute()
             tdest |= readTagFunctional(pbyte);
             writeBitTag(pbyte, tsrc);
         }
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+            revalidateMemTag(pbyte);
+        }
 
         if (tdest || tsrc) {
             numTaintedStoreInsts++;
@@ -1140,6 +1151,9 @@ AtomicSimpleMonitor::DIFTExecute()
         DPRINTF(Monitor, "DIFT: Set taint mem[0x%x:0x%x]=%d\n", mp.memAddr, mp.memEnd, mp.data);
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
             writeBitTag(pbyte, (bool)mp.data);
+        }
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+            revalidateMemTag(pbyte);
         }
     } else if (mp.indctrl) {
         DPRINTF(Monitor, "DIFT: Indirect control transfer instruction\n");
@@ -1171,9 +1185,11 @@ AtomicSimpleMonitor::BCExecute()
             if (TheISA::isISAReg(mp.rs1)) {
                 BCTag trs1 = (BCTag)thread->readIntReg(mp.rs1);
                 thread->setIntReg((int)mp.rd, (uint64_t)trs1);
+                revalidateRegTag((int)mp.rd);
             } else {
                 // mov immediate
                 thread->setIntReg((int)mp.rd, 0);
+                revalidateRegTag((int)mp.rd);
             }
         } else if ((opcode == ALUAdd) || (opcode == ALUSub)) {
             BCTag tresult = 0;
@@ -1188,10 +1204,12 @@ AtomicSimpleMonitor::BCExecute()
                 else if (opcode == ALUSub)
                     tresult = trs1 - trs2;
                 thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+                revalidateRegTag((int)mp.rd);
             } else if (TheISA::isISAReg(mp.rs1)) {
                 // register + imm operands
                 BCTag trs1 = (BCTag)thread->readIntReg(mp.rs1);
                 thread->setIntReg((int)mp.rd, (uint64_t)trs1);
+                revalidateRegTag((int)mp.rd);
             } else {
                 // we should never reach here
                 // panic("Incorrect number of ALU operands!\n");
@@ -1199,6 +1217,7 @@ AtomicSimpleMonitor::BCExecute()
         } else {
             // other ALU operations
             thread->setIntReg((int)mp.rd, 0);
+            revalidateRegTag((int)mp.rd);
         }
 
         numIntegerInsts++;
@@ -1217,6 +1236,7 @@ AtomicSimpleMonitor::BCExecute()
 
             // update register tag
             thread->setIntReg((int)mp.rd, toPtrTag(tmem));
+            revalidateRegTag((int)mp.rd);
             if (toPtrTag(tmem) != 0) {
                 DPRINTF(Monitor, "BC: write pointer tag %d to r%d\n", toMemTag(tmem), (int)mp.rd);
             }
@@ -1224,6 +1244,7 @@ AtomicSimpleMonitor::BCExecute()
             // should not reach here
             // if we reach here for some reason, conservatively clear dest reg tag
             thread->setIntReg((int)mp.rd, 0);
+            revalidateRegTag((int)mp.rd);
         }
 
         numLoadInsts++;
@@ -1243,11 +1264,13 @@ AtomicSimpleMonitor::BCExecute()
 
             // update destination pointer tag
             writeTag(mp.memAddr, mergeMemPtrTags(tmem, tsrc));
+            revalidateMemTag(mp.memAddr);
         } else {
             // should not reach here
             // if we reach here for some reason, conservatively clear pointer tag
             BCTag tmem = readTagFunctional(mp.memAddr);
             writeTag(mp.memAddr, mergeMemPtrTags(tmem, 0));
+            revalidateMemTag(mp.memAddr);
         }
 
         numStoreInsts++;
@@ -1256,6 +1279,9 @@ AtomicSimpleMonitor::BCExecute()
         DPRINTF(Monitor, "BC: Set tag mem[0x%x:0x%x]=%d\n", mp.memAddr, mp.memEnd, mp.data);
         for (Addr pbyte = mp.memAddr; pbyte < mp.memEnd; pbyte++) {
             writeTag(pbyte, (Tag)mp.data);
+        }
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+            revalidateMemTag(pbyte);
         }
     } else {
         DPRINTF(Monitor, "Unknown instruction\n");
@@ -1286,9 +1312,11 @@ AtomicSimpleMonitor::HBExecute()
             if (TheISA::isISAReg(mp.rs1)) {
                 HBTag trs1 = (HBTag)thread->readIntReg(mp.rs1);
                 thread->setIntReg((int)mp.rd, (uint64_t)trs1);
+                revalidateRegTag((int)mp.rd);
             } else {
                 // mov immediate
                 thread->setIntReg((int)mp.rd, 0);
+                revalidateRegTag((int)mp.rd);
             }
         } else if ((opcode == ALUAdd) || (opcode == ALUSub)) {
             HBTag tresult = 0;
@@ -1301,9 +1329,11 @@ AtomicSimpleMonitor::HBExecute()
                     tresult = trs2;
                 }
                 thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+                revalidateRegTag((int)mp.rd);
             } else if (TheISA::isISAReg(mp.rs1)) {
                 HBTag trs1 = (HBTag)thread->readIntReg(mp.rs1);
                 thread->setIntReg((int)mp.rd, (uint64_t)trs1);
+                revalidateRegTag((int)mp.rd);
             } else {
                 // we should never reach here
                 // panic("Incorrect number of ALU operands!\n");
@@ -1311,6 +1341,7 @@ AtomicSimpleMonitor::HBExecute()
         } else {
             // other ALU operations
             thread->setIntReg((int)mp.rd, 0);
+            revalidateRegTag((int)mp.rd);
         }
 
         numIntegerInsts++;
@@ -1332,11 +1363,13 @@ AtomicSimpleMonitor::HBExecute()
             if (mp.size == 4) {
                 HBTag tmem = readDWordTag(mp.physAddr);
                 thread->setIntReg((int)mp.rd, tmem);
+                revalidateRegTag((int)mp.rd);
             }
         } else {
             // should not reach here
             // if we reach here for some reason, conservatively clear dest reg tag
             thread->setIntReg((int)mp.rd, 0);
+            revalidateRegTag((int)mp.rd);
         }
 
         numLoadInsts++;
@@ -1358,11 +1391,17 @@ AtomicSimpleMonitor::HBExecute()
             if (mp.size == 4) {
                 writeDWordTag(mp.physAddr, tsrc);
             }
+            for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+                revalidateMemTag(pbyte);
+            }
         } else {
             // should not reach here
             // if we reach here for some reason, conservatively clear pointer tag
             if (mp.size == 4)
                 writeDWordTag(mp.physAddr, 0);
+            for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+                revalidateMemTag(pbyte);
+            }
         }
 
         numStoreInsts++;
@@ -1376,6 +1415,7 @@ AtomicSimpleMonitor::HBExecute()
             setTagData = setTagData | (mp.data << 32);
             DPRINTF(Monitor, "HardBound: Set tag mem[0x%x]=%lx\n", mp.memAddr, setTagData);
             writeDWordTag(mp.physAddr, setTagData);
+            revalidateMemTag(mp.memAddr);
         }
     } else {
         DPRINTF(Monitor, "Unknown instruction\n");
