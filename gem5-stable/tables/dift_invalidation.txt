@@ -1,16 +1,16 @@
 //opcode    sel1      sel2    op       c    action
 
-  LOAD      RD        c       add      0    HW_clear_array
+  LOAD      RD        c       add      0    HW_set_array
   STORE     MEMADDR   c       shftr    2    HW_set_cache
-  INTALU    RD        c       add      0    HW_clear_array
+  INTALU    RD        c       add      0    HW_set_array
   INDCTRL   -         -       -        -    HW_nop
 
 //idx       sel1      sel2    op       c    action
 
-// If invalid memory tag, clear taint in array
-// If both ALU operands are clear, clear taint in array
-  1         RD        c       add      0    HW_clear_array
+// If invalid memory tag, invalidate load location
+// If ALU operands are invalid, invalidate destination
+  1         RD        c       add      0    HW_set_array
 // If invalid indctrl, skip
   2         -         -       -        -    HW_nop
-// If either ALU operand is tainted, set taint in array
-  3         RD        c       add      0    HW_set_array
+// If invalid source, invalidate store location
+  3         MEMADDR   c       shftr    2    HW_set_cache

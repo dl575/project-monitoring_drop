@@ -832,8 +832,18 @@ DropSimpleCPU::getMasterPort(const std::string &if_name, int idx)
   }
 }
 
+SlavePort &
+DropSimpleCPU::getSlavePort(const std::string &if_name, int idx)
+{
+  if (if_name == "monitor_port") {
+    return monitorPort;
+  } else {
+    return BaseCPU::getSlavePort(if_name, idx);
+  }
+}
+
 DropSimpleCPU::MonitorPort::MonitorPort(const std::string& _name,
-                                        BaseSimpleCPU *_cpu)
+                                        DropSimpleCPU *_cpu)
     : SimpleTimingPort(_name, _cpu), cpu(_cpu)
 { }
 
@@ -857,11 +867,9 @@ DropSimpleCPU::MonitorPort::recvFunctional(PacketPtr pkt)
 {
     if (!queue.checkFunctional(pkt)) {
         if (pkt->cmd == MemCmd::WriteReq) {
-            // write re-validation data
-            // address can be obtained by pkt->getAddr()
-            // pointer to data can be obtained by pkt->getPtr<typename>()
+            cpu->readFromFlagCache(pkt->getAddr(), pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
         } else if (pkt->cmd == MemCmd::ReadReq) {
-
+            cpu->writeToFlagCache(pkt->getAddr(), pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
         }
     }
 }

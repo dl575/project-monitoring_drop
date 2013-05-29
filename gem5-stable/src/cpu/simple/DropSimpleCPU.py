@@ -50,5 +50,7 @@ class DropSimpleCPU(BaseSimpleCPU):
     forward_fifo_enabled = Param.Bool(False, "monitoring forward fifo port enabled")
     full_clock = Param.Clock('500MHz', "Full monitoring clock frequency")
     
+    monitor_port = SlavePort("Monitor Port")
+    
     if forward_fifo_enabled:
       forward_fifo_port = MasterPort("Forward Fifo Port")
