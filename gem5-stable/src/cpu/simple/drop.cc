@@ -780,7 +780,9 @@ DropSimpleCPU::tick()
         if (forward_fifo_enabled) {
             forward_successful = forwardFifoPacket();
         }
-        mp.init();
+        if (forward_successful){
+            mp.init();
+        }
     }
     
     if (forward_successful){
