@@ -56,12 +56,15 @@ using namespace std;
 PerformanceTimer::PerformanceTimer(const Params* p) :
     AbstractMemory(p),
     lat(p->latency), lat_var(p->latency_var),
-    povr(p->percent_overhead)
+    povr(p->percent_overhead),
+    use_start_ticks(p->use_start_ticks)
 {
     for (size_t i = 0; i < p->port_port_connection_count; ++i) {
         ports.push_back(new MemoryPort(csprintf("%s-port-%d", name(), i),
                                        *this));
     }
+    
+    start_ticks = p->start_cycles * p->start_cycles_clock;
 }
 
 void
@@ -182,8 +185,13 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
               // Setup variables
               stored_tp.intask = true;
               stored_tp.taskStart = curTick();
-              // Use optionally passed value as initial slack
-              stored_tp.slack = get_data;
+              if (use_start_ticks){
+                // Use param based initial slack
+                stored_tp.slack = start_ticks;
+              } else {
+                // Use optionally passed value as initial slack
+                stored_tp.slack = get_data;
+              }
               DPRINTF(SlackTimer, "Written to timer: task start, slack = %d\n", effectiveSlack());
             } else if (write_addr == TIMER_END_TASK) {
               stored_tp.intask = false;

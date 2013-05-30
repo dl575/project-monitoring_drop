@@ -222,6 +222,10 @@ system.fifo_dc_to_mon = fifo_dc_to_mon
 # Create timer
 timer = PerformanceTimer(range=AddrRange(start=0x30010000, size="64kB"))
 timer.percent_overhead = options.overhead
+# For spec benchmarks, we set init slack here
+timer.start_cycles = 2000000
+timer.start_cycles_clock = MainCPUClass.clock
+timer.use_start_ticks = True
 system.timer = timer
 # Create flag cache
 flagcache = FlagCache(range=AddrRange(start=0x30020000, size="64kB"))

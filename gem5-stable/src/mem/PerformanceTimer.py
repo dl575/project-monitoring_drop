@@ -48,3 +48,6 @@ class PerformanceTimer(AbstractMemory):
     latency = Param.Latency('30ns', "Request to response latency")
     latency_var = Param.Latency('0ns', "Request to response latency variance")
     percent_overhead = Param.Float(0, "Percent overhead for slack increment")
+    start_cycles = Param.Tick(0, "Cycles to use for Start Task")
+    start_cycles_clock = Param.Clock('2GHz', "Clock to use for tick conversion")
+    use_start_ticks = Param.Bool(False, "Use param based start ticks")

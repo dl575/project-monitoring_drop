@@ -123,6 +123,10 @@ class PerformanceTimer : public AbstractMemory
     unsigned drops, not_drops;
     // Overhead
     float povr;
+    
+    // Start task ticks
+    Tick start_ticks;
+    bool use_start_ticks;
 
   public:
 
