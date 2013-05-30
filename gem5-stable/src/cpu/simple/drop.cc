@@ -823,7 +823,7 @@ DropSimpleCPU::tick()
         latency = ticks(1);
 
     if (_status != Idle) {
-        schedule(tickEvent, curTick() + latency);
+        schedule(tickEvent, roundDown(curTick() + latency + 1, 2) - 1);
     }
         
 }

@@ -1517,7 +1517,7 @@ AtomicSimpleMonitor::tick()
 
         if (mp.valid) {
             // model latency of reading a packet
-            stall_ticks += ticks(1);
+            // stall_ticks += ticks(1);
             // packet is valid, continue processing
             DPRINTF(Monitor, "Read a packet from main core\n");
             if (!mp.done) {
@@ -1537,7 +1537,7 @@ AtomicSimpleMonitor::tick()
         Tick aligned_stall_ticks = ticks(stall_cycles);
 
         if (aligned_stall_ticks < stall_ticks)
-            aligned_stall_ticks += 1;
+            aligned_stall_ticks += ticks(1);
 
         latency += aligned_stall_ticks;
     }
@@ -1547,7 +1547,7 @@ AtomicSimpleMonitor::tick()
         latency = ticks(1);
 
     if (_status != Idle)
-        schedule(tickEvent, roundDown(curTick()+latency, 2) + 1);
+        schedule(tickEvent, roundDown(curTick() + latency + 2, 3) - 2);
 }
 
 
