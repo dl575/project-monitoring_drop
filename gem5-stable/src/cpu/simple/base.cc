@@ -89,7 +89,6 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     : BaseCPU(p), traceData(NULL), thread(NULL),
     monitoring_enabled(p->monitoring_enabled), fifo_enabled(p->fifo_enabled),
     timer_enabled(p->timer_enabled), flagcache_enabled(p->flagcache_enabled),
-    num_filtered(0), dropstats(), filterstats(), fullstats(),
     hard_wcet(p->hard_wcet),
     fifoPort(name() + "-iport", this),
     timerPort(name() + "-iport", this),
@@ -321,6 +320,37 @@ BaseSimpleCPU::regStats()
         .desc("DCache total retry cycles")
         .prereq(dcacheRetryCycles)
         ;
+        
+    // Drop statistics      
+    dropstats
+        .init(num_inst_types)
+        .name(name() + ".drops")
+        .desc("Number of fifo packets that were dropped")
+        .flags(total)
+        ;
+    for (int i = 0; i < num_inst_types; i++) {
+        dropstats.subname(i, instTypeToString(i));
+    }
+        
+    fullstats
+        .init(num_inst_types)
+        .name(name() + ".non_drops")
+        .desc("Number of fifo packets that were not dropped")
+        .flags(total)
+        ;
+    for (int i = 0; i < num_inst_types; i++) {
+        fullstats.subname(i, instTypeToString(i));
+    }
+    
+    filterstats
+        .init(num_inst_types)
+        .name(name() + ".filtered")
+        .desc("Number of fifo packets that were filtered")
+        .flags(total)
+        ;
+    for (int i = 0; i < num_inst_types; i++) {
+        filterstats.subname(i, instTypeToString(i));
+    }
 
     idleFraction = constant(1.0) - notIdleFraction;
     numIdleCycles = idleFraction * numCycles;
@@ -1006,12 +1036,16 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
 {
     
     bool skip_drop = false;
+    instType itp = inst_undef;
     
     if (addr == TIMER_READ_DROP && fifo_enabled){
         // Pop the fifo entry
         bool pop = true;
         Fault result = writeToFifo(FIFO_NEXT, (uint8_t *)&pop, sizeof(pop), ArmISA::TLB::AllowUnaligned);
         if (result != NoFault) { return result; }
+        
+        // Read instruction type from fifo
+        itp = readFifoInstType();
         
         // Fixme: Prevents settag packets from being dropped. Does not work in real-time settings.
         readFromFifo(FIFO_SETTAG, (uint8_t *)&skip_drop, sizeof(skip_drop), ArmISA::TLB::AllowUnaligned);
@@ -1021,7 +1055,6 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             && (filtertab1.initialized || filtertab2.initialized))
         {
             DPRINTF(Invalidation, "Begin filtering\n");
-            instType itp = readFifoInstType();
             int select = 0;
             // Save address
             Addr saved_addr = 0;
@@ -1061,10 +1094,8 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             DPRINTF(Invalidation, "Filter table select %d @ %d points to %d\n", select, itp, itidx);
             // Perform filtering operation
             if (invtab.action[itidx].size()){
-                num_filtered++;
-                instType itp = readFifoInstType();
                 filterstats[itp]++;
-                DPRINTF(Invalidation, "Filtering fifo entry: num_filtered: %d\n", num_filtered);
+                DPRINTF(Invalidation, "Filtering fifo entry: num_filtered: %d\n", filterstats.total());
                 if (invtab.action[itidx] == "SW"){
                     // Perform filtering in SW
                     int return_code = 2;
@@ -1085,7 +1116,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     // use the CPU's statically allocated read request and packet objects
     Request *req = &data_read_req;
     // read data
-    long long int read_timer = 0;
+    long long int read_timer = 1;
     
     if (!skip_drop){
         // Create request at timer location
@@ -1102,8 +1133,6 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         
         // Clean up
         delete pkt;
-    } else {
-        read_timer = 1;
     }
     
     if (addr == TIMER_READ_SLACK) {
@@ -1115,37 +1144,31 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         read_timer /= ticks(1);
         
     } else if (addr == TIMER_READ_DROP) {
-    #ifdef DEBUG
-        unsigned drops = 0;
-        unsigned not_drops = 0;
-        readFromTimer(TIMER_DROPS, (uint8_t *)&drops, sizeof(drops), ArmISA::TLB::AllowUnaligned);
-        readFromTimer(TIMER_NOT_DROPS, (uint8_t *)&not_drops, sizeof(not_drops), ArmISA::TLB::AllowUnaligned);
-        DPRINTF(SlackTimer, "read from timer: drop? %d, numdrops: %d, numfull: %d\n", !read_timer, drops, not_drops);
-    #endif
-        if (fifo_enabled){
-            instType itp = readFifoInstType();
-            if (!read_timer){
-                dropstats[itp]++;
-                // Hardware invalidation
-                if (flagcache_enabled && invtab.initialized){
-                    DPRINTF(Invalidation, "Starting hardware invalidation.\n");
-                    // Check if LUT says to go back to software
-                    if (invtab.action[itp].size() && (invtab.action[itp] != "SW")){
-                        setFlagCacheAddr(invtab, itp);
-                        Fault result = performInvalidation(itp);
-                        DPRINTF(Invalidation, "Staying in HW.\n");
-                        return (result != NoFault)? result : ReExecFault; // Stay in HW
-                    }  
-                }
-            } else {
-                bool istaskpacket = false;
-                readFromTimer(TIMER_TASK_PACKET, (uint8_t *)&istaskpacket, sizeof(istaskpacket), ArmISA::TLB::AllowUnaligned);
-                if (istaskpacket){
-                    fullstats[itp]++;
-                }
+        
+        uint8_t intask = false;
+        readFromTimer(TIMER_TASK_PACKET, &intask, sizeof(intask), ArmISA::TLB::AllowUnaligned);
+        if (intask){
+            if (read_timer){ fullstats[itp]++; }
+            else { dropstats[itp]++; }
+        }
+        
+        // Hardware invalidation
+        if (fifo_enabled && !read_timer && flagcache_enabled && invtab.initialized){
+            DPRINTF(Invalidation, "Starting hardware invalidation.\n");
+            // Check if LUT says to go back to software
+            if (invtab.action[itp].size() && (invtab.action[itp] != "SW")){
+                setFlagCacheAddr(invtab, itp);
+                Fault result = performInvalidation(itp);
+                DPRINTF(Invalidation, "Staying in HW.\n");
+                return (result != NoFault)? result : ReExecFault; // Stay in HW
             }
         }
+        
+    #ifdef DEBUG
+        DPRINTF(SlackTimer, "read from timer: drop? %d, numdrops: %d, numfull: %d\n", !read_timer, dropstats.total(), fullstats.total());
         DPRINTF(Invalidation, "Using software with return code %d\n", read_timer);
+    #endif
+    
     }
     
     memcpy(data, &read_timer, size);
@@ -1258,38 +1281,7 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
     /* Check if next FIFO packet has the done flag and
      * exit.
      */
-    if (isFifoDone()) {
-        unsigned drops = 0;
-        unsigned not_drops = 0;
-        if (timer_enabled){
-            readFromTimer(TIMER_DROPS, (uint8_t *)&drops, sizeof(drops), ArmISA::TLB::AllowUnaligned);
-            readFromTimer(TIMER_NOT_DROPS, (uint8_t *)&not_drops, sizeof(not_drops), ArmISA::TLB::AllowUnaligned);
-        }
-        
-        unsigned num_aliased = 0;
-        if (flagcache_enabled){
-            readFromFlagCache(FC_ALIASED, (uint8_t *)&num_aliased, sizeof(num_aliased), ArmISA::TLB::AllowUnaligned);
-        }
-        
-        // Had some dropping event
-        if (drops || not_drops || num_filtered || num_aliased){
-            printf("Drops = %d, Non-drops = %d, Filtered = %d, Aliased = %d\n", drops, not_drops, num_filtered, num_aliased);
-            printf("Drop breakdown:\n");
-            for (int i = 0; i < num_inst_types; ++i){
-                printf("\tDrop_%s: %d\n", instTypeToString(i).data(), dropstats[i]);
-            }
-            printf("Non-drop breakdown:\n");
-            for (int i = 0; i < num_inst_types; ++i){
-                printf("\tFull_%s: %d\n", instTypeToString(i).data(), fullstats[i]);
-            }
-            printf("Filter breakdown:\n");
-            for (int i = 0; i < num_inst_types; ++i){
-                printf("\tFilter_%s: %d\n", instTypeToString(i).data(), filterstats[i]);
-            }
-        }
-
-        exitSimLoop("fifo done flag received");
-    }
+    if (isFifoDone()) { exitSimLoop("fifo done flag received"); }
     
   }
   
