@@ -534,6 +534,8 @@ class BaseSimpleCPU : public BaseCPU
     Fault performInvalidation(unsigned idx);
     // hard wcet deadline
     bool hard_wcet;
+    // emulate filtering but don't perform
+    bool emulate_filtering;
 
   protected:
     // Port for monitoring fifo

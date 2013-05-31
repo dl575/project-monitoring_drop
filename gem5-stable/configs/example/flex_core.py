@@ -75,6 +75,8 @@ parser.add_option("--simulatestalls", action="store_true")
 parser.add_option("--invalidation", action="store_true")
 # Set the desired overhead
 parser.add_option("--overhead", type="float", default=0.0)
+# Emulate filtering
+parser.add_option("--emulate_filtering", action="store_true")
 
 available_monitors = {
   "none" : 0,
@@ -150,6 +152,8 @@ DropCPUClass.clock = MainCPUClass.clock
 DropCPUClass.full_clock = MonCPUClass.clock
 # Enable output to second fifo
 DropCPUClass.forward_fifo_enabled = True
+# Emulate filtering set
+DropCPUClass.emulate_filtering = options.emulate_filtering
 
 if options.monitor == "umc":
   # Set up monitoring filter

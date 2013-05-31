@@ -89,7 +89,7 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     : BaseCPU(p), traceData(NULL), thread(NULL),
     monitoring_enabled(p->monitoring_enabled), fifo_enabled(p->fifo_enabled),
     timer_enabled(p->timer_enabled), flagcache_enabled(p->flagcache_enabled),
-    hard_wcet(p->hard_wcet),
+    hard_wcet(p->hard_wcet), emulate_filtering(p->emulate_filtering),
     fifoPort(name() + "-iport", this),
     timerPort(name() + "-iport", this),
     fcPort(name() + "-iport", this),
@@ -1037,6 +1037,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     
     bool skip_drop = false;
     instType itp = inst_undef;
+    bool entry_filtered = false;
     
     if (addr == TIMER_READ_DROP && fifo_enabled){
         // Pop the fifo entry
@@ -1096,17 +1097,21 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             if (invtab.action[itidx].size()){
                 filterstats[itp]++;
                 DPRINTF(Invalidation, "Filtering fifo entry: num_filtered: %d\n", filterstats.total());
-                if (invtab.action[itidx] == "SW"){
-                    // Perform filtering in SW
-                    int return_code = 2;
-                    DPRINTF(Invalidation, "Using software with return code %d\n", return_code);
-                    memcpy(data, &return_code, size);
-                    return NoFault;
+                if (!emulate_filtering){
+                    if (invtab.action[itidx] == "SW"){
+                        // Perform filtering in SW
+                        int return_code = 2;
+                        DPRINTF(Invalidation, "Using software with return code %d\n", return_code);
+                        memcpy(data, &return_code, size);
+                        return NoFault;
+                    } else {
+                        setFlagCacheAddr(invtab, itidx);
+                        result = performInvalidation(itidx);
+                        DPRINTF(Invalidation, "Filtered in HW.\n");
+                        return (result != NoFault)? result : ReExecFault; // Stay in HW
+                    }
                 } else {
-                    setFlagCacheAddr(invtab, itidx);
-                    result = performInvalidation(itidx);
-                    DPRINTF(Invalidation, "Filtered in HW.\n");
-                    return (result != NoFault)? result : ReExecFault; // Stay in HW
+                    entry_filtered = true;
                 }
             }
             DPRINTF(Invalidation, "Entry not filtered\n");
@@ -1147,7 +1152,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         
         uint8_t intask = false;
         readFromTimer(TIMER_TASK_PACKET, &intask, sizeof(intask), ArmISA::TLB::AllowUnaligned);
-        if (intask){
+        if (!entry_filtered && intask){
             if (read_timer){ fullstats[itp]++; }
             else { dropstats[itp]++; }
         }

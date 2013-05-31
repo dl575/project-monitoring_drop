@@ -53,6 +53,7 @@ class BaseSimpleCPU(BaseCPU):
     monitoring_filter_indctrl = Param.Bool(False, "monitoring indirect control instructions")
     # Check if WCET violated
     hard_wcet = Param.Bool(True, "check if hard real-time deadline met")
+    emulate_filtering = Param.Bool(False, "emulate filtering but don't perform")
 
     if fifo_enabled:
       fifo_port = MasterPort("Fifo Port")
