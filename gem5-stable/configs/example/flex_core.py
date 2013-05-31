@@ -161,9 +161,9 @@ if options.monitor == "umc":
   MainCPUClass.monitoring_filter_store = True
   if options.invalidation:
     # Load the invalidation file
-    DropCPUClass.invalidation_file = "tables/umc_invalidation.txt"
-    DropCPUClass.filter_file_1 = "tables/umc_filter.txt"
-    DropCPUClass.filter_ptr_file = "tables/umc_filter_ptrs.txt"
+    DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/umc_invalidation.txt"
+    DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/umc_filter.txt"
+    DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/umc_filter_ptrs.txt"
 elif options.monitor == "dift":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
@@ -172,10 +172,10 @@ elif options.monitor == "dift":
   MainCPUClass.monitoring_filter_indctrl = True
   if options.invalidation:
     # Load the invalidation file
-    DropCPUClass.invalidation_file = "tables/dift_invalidation.txt"
-    DropCPUClass.filter_file_1 = "tables/dift_filter1.txt"
-    DropCPUClass.filter_file_2 = "tables/dift_filter2.txt"
-    DropCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
+    DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/dift_invalidation.txt"
+    DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/dift_filter1.txt"
+    DropCPUClass.filter_file_2 = os.environ["GEM5"] + "/tables/dift_filter2.txt"
+    DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/dift_filter_ptrs.txt"
 elif options.monitor == "bc":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
@@ -183,10 +183,10 @@ elif options.monitor == "bc":
   MainCPUClass.monitoring_filter_intalu = True
   if options.invalidation:
     # Load the invalidation file
-    DropCPUClass.invalidation_file = "tables/dift_invalidation.txt"
-    DropCPUClass.filter_file_1 = "tables/dift_filter1.txt"
-    DropCPUClass.filter_file_2 = "tables/dift_filter2.txt"
-    DropCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
+    DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/dift_invalidation.txt"
+    DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/dift_filter1.txt"
+    DropCPUClass.filter_file_2 = os.environ["GEM5"] + "/tables/dift_filter2.txt"
+    DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/dift_filter_ptrs.txt"
 elif options.monitor == "hb":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
@@ -194,10 +194,10 @@ elif options.monitor == "hb":
   MainCPUClass.monitoring_filter_intalu = True
   if options.invalidation:
     # Load the invalidation file
-    DropCPUClass.invalidation_file = "tables/dift_invalidation.txt"
-    DropCPUClass.filter_file_1 = "tables/dift_filter1.txt"
-    DropCPUClass.filter_file_2 = "tables/dift_filter2.txt"
-    DropCPUClass.filter_ptr_file = "tables/dift_filter_ptrs.txt"
+    DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/dift_invalidation.txt"
+    DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/dift_filter1.txt"
+    DropCPUClass.filter_file_2 = os.environ["GEM5"] + "/tables/dift_filter2.txt"
+    DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/dift_filter_ptrs.txt"
 elif options.monitor == "none":
   # Set up monitoring filter
   pass
