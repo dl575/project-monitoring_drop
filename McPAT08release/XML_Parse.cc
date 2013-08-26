@@ -34,6 +34,7 @@
 #include "xmlParser.h"
 #include <string>
 #include "XML_Parse.h"
+#include <assert.h>
 
 using namespace std;
 
@@ -577,6 +578,93 @@ void ParseXML::parse(char* filepath)
 								if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"replacements")==0) {sys.core[i].BTB.replacements=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
 							}
 						}
+
+						if (strcmp(xNode4.getAttribute("name"),"MIM")==0)
+						{//find system.core0.MIM
+							itmp=xNode4.nChildNode("param");
+							for(k=0; k<itmp; k++)
+							{ //get all items of param in system.core0.MIM--MIM
+								if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"mcache_config")==0)
+								{
+									strtmp.assign(xNode4.getChildNode("param",k).getAttribute("value"));
+									m=0;
+									for(n=0; n<strtmp.length(); n++)
+									{
+										if (strtmp[n]!=',')
+										{
+											sprintf(chtmp,"%c",strtmp[n]);
+											strcat(chtmp1,chtmp);
+										}
+										else{
+											sys.core[i].MIM.mcache_config[m]=atof(chtmp1);
+											m++;
+											chtmp1[0]='\0';
+										}
+									}
+									sys.core[i].MIM.mcache_config[m]=atof(chtmp1);
+									m++;
+									chtmp1[0]='\0';
+									continue;
+								}
+								if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"buffer_sizes")==0)
+								{
+									strtmp.assign(xNode4.getChildNode("param",k).getAttribute("value"));
+									m=0;
+									for(n=0; n<strtmp.length(); n++)
+									{
+										if (strtmp[n]!=',')
+										{
+											sprintf(chtmp,"%c",strtmp[n]);
+											strcat(chtmp1,chtmp);
+										}
+										else{
+											sys.core[i].MIM.buffer_sizes[m]=atoi(chtmp1);
+											m++;
+											chtmp1[0]='\0';
+										}
+									}
+									sys.core[i].MIM.buffer_sizes[m]=atoi(chtmp1);
+									m++;
+									chtmp1[0]='\0';
+								}
+                if (strcmp(xNode3.getChildNode("param",k).getAttribute("name"),"store_buffer_size")==0) {sys.core[i].MIM.store_buffer_size=atoi(xNode3.getChildNode("param",k).getAttribute("value"));continue;}
+							if (strcmp(xNode3.getChildNode("param",k).getAttribute("name"),"load_buffer_size")==0) {sys.core[i].MIM.load_buffer_size=atoi(xNode3.getChildNode("param",k).getAttribute("value"));continue;}
+              }
+
+							itmp=xNode4.nChildNode("stat");
+							for(k=0; k<itmp; k++)
+							{ //get all items of stat in MIM
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"ALU_duty_cycle")==0) {sys.core[i].MIM.ALU_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"regfile_reads")==0) {sys.core[i].MIM.regfile_reads=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"regfile_writes")==0) {sys.core[i].MIM.regfile_writes=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"LSU_duty_cycle")==0) {sys.core[i].MIM.LSU_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"read_accesses")==0) {sys.core[i].MIM.read_accesses=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"write_accesses")==0) {sys.core[i].MIM.write_accesses=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"read_misses")==0) {sys.core[i].MIM.read_misses=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"write_misses")==0) {sys.core[i].MIM.write_misses=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"loads")==0) {sys.core[i].MIM.loads=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"stores")==0) {sys.core[i].MIM.stores=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"CT_duty_cycle")==0) {sys.core[i].MIM.CT_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"CT_reads")==0) {sys.core[i].MIM.CT_reads=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"alu_accesses")==0) {sys.core[i].MIM.alu_accesses=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+              }
+
+              // Check that a valid (non-zero) value is set for all stats
+              assert(sys.core[i].MIM.ALU_duty_cycle);
+              assert(sys.core[i].MIM.regfile_reads);
+              assert(sys.core[i].MIM.regfile_writes);
+              assert(sys.core[i].MIM.LSU_duty_cycle);
+              assert(sys.core[i].MIM.read_accesses);
+              assert(sys.core[i].MIM.write_accesses);
+              assert(sys.core[i].MIM.read_misses);
+              assert(sys.core[i].MIM.write_misses);
+              assert(sys.core[i].MIM.loads);
+              assert(sys.core[i].MIM.stores);
+              assert(sys.core[i].MIM.CT_duty_cycle);
+              assert(sys.core[i].MIM.CT_reads);
+              assert(sys.core[i].MIM.alu_accesses);
+            }
+
 					}
 				}
 				else {

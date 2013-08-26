@@ -16,26 +16,17 @@ MIM_LoadStoreU::MIM_LoadStoreU(ParseXML* XML_interface, int ithCore_, InputParam
 
 	  clockRate = coredynp.clockRate;
 	  executionTime = coredynp.executionTime;
-    // Using same cache policy as configured for dcache
-	  cache_p = (Cache_policy)XML->sys.core[ithCore].dcache.dcache_config[7];
+	  cache_p = (Cache_policy)XML->sys.core[ithCore].MIM.mcache_config[7];
 
 	  interface_ip.num_search_ports    = XML->sys.core[ithCore].memory_ports;
 	  interface_ip.is_cache			   = true;
 	  interface_ip.pure_cam            = false;
 	  interface_ip.pure_ram            = false;
 	  //Dcache
-    /*
-	  size                             = (int)XML->sys.core[ithCore].dcache.dcache_config[0];
-	  line                             = (int)XML->sys.core[ithCore].dcache.dcache_config[1];
-	  assoc                            = (int)XML->sys.core[ithCore].dcache.dcache_config[2];
-	  banks                            = (int)XML->sys.core[ithCore].dcache.dcache_config[3];
-    */
-    // FIXME: config from XML
-    size = 2048;
-    // Line size in bytes
-    line = (int)XML->sys.core[ithCore].dcache.dcache_config[1];
-    assoc = 1;
-    banks = 1;
+	  size                             = (int)XML->sys.core[ithCore].MIM.mcache_config[0];
+	  line                             = (int)XML->sys.core[ithCore].MIM.mcache_config[1];
+	  assoc                            = (int)XML->sys.core[ithCore].MIM.mcache_config[2];
+	  banks                            = (int)XML->sys.core[ithCore].MIM.mcache_config[3];
 	  idx    					 	   = debug?9:int(ceil(log2(size/line/assoc)));
 	  tag							   = debug?51:XML->sys.physical_address_width-idx-int(ceil(log2(line))) + EXTRA_TAG_BITS;
 	  interface_ip.specific_tag        = 1;
@@ -53,10 +44,10 @@ MIM_LoadStoreU::MIM_LoadStoreU(ParseXML* XML_interface, int ithCore_, InputParam
     // Bus width in bits
 	  interface_ip.out_w               = interface_ip.line_sz*8;
     // Normal access mode
-	  interface_ip.access_mode         = 0;//debug?0:XML->sys.core[ithCore].dcache.dcache_config[5];
+	  interface_ip.access_mode         = 0;
     // Using same througput and latency as dcache
-	  interface_ip.throughput          = debug?1.0/clockRate:XML->sys.core[ithCore].dcache.dcache_config[4]/clockRate;
-	  interface_ip.latency             = debug?3.0/clockRate:XML->sys.core[ithCore].dcache.dcache_config[5]/clockRate;
+	  interface_ip.throughput          = debug?1.0/clockRate:XML->sys.core[ithCore].MIM.mcache_config[4]/clockRate;
+	  interface_ip.latency             = debug?3.0/clockRate:XML->sys.core[ithCore].MIM.mcache_config[5]/clockRate;
 	  interface_ip.is_cache			 = true;
 	  interface_ip.obj_func_dyn_energy = 0;
 	  interface_ip.obj_func_dyn_power  = 0;
@@ -79,13 +70,13 @@ MIM_LoadStoreU::MIM_LoadStoreU(ParseXML* XML_interface, int ithCore_, InputParam
 	  interface_ip.specific_tag        = 1;
 	  interface_ip.tag_w               = tag;
 	  interface_ip.line_sz             = int(ceil(data/8.0));//int(ceil(pow(2.0,ceil(log2(data)))/8.0));
-	  interface_ip.cache_sz            = XML->sys.core[ithCore].dcache.buffer_sizes[0]*interface_ip.line_sz;
+	  interface_ip.cache_sz            = XML->sys.core[ithCore].MIM.buffer_sizes[0]*interface_ip.line_sz;
 	  interface_ip.assoc               = 0;
 	  interface_ip.nbanks              = 1;
 	  interface_ip.out_w               = interface_ip.line_sz*8;
 	  interface_ip.access_mode         = 2;
-	  interface_ip.throughput          = debug?1.0/clockRate:XML->sys.core[ithCore].dcache.dcache_config[4]/clockRate;
-	  interface_ip.latency             = debug?1.0/clockRate:XML->sys.core[ithCore].dcache.dcache_config[5]/clockRate;
+	  interface_ip.throughput          = debug?1.0/clockRate:XML->sys.core[ithCore].MIM.mcache_config[4]/clockRate;
+	  interface_ip.latency             = debug?1.0/clockRate:XML->sys.core[ithCore].MIM.mcache_config[5]/clockRate;
 	  interface_ip.obj_func_dyn_energy = 0;
 	  interface_ip.obj_func_dyn_power  = 0;
 	  interface_ip.obj_func_leak_power = 0;
@@ -94,7 +85,7 @@ MIM_LoadStoreU::MIM_LoadStoreU(ParseXML* XML_interface, int ithCore_, InputParam
 	  interface_ip.num_rd_ports    = 0;
 	  interface_ip.num_wr_ports    = 0;
 	  interface_ip.num_se_rd_ports = 0;
-	  dcache.missb = new ArrayST(&interface_ip, "dcacheMissBuffer", Core_device, coredynp.opt_local, coredynp.core_ty);
+	  dcache.missb = new ArrayST(&interface_ip, "MICMissBuffer", Core_device, coredynp.opt_local, coredynp.core_ty);
 	  dcache.area.set_area(dcache.area.get_area()+ dcache.missb->local_result.area);
 	  area.set_area(area.get_area()+ dcache.missb->local_result.area);
 	  //output_data_csv(dcache.missb.local_result);
@@ -105,13 +96,13 @@ MIM_LoadStoreU::MIM_LoadStoreU(ParseXML* XML_interface, int ithCore_, InputParam
 	  interface_ip.specific_tag        = 1;
 	  interface_ip.tag_w               = tag;
 	  interface_ip.line_sz             = data;//int(pow(2.0,ceil(log2(data))));
-	  interface_ip.cache_sz            = data*XML->sys.core[ithCore].dcache.buffer_sizes[1];
+	  interface_ip.cache_sz            = data*XML->sys.core[ithCore].MIM.buffer_sizes[1];
 	  interface_ip.assoc               = 0;
 	  interface_ip.nbanks              = 1;
 	  interface_ip.out_w               = interface_ip.line_sz*8;
 	  interface_ip.access_mode         = 2;
-	  interface_ip.throughput          = debug?1.0/clockRate:XML->sys.core[ithCore].dcache.dcache_config[4]/clockRate;
-	  interface_ip.latency             = debug?1.0/clockRate:XML->sys.core[ithCore].dcache.dcache_config[5]/clockRate;
+	  interface_ip.throughput          = debug?1.0/clockRate:XML->sys.core[ithCore].MIM.mcache_config[4]/clockRate;
+	  interface_ip.latency             = debug?1.0/clockRate:XML->sys.core[ithCore].MIM.mcache_config[5]/clockRate;
 	  interface_ip.obj_func_dyn_energy = 0;
 	  interface_ip.obj_func_dyn_power  = 0;
 	  interface_ip.obj_func_leak_power = 0;
@@ -131,15 +122,13 @@ MIM_LoadStoreU::MIM_LoadStoreU(ParseXML* XML_interface, int ithCore_, InputParam
 	  interface_ip.specific_tag        = 1;
 	  interface_ip.tag_w               = tag;
 	  interface_ip.line_sz             = data;//int(pow(2.0,ceil(log2(data))));
-	  //interface_ip.cache_sz            = XML->sys.core[ithCore].dcache.buffer_sizes[2]*interface_ip.line_sz;
-    // Cache size set to 0 to remove prefetch buffer
-	  interface_ip.cache_sz            = 0;
+	  interface_ip.cache_sz            = XML->sys.core[ithCore].MIM.buffer_sizes[2]*interface_ip.line_sz;
 	  interface_ip.assoc               = 0;
 	  interface_ip.nbanks              = 1;
 	  interface_ip.out_w               = interface_ip.line_sz*8;
 	  interface_ip.access_mode         = 2;
-	  interface_ip.throughput          = debug?1.0/clockRate:XML->sys.core[ithCore].dcache.dcache_config[4]/clockRate;
-	  interface_ip.latency             = debug?1.0/clockRate:XML->sys.core[ithCore].dcache.dcache_config[5]/clockRate;
+	  interface_ip.throughput          = debug?1.0/clockRate:XML->sys.core[ithCore].MIM.mcache_config[4]/clockRate;
+	  interface_ip.latency             = debug?1.0/clockRate:XML->sys.core[ithCore].MIM.mcache_config[5]/clockRate;
 	  interface_ip.obj_func_dyn_energy = 0;
 	  interface_ip.obj_func_dyn_power  = 0;
 	  interface_ip.obj_func_leak_power = 0;
@@ -162,13 +151,13 @@ MIM_LoadStoreU::MIM_LoadStoreU(ParseXML* XML_interface, int ithCore_, InputParam
 		  interface_ip.specific_tag        = 1;
 		  interface_ip.tag_w               = tag;
 		  interface_ip.line_sz             = data;
-		  interface_ip.cache_sz            = XML->sys.core[ithCore].dcache.buffer_sizes[3]*interface_ip.line_sz;
+		  interface_ip.cache_sz            = XML->sys.core[ithCore].MIM.buffer_sizes[3]*interface_ip.line_sz;
 		  interface_ip.assoc               = 0;
 		  interface_ip.nbanks              = 1;
 		  interface_ip.out_w               = interface_ip.line_sz*8;
 		  interface_ip.access_mode         = 2;
-		  interface_ip.throughput          = debug?1.0/clockRate:XML->sys.core[ithCore].dcache.dcache_config[4]/clockRate;
-		  interface_ip.latency             = debug?1.0/clockRate:XML->sys.core[ithCore].dcache.dcache_config[5]/clockRate;
+		  interface_ip.throughput          = debug?1.0/clockRate:XML->sys.core[ithCore].MIM.mcache_config[4]/clockRate;
+		  interface_ip.latency             = debug?1.0/clockRate:XML->sys.core[ithCore].MIM.mcache_config[5]/clockRate;
 		  interface_ip.obj_func_dyn_energy = 0;
 		  interface_ip.obj_func_dyn_power  = 0;
 		  interface_ip.obj_func_leak_power = 0;
@@ -194,7 +183,7 @@ MIM_LoadStoreU::MIM_LoadStoreU(ParseXML* XML_interface, int ithCore_, InputParam
 	  interface_ip.line_sz             = int(ceil(data/32.0))*4;
 	  interface_ip.specific_tag        = 1;
 	  interface_ip.tag_w               = tag;
-	  interface_ip.cache_sz            = XML->sys.core[ithCore].store_buffer_size*interface_ip.line_sz*XML->sys.core[ithCore].number_hardware_threads;
+	  interface_ip.cache_sz            = XML->sys.core[ithCore].MIM.store_buffer_size*interface_ip.line_sz*XML->sys.core[ithCore].number_hardware_threads;
 	  interface_ip.assoc               = 0;
 	  interface_ip.nbanks              = 1;
 	  interface_ip.out_w               = interface_ip.line_sz*8;
@@ -217,12 +206,12 @@ MIM_LoadStoreU::MIM_LoadStoreU(ParseXML* XML_interface, int ithCore_, InputParam
 	  //output_data_csv(LSQ.LSQ.local_result);
 	  lsq_height=LSQ->local_result.cache_ht*sqrt(cdb_overhead);/*XML->sys.core[ithCore].number_hardware_threads*/
 
-	  if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].load_buffer_size >0))
+	  if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].MIM.load_buffer_size >0))
 	  {
 		  interface_ip.line_sz             = int(ceil(data/32.0))*4;
 		  interface_ip.specific_tag        = 1;
 		  interface_ip.tag_w               = tag;
-		  interface_ip.cache_sz            = XML->sys.core[ithCore].load_buffer_size*interface_ip.line_sz*XML->sys.core[ithCore].number_hardware_threads;
+		  interface_ip.cache_sz            = XML->sys.core[ithCore].MIM.load_buffer_size*interface_ip.line_sz*XML->sys.core[ithCore].number_hardware_threads;
 		  interface_ip.assoc               = 0;
 		  interface_ip.nbanks              = 1;
 		  interface_ip.out_w               = interface_ip.line_sz*8;
@@ -372,23 +361,28 @@ void MIM_RegFU::computeEnergy(bool is_tdp)
  * Therefore, the RF stats can only refer to either ARF or PRF;
  * And the same stats can be used for both.
  */
+
+  // max 1 monitoring event per cycle
+  int issueW = 1;
+  double ALU_duty_cycle = XML->sys.core[ithCore].MIM.ALU_duty_cycle;
+  int regfile_reads = XML->sys.core[ithCore].MIM.regfile_reads;
+  int regfile_writes = XML->sys.core[ithCore].MIM.regfile_writes;
+
 	if (!exist) return;
 	if (is_tdp)
     {
     	//init stats for Peak
       // FIXME: these stats are for using core parameters
-    	IRF->stats_t.readAc.access  = coredynp.issueW*2*(coredynp.ALU_duty_cycle*1.1+
-    			(coredynp.num_muls>0?coredynp.MUL_duty_cycle:0))*coredynp.num_pipelines;
-    	IRF->stats_t.writeAc.access  = coredynp.issueW*(coredynp.ALU_duty_cycle*1.1+
-    			(coredynp.num_muls>0?coredynp.MUL_duty_cycle:0))*coredynp.num_pipelines;
+    	IRF->stats_t.readAc.access = issueW*2*(ALU_duty_cycle*1.1);
+    	IRF->stats_t.writeAc.access = issueW*(ALU_duty_cycle*1.1);
     	//Rule of Thumb: about 10% RF related instructions do not need to access ALUs
     	IRF->tdp_stats = IRF->stats_t;
     }
     else
     {
     	//init stats for Runtime Dynamic (RTP)
-    	IRF->stats_t.readAc.access  = XML->sys.core[ithCore].int_regfile_reads;//TODO: no diff on archi and phy
-    	IRF->stats_t.writeAc.access  = XML->sys.core[ithCore].int_regfile_writes;
+    	IRF->stats_t.readAc.access  = regfile_reads;
+    	IRF->stats_t.writeAc.access  = regfile_writes;
     	IRF->rtp_stats = IRF->stats_t;
     }
 	IRF->power_t.reset();
@@ -441,13 +435,16 @@ MIM_RegFU ::~MIM_RegFU(){
 void MIM_LoadStoreU::computeEnergy(bool is_tdp)
 {
 	if (!exist) return;
+
+  double LSU_duty_cycle = XML->sys.core[ithCore].MIM.LSU_duty_cycle;
+
 	if (is_tdp)
 	    {
 	    	//init stats for Peak
-	    	dcache.caches->stats_t.readAc.access  = 0.67*dcache.caches->l_ip.num_rw_ports*coredynp.LSU_duty_cycle;
+	    	dcache.caches->stats_t.readAc.access  = 0.67*dcache.caches->l_ip.num_rw_ports*LSU_duty_cycle;
 	    	dcache.caches->stats_t.readAc.miss    = 0;
 	    	dcache.caches->stats_t.readAc.hit     = dcache.caches->stats_t.readAc.access - dcache.caches->stats_t.readAc.miss;
-	    	dcache.caches->stats_t.writeAc.access = 0.33*dcache.caches->l_ip.num_rw_ports*coredynp.LSU_duty_cycle;
+	    	dcache.caches->stats_t.writeAc.access = 0.33*dcache.caches->l_ip.num_rw_ports*LSU_duty_cycle;
 	    	dcache.caches->stats_t.writeAc.miss   = 0;
     		dcache.caches->stats_t.writeAc.hit    = dcache.caches->stats_t.writeAc.access -	dcache.caches->stats_t.writeAc.miss;
 	    	dcache.caches->tdp_stats = dcache.caches->stats_t;
@@ -470,22 +467,22 @@ void MIM_LoadStoreU::computeEnergy(bool is_tdp)
 	    		dcache.wbb->tdp_stats = dcache.wbb->stats_t;
 	    	}
 
-	    	LSQ->stats_t.readAc.access = LSQ->stats_t.writeAc.access = LSQ->l_ip.num_search_ports*coredynp.LSU_duty_cycle;
+	    	LSQ->stats_t.readAc.access = LSQ->stats_t.writeAc.access = LSQ->l_ip.num_search_ports*LSU_duty_cycle;
 	    	LSQ->tdp_stats = LSQ->stats_t;
-	    	if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].load_buffer_size >0))
+	    	if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].MIM.load_buffer_size >0))
 	    	{
-	    		LoadQ->stats_t.readAc.access = LoadQ->stats_t.writeAc.access = LoadQ->l_ip.num_search_ports*coredynp.LSU_duty_cycle;
+	    		LoadQ->stats_t.readAc.access = LoadQ->stats_t.writeAc.access = LoadQ->l_ip.num_search_ports*LSU_duty_cycle;
 	    		LoadQ->tdp_stats = LoadQ->stats_t;
 	    	}
 	    }
 	    else
 	    {
 	    	//init stats for Runtime Dynamic (RTP)
-	    	dcache.caches->stats_t.readAc.access  = XML->sys.core[ithCore].dcache.read_accesses;
-	    	dcache.caches->stats_t.readAc.miss    = XML->sys.core[ithCore].dcache.read_misses;
+	    	dcache.caches->stats_t.readAc.access  = XML->sys.core[ithCore].MIM.read_accesses;
+	    	dcache.caches->stats_t.readAc.miss    = XML->sys.core[ithCore].MIM.read_misses;
 	    	dcache.caches->stats_t.readAc.hit     = dcache.caches->stats_t.readAc.access - dcache.caches->stats_t.readAc.miss;
-	    	dcache.caches->stats_t.writeAc.access = XML->sys.core[ithCore].dcache.write_accesses;
-	    	dcache.caches->stats_t.writeAc.miss   = XML->sys.core[ithCore].dcache.write_misses;
+	    	dcache.caches->stats_t.writeAc.access = XML->sys.core[ithCore].MIM.write_accesses;
+	    	dcache.caches->stats_t.writeAc.miss   = XML->sys.core[ithCore].MIM.write_misses;
     		dcache.caches->stats_t.writeAc.hit    = dcache.caches->stats_t.writeAc.access -	dcache.caches->stats_t.writeAc.miss;
 	    	dcache.caches->rtp_stats = dcache.caches->stats_t;
 
@@ -522,14 +519,14 @@ void MIM_LoadStoreU::computeEnergy(bool is_tdp)
 	    		dcache.prefetchb->rtp_stats = dcache.prefetchb->stats_t;
 	    	}
 
-	    	LSQ->stats_t.readAc.access  = (XML->sys.core[ithCore].load_instructions + XML->sys.core[ithCore].store_instructions)*2;//flush overhead considered
-	    	LSQ->stats_t.writeAc.access = (XML->sys.core[ithCore].load_instructions + XML->sys.core[ithCore].store_instructions)*2;
+	    	LSQ->stats_t.readAc.access  = (XML->sys.core[ithCore].MIM.loads + XML->sys.core[ithCore].MIM.stores)*2;//flush overhead considered
+	    	LSQ->stats_t.writeAc.access = (XML->sys.core[ithCore].MIM.loads + XML->sys.core[ithCore].MIM.stores)*2;
 	    	LSQ->rtp_stats = LSQ->stats_t;
 
-	    	if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].load_buffer_size >0))
+	    	if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].MIM.load_buffer_size >0))
 	    	{
-		    	LoadQ->stats_t.readAc.access  = XML->sys.core[ithCore].load_instructions + XML->sys.core[ithCore].store_instructions;
-		    	LoadQ->stats_t.writeAc.access = XML->sys.core[ithCore].load_instructions + XML->sys.core[ithCore].store_instructions;
+		    	LoadQ->stats_t.readAc.access  = XML->sys.core[ithCore].MIM.loads + XML->sys.core[ithCore].MIM.stores;
+		    	LoadQ->stats_t.writeAc.access = XML->sys.core[ithCore].MIM.loads + XML->sys.core[ithCore].MIM.stores;
 		    	LoadQ->rtp_stats = LoadQ->stats_t;
 	    	}
 
@@ -559,7 +556,7 @@ void MIM_LoadStoreU::computeEnergy(bool is_tdp)
 			+ dcache.wbb->stats_t.writeAc.access*dcache.wbb->local_result.power.writeOp.dynamic;
     }
 
-    if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].load_buffer_size >0))
+    if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].MIM.load_buffer_size >0))
     {
     	LoadQ->power_t.reset();
     	LoadQ->power_t.readOp.dynamic  +=  LoadQ->stats_t.readAc.access*(LoadQ->local_result.power.searchOp.dynamic+ LoadQ->local_result.power.readOp.dynamic)+
@@ -595,7 +592,7 @@ void MIM_LoadStoreU::computeEnergy(bool is_tdp)
     	LSQ->power = LSQ->power_t + LSQ->local_result.power *pppm_lkg;
     	power     = power + dcache.power + LSQ->power;
 
-    	if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].load_buffer_size >0))
+    	if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].MIM.load_buffer_size >0))
     	{
     		LoadQ->power = LoadQ->power_t + LoadQ->local_result.power *pppm_lkg;
     		power     = power + LoadQ->power;
@@ -621,7 +618,7 @@ void MIM_LoadStoreU::computeEnergy(bool is_tdp)
     	LSQ->rt_power = LSQ->power_t + LSQ->local_result.power *pppm_lkg;
     	rt_power     = rt_power + dcache.rt_power + LSQ->rt_power;
 
-    	if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].load_buffer_size >0))
+    	if ((coredynp.core_ty==OOO) && (XML->sys.core[ithCore].MIM.load_buffer_size >0))
     	{
     		LoadQ->rt_power = LoadQ->power_t + LoadQ->local_result.power *pppm_lkg;
     		rt_power     = rt_power + LoadQ->rt_power;
@@ -662,7 +659,7 @@ void MIM_LoadStoreU::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
 		else
 
 		{
-			if (XML->sys.core[ithCore].load_buffer_size >0)
+			if (XML->sys.core[ithCore].MIM.load_buffer_size >0)
 			{
 				cout << indent_str << "LoadQ:" << endl;
 				cout << indent_str_next << "Area = " << LoadQ->area.get_area() *1e-6 << " mm^2" << endl;
@@ -711,14 +708,16 @@ void MIM_LoadStoreU::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
 void MIM_ConfigTable::computeEnergy(bool is_tdp)
 {
 	if (!exist) return;
+
+  int issueW = 1;
+  double CT_duty_cycle = XML->sys.core[ithCore].MIM.CT_duty_cycle;
+
 	if (is_tdp)
     {
       // FIXME: stats are for core
     	//init stats for Peak
-    	ConfigTable->stats_t.readAc.access  = coredynp.issueW*2*(coredynp.ALU_duty_cycle*1.1+
-    			(coredynp.num_muls>0?coredynp.MUL_duty_cycle:0))*coredynp.num_pipelines;
-    	ConfigTable->stats_t.writeAc.access  = coredynp.issueW*(coredynp.ALU_duty_cycle*1.1+
-    			(coredynp.num_muls>0?coredynp.MUL_duty_cycle:0))*coredynp.num_pipelines;
+    	ConfigTable->stats_t.readAc.access  = issueW*2*(CT_duty_cycle*1.1);
+    	ConfigTable->stats_t.writeAc.access  = issueW*(CT_duty_cycle*1.1);
     	//Rule of Thumb: about 10% RF related instructions do not need to access ALUs
     	ConfigTable->tdp_stats = ConfigTable->stats_t;
      }
@@ -726,7 +725,8 @@ void MIM_ConfigTable::computeEnergy(bool is_tdp)
     {
     	//init stats for Runtime Dynamic (RTP)
     	ConfigTable->stats_t.readAc.access  = XML->sys.core[ithCore].int_regfile_reads;//TODO: no diff on archi and phy
-    	ConfigTable->stats_t.writeAc.access  = XML->sys.core[ithCore].int_regfile_writes;
+      // Never write to ConfigTable
+    	ConfigTable->stats_t.writeAc.access  = 0; //XML->sys.core[ithCore].int_regfile_writes;
     	ConfigTable->rtp_stats = ConfigTable->stats_t;
 
     }
@@ -1028,72 +1028,41 @@ MIM_FunctionalUnit::MIM_FunctionalUnit(ParseXML *XML_interface, int ithCore_, In
 void MIM_FunctionalUnit::computeEnergy(bool is_tdp)
 {
 	double pppm_t[4]    = {1,1,1,1};
+
 	double FU_duty_cycle;
+
 	if (is_tdp)
 	{
-
-
 		set_pppm(pppm_t, 2, 2, 2, 2);//2 means two source operands needs to be passed for each int instruction.
-		if (fu_type == FPU)
-		{
-			stats_t.readAc.access = num_fu;
-			tdp_stats = stats_t;
-			FU_duty_cycle = coredynp.FPU_duty_cycle;
-		}
-		else if (fu_type == ALU)
-		{
-			stats_t.readAc.access = 1*num_fu;
-			tdp_stats = stats_t;
-			FU_duty_cycle = coredynp.ALU_duty_cycle;
-		}
-		else if (fu_type == MUL)
-		{
-			stats_t.readAc.access = num_fu;
-			tdp_stats = stats_t;
-			FU_duty_cycle = coredynp.MUL_duty_cycle;
-		}
+	
+    stats_t.readAc.access = 1*num_fu;
+    tdp_stats = stats_t;
+    FU_duty_cycle = XML->sys.core[ithCore].MIM.ALU_duty_cycle;
 
-	    //power.readOp.dynamic = base_energy/clockRate + energy*stats_t.readAc.access;
-	    power.readOp.dynamic = per_access_energy*stats_t.readAc.access + base_energy/clockRate;
+    //power.readOp.dynamic = base_energy/clockRate + energy*stats_t.readAc.access;
+    power.readOp.dynamic = per_access_energy*stats_t.readAc.access + base_energy/clockRate;
 		double sckRation = g_tp.sckt_co_eff;
 		power.readOp.dynamic *= sckRation*FU_duty_cycle;
 		power.writeOp.dynamic *= sckRation;
 		power.searchOp.dynamic *= sckRation;
 
-	    power.readOp.leakage = leakage;
-	    power.readOp.gate_leakage = gate_leakage;
-	    double long_channel_device_reduction = longer_channel_device_reduction(Core_device, coredynp.core_ty);
-	    power.readOp.longer_channel_leakage	= power.readOp.leakage*long_channel_device_reduction;
-
+    power.readOp.leakage = leakage;
+    power.readOp.gate_leakage = gate_leakage;
+    double long_channel_device_reduction = longer_channel_device_reduction(Core_device, coredynp.core_ty);
+    power.readOp.longer_channel_leakage	= power.readOp.leakage*long_channel_device_reduction;
 	}
 	else
 	{
-		if (fu_type == FPU)
-		{
-			stats_t.readAc.access = XML->sys.core[ithCore].fpu_accesses;
-			rtp_stats = stats_t;
-		}
-		else if (fu_type == ALU)
-		{
-			stats_t.readAc.access = XML->sys.core[ithCore].ialu_accesses;
-			rtp_stats = stats_t;
-		}
-		else if (fu_type == MUL)
-		{
-			stats_t.readAc.access = XML->sys.core[ithCore].mul_accesses;
-			rtp_stats = stats_t;
-		}
+    stats_t.readAc.access = XML->sys.core[ithCore].MIM.alu_accesses;
+    rtp_stats = stats_t;
 
-	    //rt_power.readOp.dynamic = base_energy*executionTime + energy*stats_t.readAc.access;
-	    rt_power.readOp.dynamic = per_access_energy*stats_t.readAc.access + base_energy*executionTime;
+    //rt_power.readOp.dynamic = base_energy*executionTime + energy*stats_t.readAc.access;
+    rt_power.readOp.dynamic = per_access_energy*stats_t.readAc.access + base_energy*executionTime;
 		double sckRation = g_tp.sckt_co_eff;
 		rt_power.readOp.dynamic *= sckRation;
 		rt_power.writeOp.dynamic *= sckRation;
 		rt_power.searchOp.dynamic *= sckRation;
-
 	}
-
-
 }
 
 void MIM_FunctionalUnit::displayEnergy(uint32_t indent,int plevel,bool is_tdp)

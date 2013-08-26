@@ -150,6 +150,30 @@ typedef struct{
 	double write_misses;
 	double replacements;
 } BTB_systemcore;
+typedef struct {
+  // Cache parameters
+	double mcache_config[20];
+	int buffer_sizes[20];
+  int store_buffer_size;
+  int load_buffer_size;
+  // RegFU
+  double ALU_duty_cycle;
+  int regfile_reads;
+  int regfile_writes;
+  // LoadStore
+  double LSU_duty_cycle;
+  int read_accesses;
+  int write_accesses;
+  int read_misses;
+  int write_misses;
+  int loads;
+  int stores;
+  // ConfigTable
+  double CT_duty_cycle;
+  int CT_reads;
+  // FunctionalUnit
+  int alu_accesses;
+} MIM_systemcore;
 typedef struct{
 	//all params at the level of system.core(0-n)
 	int clock_rate;
@@ -285,6 +309,7 @@ typedef struct{
 	dtlb_systemcore dtlb;
 	dcache_systemcore dcache;
 	BTB_systemcore BTB;
+  MIM_systemcore MIM;
 
 } system_core;
 typedef struct{
