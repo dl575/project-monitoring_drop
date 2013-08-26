@@ -1744,6 +1744,7 @@ Core::Core(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_)
  lsu  (0),
  mmu  (0),
  exu  (0),
+ mim  (0),
  rnu  (0),
  corepipe (0),
  undiffCore (0),
@@ -1769,6 +1770,9 @@ Core::Core(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_)
   lsu          = new LoadStoreU(XML, ithCore, &interface_ip,coredynp);
   mmu          = new MemManU   (XML, ithCore, &interface_ip,coredynp);
   exu          = new EXECU     (XML, ithCore, &interface_ip,lsu->lsq_height, coredynp);
+
+  mim = new MIM(XML, ithCore, &interface_ip, coredynp);
+
   undiffCore   = new UndiffCore(XML, ithCore, &interface_ip,coredynp);
   if (coredynp.core_ty==OOO)
   {
@@ -1801,8 +1805,14 @@ Core::Core(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_)
   }
   if (exu->exist)
   {
+    // FIXME: pipeline handled correctly?
 	  exu->area.set_area(exu->area.get_area() + pipeline_area_per_unit);
 	  area.set_area(area.get_area()+exu->area.get_area());
+  }
+  if (mim->exist)
+  {
+    mim->area.set_area(mim->area.get_area() + pipeline_area_per_unit);
+    area.set_area(area.get_area() + mim->area.get_area());
   }
   if (mmu->exist)
   {
@@ -3264,6 +3274,7 @@ void LoadStoreU::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
 
 }
 
+
 void MemManU::computeEnergy(bool is_tdp)
 {
 
@@ -3450,7 +3461,6 @@ void RegFU::computeEnergy(bool is_tdp)
 		}
 	}
 }
-
 
 void RegFU::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
 {
@@ -3650,6 +3660,7 @@ void Core::computeEnergy(bool is_tdp)
 		lsu->computeEnergy(is_tdp);
 		mmu->computeEnergy(is_tdp);
 		exu->computeEnergy(is_tdp);
+    mim->computeEnergy(is_tdp);
 
 		if (coredynp.core_ty==OOO)
 		{
@@ -3689,6 +3700,13 @@ void Core::computeEnergy(bool is_tdp)
 			power     = power + exu->power;
 //			cout << "core = " << power.readOp.dynamic*clockRate  << " W" << endl;
 		}
+    if (mim->exist)
+    {
+      // FIXME: is num_pipelines handled correctly here?
+			set_pppm(pppm_t, coredynp.num_pipelines/num_units*coredynp.ALU_duty_cycle, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units);
+			mim->power = mim->power + corepipe->power*pppm_t;
+			power     = power + mim->power;
+    }
 		if (mmu->exist)
 		{
 			set_pppm(pppm_t, coredynp.num_pipelines/num_units*(0.5+0.5*coredynp.LSU_duty_cycle), coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units);
@@ -3715,6 +3733,7 @@ void Core::computeEnergy(bool is_tdp)
 		lsu->computeEnergy(is_tdp);
 		mmu->computeEnergy(is_tdp);
 		exu->computeEnergy(is_tdp);
+    mim->computeEnergy(is_tdp);
 		if (coredynp.core_ty==OOO)
 		{
 			num_units = 5.0;
@@ -3755,6 +3774,11 @@ void Core::computeEnergy(bool is_tdp)
 			exu->rt_power = exu->rt_power + corepipe->power*pppm_t;
 			rt_power     = rt_power  + exu->rt_power;
 		}
+    if (mim->exist)
+    {
+      mim->rt_power = mim->rt_power + corepipe->power*pppm_t;
+      rt_power = rt_power + mim->rt_power;
+    }
 		if (mmu->exist)
 		{
 			mmu->rt_power = mmu->rt_power + corepipe->power*pppm_t;
@@ -3868,6 +3892,20 @@ void Core::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
 			cout <<endl;
 			if (plevel >2){
 				exu->displayEnergy(indent+4,plevel,is_tdp);
+			}
+		}
+		if (mim->exist)
+		{
+			cout << indent_str<< "Metadata Invalidation Module:" << endl;
+			cout << indent_str_next << "Area = " << mim->area.get_area()  *1e-6<< " mm^2" << endl;
+			cout << indent_str_next << "Peak Dynamic = " << mim->power.readOp.dynamic*clockRate  << " W" << endl;
+			cout << indent_str_next << "Subthreshold Leakage = "
+				<< (long_channel? mim->power.readOp.longer_channel_leakage:mim->power.readOp.leakage)   << " W" << endl;
+			cout << indent_str_next << "Gate Leakage = " << mim->power.readOp.gate_leakage  << " W" << endl;
+			cout << indent_str_next << "Runtime Dynamic = " << mim->rt_power.readOp.dynamic/executionTime << " W" << endl;
+			cout <<endl;
+			if (plevel >2){
+				mim->displayEnergy(indent+4,plevel,is_tdp);
 			}
 		}
 //		if (plevel >2)
@@ -4000,6 +4038,7 @@ Core ::~Core(){
 	if(rnu) 	               {delete rnu; rnu = 0;}
 	if(mmu) 	               {delete mmu; mmu = 0;}
 	if(exu) 	               {delete exu; exu = 0;}
+  if(mim)                  {delete mim; mim = 0;}
     if(corepipe) 	           {delete corepipe; corepipe = 0;}
     if(undiffCore)             {delete undiffCore;undiffCore = 0;}
     if(l2cache)                {delete l2cache;l2cache = 0;}

@@ -59,7 +59,8 @@ SRCS  = \
   technology.cc \
   uca.cc \
   wire.cc \
-  xmlParser.cc 
+  xmlParser.cc \
+  mim.cc
 
 OBJS = $(patsubst %.cc,obj_$(TAG)/%.o,$(SRCS))
 
