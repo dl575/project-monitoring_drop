@@ -3815,6 +3815,12 @@ void Core::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
 		cout << indent_str << "Gate Leakage = " << power.readOp.gate_leakage << " W" << endl;
 		cout << indent_str << "Runtime Dynamic = " << rt_power.readOp.dynamic/executionTime << " W" << endl;
 		cout<<endl;
+    double static_power = (long_channel? power.readOp.longer_channel_leakage:power.readOp.leakage) + power.readOp.gate_leakage;
+    double peak_power = static_power + power.readOp.dynamic*clockRate;
+    double runtime_power = static_power + rt_power.readOp.dynamic/executionTime;
+    cout << indent_str << "Total Peak = " << peak_power << " W" << endl;
+    cout << indent_str << "Total Runtime = " << runtime_power << " W" << endl;
+    cout << endl;
 		if (ifu->exist)
 		{
 			cout << indent_str << "Instruction Fetch Unit:" << endl;
@@ -3904,6 +3910,12 @@ void Core::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
 			cout << indent_str_next << "Gate Leakage = " << mim->power.readOp.gate_leakage  << " W" << endl;
 			cout << indent_str_next << "Runtime Dynamic = " << mim->rt_power.readOp.dynamic/executionTime << " W" << endl;
 			cout <<endl;
+      double static_power = (long_channel? mim->power.readOp.longer_channel_leakage:mim->power.readOp.leakage) + mim->power.readOp.gate_leakage;
+      double peak_power = static_power + mim->power.readOp.dynamic*clockRate;
+      double runtime_power = static_power + mim->rt_power.readOp.dynamic/executionTime;
+      cout << indent_str_next << "Total Peak = " << peak_power << " W" << endl;
+      cout << indent_str_next << "Total Runtime = " << runtime_power << " W" << endl;
+      cout << endl;
 			if (plevel >2){
 				mim->displayEnergy(indent+4,plevel,is_tdp);
 			}

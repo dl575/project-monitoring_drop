@@ -34,7 +34,6 @@
 #include "xmlParser.h"
 #include <string>
 #include "XML_Parse.h"
-#include <assert.h>
 
 using namespace std;
 
@@ -649,20 +648,6 @@ void ParseXML::parse(char* filepath)
                 if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"alu_accesses")==0) {sys.core[i].MIM.alu_accesses=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
               }
 
-              // Check that a valid (non-zero) value is set for all stats
-              assert(sys.core[i].MIM.ALU_duty_cycle);
-              assert(sys.core[i].MIM.regfile_reads);
-              assert(sys.core[i].MIM.regfile_writes);
-              assert(sys.core[i].MIM.LSU_duty_cycle);
-              assert(sys.core[i].MIM.read_accesses);
-              assert(sys.core[i].MIM.write_accesses);
-              assert(sys.core[i].MIM.read_misses);
-              assert(sys.core[i].MIM.write_misses);
-              assert(sys.core[i].MIM.loads);
-              assert(sys.core[i].MIM.stores);
-              assert(sys.core[i].MIM.CT_duty_cycle);
-              assert(sys.core[i].MIM.CT_reads);
-              assert(sys.core[i].MIM.alu_accesses);
             }
 
 					}
@@ -1472,6 +1457,7 @@ void ParseXML::parse(char* filepath)
 
 	}
 }
+
 void ParseXML::initialize() //Initialize all
 {
 	//All number_of_* at the level of 'system' 03/21/2009
