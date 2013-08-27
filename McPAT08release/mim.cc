@@ -258,8 +258,9 @@ MIM_ConfigTable::MIM_ConfigTable(ParseXML* XML_interface, int ithCore_, InputPar
     + 1 // 1-bit RF/Cache select
     + 1 // 1-bit write value
     + 1 // 1 bit NOP/valid (do nothing for this case)
-    + 2*5; // 2x 5-bit mux selects
-  // Table is indexed by opcode
+    + 2*5 // 2x 5-bit mux selects
+    + 2; // 2 bits for filtering actions
+  // Table is indexed by opcode 
   int table_input_width = coredynp.opcode_length;
   int num_entries = 1 << table_input_width;
 
@@ -290,6 +291,110 @@ MIM_ConfigTable::MIM_ConfigTable(ParseXML* XML_interface, int ithCore_, InputPar
 	ConfigTable->area.set_area(ConfigTable->area.get_area() + ConfigTable->local_result.area*cdb_overhead);
 	area.set_area(area.get_area()+ ConfigTable->local_result.area*cdb_overhead);
 }
+
+// Based on RegFU
+MFM_ConfigTable::MFM_ConfigTable(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_, const CoreDynParam & dyn_p_,bool exist_)
+:XML(XML_interface),
+ ithCore(ithCore_),
+ interface_ip(*interface_ip_),
+ coredynp(dyn_p_),
+ ConfigTable(0),
+ exist(exist_)
+{
+  if (!exist) return;
+
+  clockRate = coredynp.clockRate;
+  executionTime = coredynp.executionTime;
+
+  // Output of config table 
+  int table_output_width = 
+    4*32  // 4x 32-bit constants
+    + 2*coredynp.opcode_length // 2x ALU opcode
+    + 4*5 // 4x 5-bit mux selects
+    + 2*1 // 1-bit RF/Cache select
+    + 1; // 1 bit NOP/valid (do nothing for this case)
+  // Table is indexed by opcode
+  int table_input_width = coredynp.opcode_length;
+  int num_entries = 1 << table_input_width;
+
+	interface_ip.is_cache            = false;
+	interface_ip.pure_cam            = false;
+	interface_ip.pure_ram            = true;
+  // Line size in bytes
+	interface_ip.line_sz             = int(ceil(table_output_width/8.0));
+	interface_ip.cache_sz            = num_entries*interface_ip.line_sz;
+	interface_ip.assoc               = 1;
+	interface_ip.nbanks              = 1;
+  // Output bus width in bits
+	interface_ip.out_w               = interface_ip.line_sz*8;
+	interface_ip.access_mode         = 1;
+	interface_ip.throughput          = 1.0/clockRate;
+	interface_ip.latency             = 1.0/clockRate;
+	interface_ip.obj_func_dyn_energy = 0;
+	interface_ip.obj_func_dyn_power  = 0;
+	interface_ip.obj_func_leak_power = 0;
+	interface_ip.obj_func_cycle_t    = 1;
+	interface_ip.num_rw_ports    = 0;
+	interface_ip.num_rd_ports    = 1;
+	interface_ip.num_wr_ports    = 0;
+	interface_ip.num_se_rd_ports = 0;
+
+	ConfigTable = new ArrayST(&interface_ip, "MFM Config Table", Core_device, coredynp.opt_local, coredynp.core_ty);
+
+	ConfigTable->area.set_area(ConfigTable->area.get_area() + ConfigTable->local_result.area*cdb_overhead);
+	area.set_area(area.get_area()+ ConfigTable->local_result.area*cdb_overhead);
+}
+
+// Based on RegFU
+MFM_FilterLookupTable::MFM_FilterLookupTable(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_, const CoreDynParam & dyn_p_,bool exist_)
+:XML(XML_interface),
+ ithCore(ithCore_),
+ interface_ip(*interface_ip_),
+ coredynp(dyn_p_),
+ ConfigTable(0),
+ exist(exist_)
+{
+  if (!exist) return;
+
+  clockRate = coredynp.clockRate;
+  executionTime = coredynp.executionTime;
+
+  // Output of config table 
+  int table_output_width = 
+    2; // 2 bit index into invalidation config table
+  // Table is indexed by opcode and 2 1-bit invalidation flags
+  int table_input_width = coredynp.opcode_length + 2;
+  int num_entries = 1 << table_input_width;
+
+	interface_ip.is_cache            = false;
+	interface_ip.pure_cam            = false;
+	interface_ip.pure_ram            = true;
+  // Line size in bytes
+	interface_ip.line_sz             = int(ceil(table_output_width/8.0));
+	interface_ip.cache_sz            = num_entries*interface_ip.line_sz;
+	interface_ip.assoc               = 1;
+	interface_ip.nbanks              = 1;
+  // Output bus width in bits
+	interface_ip.out_w               = interface_ip.line_sz*8;
+	interface_ip.access_mode         = 1;
+	interface_ip.throughput          = 1.0/clockRate;
+	interface_ip.latency             = 1.0/clockRate;
+	interface_ip.obj_func_dyn_energy = 0;
+	interface_ip.obj_func_dyn_power  = 0;
+	interface_ip.obj_func_leak_power = 0;
+	interface_ip.obj_func_cycle_t    = 1;
+	interface_ip.num_rw_ports    = 0;
+	interface_ip.num_rd_ports    = 1;
+	interface_ip.num_wr_ports    = 0;
+	interface_ip.num_se_rd_ports = 0;
+
+	ConfigTable = new ArrayST(&interface_ip, "MFM Config Table", Core_device, coredynp.opt_local, coredynp.core_ty);
+
+	ConfigTable->area.set_area(ConfigTable->area.get_area() + ConfigTable->local_result.area*cdb_overhead);
+	area.set_area(area.get_area()+ ConfigTable->local_result.area*cdb_overhead);
+}
+
+
 
 MIM_RegFU::MIM_RegFU(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_, const CoreDynParam & dyn_p_,bool exist_)
 :XML(XML_interface),
@@ -724,7 +829,7 @@ void MIM_ConfigTable::computeEnergy(bool is_tdp)
     else
     {
     	//init stats for Runtime Dynamic (RTP)
-    	ConfigTable->stats_t.readAc.access  = XML->sys.core[ithCore].int_regfile_reads;//TODO: no diff on archi and phy
+    	ConfigTable->stats_t.readAc.access  = XML->sys.core[ithCore].MIM.CT_reads;
       // Never write to ConfigTable
     	ConfigTable->stats_t.writeAc.access  = 0; //XML->sys.core[ithCore].int_regfile_writes;
     	ConfigTable->rtp_stats = ConfigTable->stats_t;
@@ -756,7 +861,141 @@ void MIM_ConfigTable::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
 
 	if (is_tdp)
 	{	
-    cout << indent_str << "Config Table:" << endl;
+    cout << indent_str << "MIM Config Table:" << endl;
+		cout << indent_str_next << "Area = " << ConfigTable->area.get_area()*1e-6<< " mm^2" << endl;
+		cout << indent_str_next << "Peak Dynamic = " << ConfigTable->power.readOp.dynamic*clockRate << " W" << endl;
+		cout << indent_str_next << "Subthreshold Leakage = "
+			<< (long_channel? ConfigTable->power.readOp.longer_channel_leakage:ConfigTable->power.readOp.leakage) <<" W" << endl;
+		cout << indent_str_next << "Gate Leakage = " << ConfigTable->power.readOp.gate_leakage << " W" << endl;
+		cout << indent_str_next << "Runtime Dynamic = " << ConfigTable->rt_power.readOp.dynamic/executionTime << " W" << endl;
+		cout <<endl;
+	}
+	else
+	{
+		cout << indent_str_next << "Config Table    Peak Dynamic = " << ConfigTable->rt_power.readOp.dynamic*clockRate << " W" << endl;
+		cout << indent_str_next << "Config Table    Subthreshold Leakage = " << ConfigTable->rt_power.readOp.leakage <<" W" << endl;
+		cout << indent_str_next << "Config Table    Gate Leakage = " << ConfigTable->rt_power.readOp.gate_leakage << " W" << endl;
+	}
+}
+
+void MFM_ConfigTable::computeEnergy(bool is_tdp)
+{
+	if (!exist) return;
+
+  int issueW = 1;
+  double CT_duty_cycle = XML->sys.core[ithCore].MFM.CT_duty_cycle;
+
+	if (is_tdp)
+    {
+      // FIXME: stats are for core
+    	//init stats for Peak
+    	ConfigTable->stats_t.readAc.access  = issueW*2*(CT_duty_cycle*1.1);
+    	ConfigTable->stats_t.writeAc.access  = issueW*(CT_duty_cycle*1.1);
+    	//Rule of Thumb: about 10% RF related instructions do not need to access ALUs
+    	ConfigTable->tdp_stats = ConfigTable->stats_t;
+     }
+    else
+    {
+    	//init stats for Runtime Dynamic (RTP)
+    	ConfigTable->stats_t.readAc.access  = XML->sys.core[ithCore].MFM.CT_reads;
+      // Never write to ConfigTable
+    	ConfigTable->stats_t.writeAc.access  = 0; //XML->sys.core[ithCore].int_regfile_writes;
+    	ConfigTable->rtp_stats = ConfigTable->stats_t;
+
+    }
+	ConfigTable->power_t.reset();
+	ConfigTable->power_t.readOp.dynamic  +=  (ConfigTable->stats_t.readAc.access*ConfigTable->local_result.power.readOp.dynamic
+			+ConfigTable->stats_t.writeAc.access*ConfigTable->local_result.power.writeOp.dynamic);
+
+	if (is_tdp)
+	{
+		ConfigTable->power  =  ConfigTable->power_t + ConfigTable->local_result.power *coredynp.pppm_lkg_multhread;
+		power	    =  power + ConfigTable->power;
+	}
+	else
+	{
+		ConfigTable->rt_power  =  ConfigTable->power_t + ConfigTable->local_result.power *coredynp.pppm_lkg_multhread;
+		rt_power	   =  rt_power + ConfigTable->power_t;
+	}
+}
+
+void MFM_ConfigTable::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
+{
+	if (!exist) return;
+	string indent_str(indent, ' ');
+	string indent_str_next(indent+2, ' ');
+	bool long_channel = XML->sys.longer_channel_device;
+
+	if (is_tdp)
+	{	
+    cout << indent_str << "MFM Config Table:" << endl;
+		cout << indent_str_next << "Area = " << ConfigTable->area.get_area()*1e-6<< " mm^2" << endl;
+		cout << indent_str_next << "Peak Dynamic = " << ConfigTable->power.readOp.dynamic*clockRate << " W" << endl;
+		cout << indent_str_next << "Subthreshold Leakage = "
+			<< (long_channel? ConfigTable->power.readOp.longer_channel_leakage:ConfigTable->power.readOp.leakage) <<" W" << endl;
+		cout << indent_str_next << "Gate Leakage = " << ConfigTable->power.readOp.gate_leakage << " W" << endl;
+		cout << indent_str_next << "Runtime Dynamic = " << ConfigTable->rt_power.readOp.dynamic/executionTime << " W" << endl;
+		cout <<endl;
+	}
+	else
+	{
+		cout << indent_str_next << "Config Table    Peak Dynamic = " << ConfigTable->rt_power.readOp.dynamic*clockRate << " W" << endl;
+		cout << indent_str_next << "Config Table    Subthreshold Leakage = " << ConfigTable->rt_power.readOp.leakage <<" W" << endl;
+		cout << indent_str_next << "Config Table    Gate Leakage = " << ConfigTable->rt_power.readOp.gate_leakage << " W" << endl;
+	}
+}
+
+void MFM_FilterLookupTable::computeEnergy(bool is_tdp)
+{
+	if (!exist) return;
+
+  int issueW = 1;
+  double CT_duty_cycle = XML->sys.core[ithCore].MFM.FLT_duty_cycle;
+
+	if (is_tdp)
+    {
+      // FIXME: stats are for core
+    	//init stats for Peak
+    	ConfigTable->stats_t.readAc.access  = issueW*2*(CT_duty_cycle*1.1);
+    	ConfigTable->stats_t.writeAc.access  = issueW*(CT_duty_cycle*1.1);
+    	//Rule of Thumb: about 10% RF related instructions do not need to access ALUs
+    	ConfigTable->tdp_stats = ConfigTable->stats_t;
+     }
+    else
+    {
+    	//init stats for Runtime Dynamic (RTP)
+    	ConfigTable->stats_t.readAc.access  = XML->sys.core[ithCore].MFM.FLT_reads;
+      // Never write to ConfigTable
+    	ConfigTable->stats_t.writeAc.access  = 0; //XML->sys.core[ithCore].int_regfile_writes;
+    	ConfigTable->rtp_stats = ConfigTable->stats_t;
+
+    }
+	ConfigTable->power_t.reset();
+	ConfigTable->power_t.readOp.dynamic  +=  (ConfigTable->stats_t.readAc.access*ConfigTable->local_result.power.readOp.dynamic
+			+ConfigTable->stats_t.writeAc.access*ConfigTable->local_result.power.writeOp.dynamic);
+
+	if (is_tdp)
+	{
+		ConfigTable->power  =  ConfigTable->power_t + ConfigTable->local_result.power *coredynp.pppm_lkg_multhread;
+		power	    =  power + ConfigTable->power;
+	}
+	else
+	{
+		ConfigTable->rt_power  =  ConfigTable->power_t + ConfigTable->local_result.power *coredynp.pppm_lkg_multhread;
+		rt_power	   =  rt_power + ConfigTable->power_t;
+	}
+}
+
+void MFM_FilterLookupTable::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
+{
+	if (!exist) return;
+	string indent_str(indent, ' ');
+	string indent_str_next(indent+2, ' ');
+	bool long_channel = XML->sys.longer_channel_device;
+
+	if (is_tdp)
+	{	
+    cout << indent_str << "MFM Filter Lookup Table:" << endl;
 		cout << indent_str_next << "Area = " << ConfigTable->area.get_area()*1e-6<< " mm^2" << endl;
 		cout << indent_str_next << "Peak Dynamic = " << ConfigTable->power.readOp.dynamic*clockRate << " W" << endl;
 		cout << indent_str_next << "Subthreshold Leakage = "
@@ -784,6 +1023,16 @@ MIM_ConfigTable ::~MIM_ConfigTable() {
   if (ConfigTable) {delete ConfigTable; ConfigTable = 0;}
 }
 
+MFM_ConfigTable ::~MFM_ConfigTable() {
+  if (!exist) return;
+  if (ConfigTable) {delete ConfigTable; ConfigTable = 0;}
+}
+
+MFM_FilterLookupTable ::~MFM_FilterLookupTable() {
+  if (!exist) return;
+  if (ConfigTable) {delete ConfigTable; ConfigTable = 0;}
+}
+
 MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, const CoreDynParam & dyn_p_, bool exist_) :
   XML(XML_interface),
   ithCore(ithCore_),
@@ -793,6 +1042,9 @@ MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, c
   rfu(0),
   lsu(0),
   ct(0),
+  mfm_alu(0),
+  mfm_ct(0),
+  mfm_flt(0),
   exist(exist_)
 {
   if (!exist) return;
@@ -805,10 +1057,7 @@ MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, c
 
   // ALU
   // slightly hacky way to create 2 ALUs for MIM
-  int num_alus = coredynp.num_alus;
-  coredynp.num_alus = 1;
   alu = new MIM_FunctionalUnit(XML, ithCore, &interface_ip, coredynp, ALU);
-  coredynp.num_alus = num_alus;
   // Register file
   rfu = new MIM_RegFU(XML, ithCore, &interface_ip, coredynp);
   // Load/store + metadata invalidation cache
@@ -816,8 +1065,15 @@ MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, c
   // Configuration table
   ct = new MIM_ConfigTable(XML, ithCore, &interface_ip, coredynp);
 
+  // MFM ALU
+  mfm_alu = new MFM_FunctionalUnit(XML, ithCore, &interface_ip, coredynp, ALU);
+  // MFM Config Table
+  mfm_ct = new MFM_ConfigTable(XML, ithCore, &interface_ip, coredynp);
+  // MFM Filter Lookup Table
+  mfm_flt = new MFM_FilterLookupTable(XML, ithCore, &interface_ip, coredynp);
+
   // Add in areas of new components
-  area.set_area(area.get_area() + alu->area.get_area() + rfu->area.get_area() + ct->area.get_area());
+  area.set_area(area.get_area() + alu->area.get_area() + rfu->area.get_area() + ct->area.get_area() + mfm_alu->area.get_area() + mfm_ct->area.get_area() + mfm_flt->area.get_area());
   if (lsu->exist)
   {
     //lsu->area.set_area(lsu->area.get_area() + pipeline_area_per_unit);
@@ -826,7 +1082,7 @@ MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, c
     area.set_area(area.get_area() + lsu->area.get_area());
   }
   // FIXME: no idea what FU_height is
-  fu_height = alu->FU_height;
+  fu_height = alu->FU_height + mfm_alu->FU_height;
 
   // FIXME: interconnects/bypass?
 }
@@ -841,6 +1097,9 @@ void MIM::computeEnergy(bool is_tdp)
   alu->computeEnergy(is_tdp);
   lsu->computeEnergy(is_tdp);
   ct->computeEnergy(is_tdp);
+  mfm_alu->computeEnergy(is_tdp);
+  mfm_ct->computeEnergy(is_tdp);
+  mfm_flt->computeEnergy(is_tdp);
 
   // FIXME: no idea what this is
   // FIXME: Should be able to remove OOO for MIM_LS
@@ -856,7 +1115,7 @@ void MIM::computeEnergy(bool is_tdp)
     // FIXME: don't know what this is doing
     set_pppm(pppm_t, 2*coredynp.ALU_cdb_duty_cycle, 2, 2, 2*coredynp.ALU_cdb_duty_cycle); 
 
-    power = power + alu->power + rfu->power + ct->power;
+    power = power + alu->power + rfu->power + ct->power + mfm_alu->power + mfm_ct->power + mfm_flt->power;
 
     if (lsu->exist)
     {
@@ -904,7 +1163,7 @@ void MIM::computeEnergy(bool is_tdp)
     // ALU
     set_pppm(pppm_t, XML->sys.core[ithCore].cdb_alu_accesses, 2, 2, XML->sys.core[ithCore].cdb_alu_accesses);
 
-    rt_power = rt_power + rfu->rt_power + alu->rt_power + ct->power;
+    rt_power = rt_power + rfu->rt_power + alu->rt_power + ct->rt_power + mfm_alu->rt_power + mfm_ct->rt_power + mfm_flt->rt_power;
   }
 }
 
@@ -954,6 +1213,15 @@ void MIM::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
 
     // Config Table
     ct->displayEnergy(indent, is_tdp);
+
+    // MFM ALU
+    if (plevel > 3) {
+      mfm_alu->displayEnergy(indent, is_tdp);
+    }
+    // MFM Config Table
+    mfm_ct->displayEnergy(indent, is_tdp);
+    // MFM Filter Lookup Table
+    mfm_flt->displayEnergy(indent, is_tdp);
   } 
   else 
   {
@@ -968,6 +1236,9 @@ MIM::~MIM() {
   if (rfu) { delete rfu; rfu = 0; }
   if (lsu) { delete lsu; lsu = 0; }
   if (ct)  { delete ct;  ct  = 0; }
+  if (mfm_alu) { delete mfm_alu; mfm_alu = 0; }
+  if (mfm_ct) { delete mfm_ct; mfm_ct = 0; }
+  if (mfm_flt) { delete mfm_flt; mfm_flt = 0; }
 }
 
 MIM_FunctionalUnit::MIM_FunctionalUnit(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, enum FU_type fu_type_)
@@ -1074,44 +1345,15 @@ void MIM_FunctionalUnit::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
 //	cout << indent_str_next << "Results Broadcast Bus Area = " << bypass->area.get_area() *1e-6 << " mm^2" << endl;
 	if (is_tdp)
 	{
-		if (fu_type == FPU)
-		{
-			cout << indent_str << "Floating Point Units (FPUs) (Count: "<< coredynp.num_fpus <<" ):" << endl;
-			cout << indent_str_next << "Area = " << area.get_area()*1e-6  << " mm^2" << endl;
-			cout << indent_str_next << "Peak Dynamic = " << power.readOp.dynamic*clockRate  << " W" << endl;
+    cout << indent_str << "MIM Integer ALUs (Count: "<< num_fu <<" ):" << endl;
+    cout << indent_str_next << "Area = " << area.get_area()*1e-6  << " mm^2" << endl;
+    cout << indent_str_next << "Peak Dynamic = " << power.readOp.dynamic*clockRate  << " W" << endl;
 //			cout << indent_str_next << "Subthreshold Leakage = " << power.readOp.leakage  << " W" << endl;
-			cout << indent_str_next<< "Subthreshold Leakage = "
-						<< (long_channel? power.readOp.longer_channel_leakage:power.readOp.leakage) <<" W" << endl;
-			cout << indent_str_next << "Gate Leakage = " << power.readOp.gate_leakage  << " W" << endl;
-			cout << indent_str_next << "Runtime Dynamic = " << rt_power.readOp.dynamic/executionTime << " W" << endl;
-			cout <<endl;
-		}
-		else if (fu_type == ALU)
-		{
-			cout << indent_str << "Integer ALUs (Count: "<< coredynp.num_alus <<" ):" << endl;
-			cout << indent_str_next << "Area = " << area.get_area()*1e-6  << " mm^2" << endl;
-			cout << indent_str_next << "Peak Dynamic = " << power.readOp.dynamic*clockRate  << " W" << endl;
-//			cout << indent_str_next << "Subthreshold Leakage = " << power.readOp.leakage  << " W" << endl;
-			cout << indent_str_next<< "Subthreshold Leakage = "
-						<< (long_channel? power.readOp.longer_channel_leakage:power.readOp.leakage) <<" W" << endl;
-			cout << indent_str_next << "Gate Leakage = " << power.readOp.gate_leakage  << " W" << endl;
-			cout << indent_str_next << "Runtime Dynamic = " << rt_power.readOp.dynamic/executionTime << " W" << endl;
-			cout <<endl;
-		}
-		else if (fu_type == MUL)
-		{
-			cout << indent_str << "Complex ALUs (Mul/Div) (Count: "<< coredynp.num_muls <<" ):" << endl;
-			cout << indent_str_next << "Area = " << area.get_area()*1e-6  << " mm^2" << endl;
-			cout << indent_str_next << "Peak Dynamic = " << power.readOp.dynamic*clockRate  << " W" << endl;
-//			cout << indent_str_next << "Subthreshold Leakage = " << power.readOp.leakage  << " W" << endl;
-			cout << indent_str_next<< "Subthreshold Leakage = "
-						<< (long_channel? power.readOp.longer_channel_leakage:power.readOp.leakage) <<" W" << endl;
-			cout << indent_str_next << "Gate Leakage = " << power.readOp.gate_leakage  << " W" << endl;
-			cout << indent_str_next << "Runtime Dynamic = " << rt_power.readOp.dynamic/executionTime << " W" << endl;
-			cout <<endl;
-
-		}
-
+    cout << indent_str_next<< "Subthreshold Leakage = "
+          << (long_channel? power.readOp.longer_channel_leakage:power.readOp.leakage) <<" W" << endl;
+    cout << indent_str_next << "Gate Leakage = " << power.readOp.gate_leakage  << " W" << endl;
+    cout << indent_str_next << "Runtime Dynamic = " << rt_power.readOp.dynamic/executionTime << " W" << endl;
+    cout <<endl;
 	}
 	else
 	{
@@ -1127,6 +1369,168 @@ void MIM_FunctionalUnit::leakage_feedback(double temperature)
   uca_org_t init_result = init_interface(&interface_ip); // init_result is dummy
 
   // This is part of MIM_FunctionalUnit()
+  double area_t, leakage, gate_leakage;
+  double pmos_to_nmos_sizing_r = pmos_to_nmos_sz_ratio();
+
+  if (fu_type == FPU)
+  {
+	area_t = 4.47*1e6*(g_ip->F_sz_nm*g_ip->F_sz_nm/90.0/90.0);//this is um^2 The base number
+	if (g_ip->F_sz_nm>90)
+		area_t = 4.47*1e6*g_tp.scaling_factor.logic_scaling_co_eff;//this is um^2
+	leakage = area_t *(g_tp.scaling_factor.core_tx_density)*cmos_Isub_leakage(5*g_tp.min_w_nmos_, 5*g_tp.min_w_nmos_*pmos_to_nmos_sizing_r, 1, inv)*g_tp.peri_global.Vdd/2;//unit W
+	gate_leakage = area_t *(g_tp.scaling_factor.core_tx_density)*cmos_Ig_leakage(5*g_tp.min_w_nmos_, 5*g_tp.min_w_nmos_*pmos_to_nmos_sizing_r, 1, inv)*g_tp.peri_global.Vdd/2;//unit W
+  }
+  else if (fu_type == ALU)
+  {
+    area_t = 280*260*2*num_fu*g_tp.scaling_factor.logic_scaling_co_eff;//this is um^2 ALU + MUl
+    leakage = area_t *(g_tp.scaling_factor.core_tx_density)*cmos_Isub_leakage(20*g_tp.min_w_nmos_, 20*g_tp.min_w_nmos_*pmos_to_nmos_sizing_r, 1, inv)*g_tp.peri_global.Vdd/2;//unit W
+    gate_leakage = area_t*(g_tp.scaling_factor.core_tx_density)*cmos_Ig_leakage(20*g_tp.min_w_nmos_, 20*g_tp.min_w_nmos_*pmos_to_nmos_sizing_r, 1, inv)*g_tp.peri_global.Vdd/2;
+  }
+  else if (fu_type == MUL)
+  {
+    area_t = 280*260*2*3*num_fu*g_tp.scaling_factor.logic_scaling_co_eff;//this is um^2 ALU + MUl
+    leakage = area_t *(g_tp.scaling_factor.core_tx_density)*cmos_Isub_leakage(20*g_tp.min_w_nmos_, 20*g_tp.min_w_nmos_*pmos_to_nmos_sizing_r, 1, inv)*g_tp.peri_global.Vdd/2;//unit W
+    gate_leakage = area_t*(g_tp.scaling_factor.core_tx_density)*cmos_Ig_leakage(20*g_tp.min_w_nmos_, 20*g_tp.min_w_nmos_*pmos_to_nmos_sizing_r, 1, inv)*g_tp.peri_global.Vdd/2;
+  }
+  else
+  {
+    cout<<"Unknown Functional Unit Type"<<endl;
+    exit(1);
+  }
+
+  power.readOp.leakage = leakage*num_fu;
+  power.readOp.gate_leakage = gate_leakage*num_fu;
+  power.readOp.longer_channel_leakage = longer_channel_device_reduction(Core_device, coredynp.core_ty);
+}
+
+MFM_FunctionalUnit::MFM_FunctionalUnit(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, enum FU_type fu_type_)
+:XML(XML_interface),
+ ithCore(ithCore_),
+ interface_ip(*interface_ip_),
+ coredynp(dyn_p_),
+ fu_type(fu_type_)
+{
+    double area_t;//, leakage, gate_leakage;
+    double pmos_to_nmos_sizing_r = pmos_to_nmos_sz_ratio();
+	clockRate = coredynp.clockRate;
+	executionTime = coredynp.executionTime;
+
+  // 2 integer ALU used by MFM
+  num_fu = 2;
+
+	//XML_interface=_XML_interface;
+	uca_org_t result2;
+	result2 = init_interface(&interface_ip);
+	if (XML->sys.Embedded)
+	{
+    area_t = 280*260*g_tp.scaling_factor.logic_scaling_co_eff;//this is um^2 ALU + MUl
+    leakage = area_t *(g_tp.scaling_factor.core_tx_density)*cmos_Isub_leakage(20*g_tp.min_w_nmos_, 20*g_tp.min_w_nmos_*pmos_to_nmos_sizing_r, 1, inv)*g_tp.peri_global.Vdd/2;//unit W
+    gate_leakage = area_t*(g_tp.scaling_factor.core_tx_density)*cmos_Ig_leakage(20*g_tp.min_w_nmos_, 20*g_tp.min_w_nmos_*pmos_to_nmos_sizing_r, 1, inv)*g_tp.peri_global.Vdd/2;
+//			base_energy = coredynp.core_ty==Inorder? 0:89e-3; //W The base energy of ALU average numbers from Intel 4G and 773Mhz (Wattch)
+//			base_energy *=(g_tp.peri_global.Vdd*g_tp.peri_global.Vdd/1.2/1.2);
+    base_energy = 0;
+    per_access_energy = 1.15/3/1e9/4/1.3/1.3*g_tp.peri_global.Vdd*g_tp.peri_global.Vdd*(g_ip->F_sz_nm/90.0);//(g_tp.peri_global.Vdd*g_tp.peri_global.Vdd/1.2/1.2);//0.00649*1e-9; //This is per cycle energy(nJ)
+    FU_height=(6222*num_fu)*interface_ip.F_sz_um;//integer ALU
+
+    per_access_energy *=0.5;//According to ARM data embedded processor has much lower per acc energy
+	}
+	else
+	{
+			area_t = 280*260*2*g_tp.scaling_factor.logic_scaling_co_eff;//this is um^2 ALU + MUl
+			leakage = area_t *(g_tp.scaling_factor.core_tx_density)*cmos_Isub_leakage(20*g_tp.min_w_nmos_, 20*g_tp.min_w_nmos_*pmos_to_nmos_sizing_r, 1, inv)*g_tp.peri_global.Vdd/2;//unit W
+			gate_leakage = area_t*(g_tp.scaling_factor.core_tx_density)*cmos_Ig_leakage(20*g_tp.min_w_nmos_, 20*g_tp.min_w_nmos_*pmos_to_nmos_sizing_r, 1, inv)*g_tp.peri_global.Vdd/2;
+			base_energy = coredynp.core_ty==Inorder? 0:89e-3; //W The base energy of ALU average numbers from Intel 4G and 773Mhz (Wattch)
+			base_energy *=(g_tp.peri_global.Vdd*g_tp.peri_global.Vdd/1.2/1.2);
+			per_access_energy = 1.15/1e9/4/1.3/1.3*g_tp.peri_global.Vdd*g_tp.peri_global.Vdd*(g_ip->F_sz_nm/90.0);//(g_tp.peri_global.Vdd*g_tp.peri_global.Vdd/1.2/1.2);//0.00649*1e-9; //This is per cycle energy(nJ)
+			FU_height=(6222*num_fu)*interface_ip.F_sz_um;//integer ALU
+		}
+	//IEXEU, simple ALU and FPU
+	//  double C_ALU, C_EXEU, C_FPU; //Lum Equivalent capacitance of IEXEU and FPU. Based on Intel and Sun 90nm process fabracation.
+	//
+	//  C_ALU	  = 0.025e-9;//F
+	//  C_EXEU  = 0.05e-9; //F
+	//  C_FPU	  = 0.35e-9;//F
+    area.set_area(area_t*num_fu);
+    leakage *= num_fu;
+    gate_leakage *=num_fu;
+	double macro_layout_overhead = g_tp.macro_layout_overhead;
+//	if (!XML->sys.Embedded)
+		area.set_area(area.get_area()*macro_layout_overhead);
+}
+
+void MFM_FunctionalUnit::computeEnergy(bool is_tdp)
+{
+	double pppm_t[4]    = {1,1,1,1};
+
+	double FU_duty_cycle;
+
+	if (is_tdp)
+	{
+		set_pppm(pppm_t, 2, 2, 2, 2);//2 means two source operands needs to be passed for each int instruction.
+	
+    stats_t.readAc.access = 1*num_fu;
+    tdp_stats = stats_t;
+    FU_duty_cycle = XML->sys.core[ithCore].MFM.ALU_duty_cycle;
+
+    //power.readOp.dynamic = base_energy/clockRate + energy*stats_t.readAc.access;
+    power.readOp.dynamic = per_access_energy*stats_t.readAc.access + base_energy/clockRate;
+		double sckRation = g_tp.sckt_co_eff;
+		power.readOp.dynamic *= sckRation*FU_duty_cycle;
+		power.writeOp.dynamic *= sckRation;
+		power.searchOp.dynamic *= sckRation;
+
+    power.readOp.leakage = leakage;
+    power.readOp.gate_leakage = gate_leakage;
+    double long_channel_device_reduction = longer_channel_device_reduction(Core_device, coredynp.core_ty);
+    power.readOp.longer_channel_leakage	= power.readOp.leakage*long_channel_device_reduction;
+	}
+	else
+	{
+    stats_t.readAc.access = XML->sys.core[ithCore].MFM.alu_accesses;
+    rtp_stats = stats_t;
+
+    //rt_power.readOp.dynamic = base_energy*executionTime + energy*stats_t.readAc.access;
+    rt_power.readOp.dynamic = per_access_energy*stats_t.readAc.access + base_energy*executionTime;
+		double sckRation = g_tp.sckt_co_eff;
+		rt_power.readOp.dynamic *= sckRation;
+		rt_power.writeOp.dynamic *= sckRation;
+		rt_power.searchOp.dynamic *= sckRation;
+	}
+}
+
+void MFM_FunctionalUnit::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
+{
+	string indent_str(indent, ' ');
+	string indent_str_next(indent+2, ' ');
+	bool long_channel = XML->sys.longer_channel_device;
+
+//	cout << indent_str_next << "Results Broadcast Bus Area = " << bypass->area.get_area() *1e-6 << " mm^2" << endl;
+	if (is_tdp)
+	{
+    cout << indent_str << "MFM Integer ALUs (Count: "<< num_fu <<" ):" << endl;
+    cout << indent_str_next << "Area = " << area.get_area()*1e-6  << " mm^2" << endl;
+    cout << indent_str_next << "Peak Dynamic = " << power.readOp.dynamic*clockRate  << " W" << endl;
+//			cout << indent_str_next << "Subthreshold Leakage = " << power.readOp.leakage  << " W" << endl;
+    cout << indent_str_next<< "Subthreshold Leakage = "
+          << (long_channel? power.readOp.longer_channel_leakage:power.readOp.leakage) <<" W" << endl;
+    cout << indent_str_next << "Gate Leakage = " << power.readOp.gate_leakage  << " W" << endl;
+    cout << indent_str_next << "Runtime Dynamic = " << rt_power.readOp.dynamic/executionTime << " W" << endl;
+    cout <<endl;
+	}
+	else
+	{
+	}
+
+}
+
+void MFM_FunctionalUnit::leakage_feedback(double temperature)
+{
+  // Update the temperature and initialize the global interfaces.
+  interface_ip.temp = (unsigned int)round(temperature/10.0)*10;
+
+  uca_org_t init_result = init_interface(&interface_ip); // init_result is dummy
+
+  // This is part of MFM_FunctionalUnit()
   double area_t, leakage, gate_leakage;
   double pmos_to_nmos_sizing_r = pmos_to_nmos_sz_ratio();
 

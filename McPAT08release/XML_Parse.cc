@@ -628,7 +628,7 @@ void ParseXML::parse(char* filepath)
 								}
                 if (strcmp(xNode3.getChildNode("param",k).getAttribute("name"),"store_buffer_size")==0) {sys.core[i].MIM.store_buffer_size=atoi(xNode3.getChildNode("param",k).getAttribute("value"));continue;}
 							if (strcmp(xNode3.getChildNode("param",k).getAttribute("name"),"load_buffer_size")==0) {sys.core[i].MIM.load_buffer_size=atoi(xNode3.getChildNode("param",k).getAttribute("value"));continue;}
-              }
+              } // MIM param
 
 							itmp=xNode4.nChildNode("stat");
 							for(k=0; k<itmp; k++)
@@ -646,9 +646,29 @@ void ParseXML::parse(char* filepath)
                 if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"CT_duty_cycle")==0) {sys.core[i].MIM.CT_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
                 if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"CT_reads")==0) {sys.core[i].MIM.CT_reads=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
                 if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"alu_accesses")==0) {sys.core[i].MIM.alu_accesses=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
-              }
+              } // MIM stat
 
-            }
+            } // MIM
+
+						if (strcmp(xNode4.getAttribute("name"),"MFM")==0)
+						{//find system.core0.MFM
+							itmp=xNode4.nChildNode("param");
+							for(k=0; k<itmp; k++)
+							{
+              } // MFM param
+
+							itmp=xNode4.nChildNode("stat");
+							for(k=0; k<itmp; k++)
+							{ //get all items of stat in MFM
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"CT_reads")==0) {sys.core[i].MFM.CT_reads=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"CT_duty_cycle")==0) {sys.core[i].MFM.CT_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"FLT_reads")==0) {sys.core[i].MFM.FLT_reads=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"FLT_duty_cycle")==0) {sys.core[i].MFM.FLT_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"ALU_duty_cycle")==0) {sys.core[i].MFM.ALU_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"alu_accesses")==0) {sys.core[i].MFM.alu_accesses=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+              } // MFM stat
+
+            } // MFM
 
 					}
 				}

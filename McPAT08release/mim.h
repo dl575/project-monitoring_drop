@@ -67,6 +67,38 @@ class MIM_ConfigTable : public Component {
     ~MIM_ConfigTable();
 };
 
+class MFM_FilterLookupTable : public Component {
+  public:
+    ParseXML *XML;
+    int ithCore;
+    InputParameter interface_ip;
+    CoreDynParam coredynp;
+    double clockRate, executionTime;
+    ArrayST * ConfigTable;
+    bool exist;
+
+	  MFM_FilterLookupTable(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, bool exist_=true);
+    void computeEnergy(bool is_tdp=true);
+    void displayEnergy(uint32_t indent=0, int plevel=100, bool is_tdp=true);
+    ~MFM_FilterLookupTable();
+};
+
+class MFM_ConfigTable : public Component {
+  public:
+    ParseXML *XML;
+    int ithCore;
+    InputParameter interface_ip;
+    CoreDynParam coredynp;
+    double clockRate, executionTime;
+    ArrayST * ConfigTable;
+    bool exist;
+
+	  MFM_ConfigTable(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, bool exist_=true);
+    void computeEnergy(bool is_tdp=true);
+    void displayEnergy(uint32_t indent=0, int plevel=100, bool is_tdp=true);
+    ~MFM_ConfigTable();
+};
+
 class MIM_FunctionalUnit :public Component{
 public:
 	ParseXML *XML;
@@ -88,7 +120,29 @@ public:
     void computeEnergy(bool is_tdp=true);
 	void displayEnergy(uint32_t indent = 0,int plevel = 100, bool is_tdp=true);
     void leakage_feedback(double temperature);
+};
 
+class MFM_FunctionalUnit :public Component{
+public:
+	ParseXML *XML;
+	int  ithCore;
+	InputParameter interface_ip;
+	CoreDynParam  coredynp;
+	double FU_height;
+	double clockRate,executionTime;
+	double num_fu;
+	double energy, base_energy,per_access_energy, leakage, gate_leakage;
+	bool  is_default;
+	enum FU_type fu_type;
+	statsDef       tdp_stats;
+	statsDef       rtp_stats;
+	statsDef       stats_t;
+	powerDef       power_t;
+
+	MFM_FunctionalUnit(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, enum FU_type fu_type);
+    void computeEnergy(bool is_tdp=true);
+	void displayEnergy(uint32_t indent = 0,int plevel = 100, bool is_tdp=true);
+    void leakage_feedback(double temperature);
 };
 
 class MIM : public Component {
@@ -102,6 +156,9 @@ class MIM : public Component {
     MIM_RegFU * rfu;
     MIM_LoadStoreU * lsu;
     MIM_ConfigTable * ct;
+    MFM_FunctionalUnit * mfm_alu;
+    MFM_ConfigTable * mfm_ct;
+    MFM_FilterLookupTable * mfm_flt;
 
     bool exist;
 

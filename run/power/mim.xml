@@ -293,6 +293,18 @@
         <stat name="alu_accesses" value="300000"/>			
       </component>
 
+ 			<component id="system.core0.metadata" name="MFM">
+        <!-- FunctionalUnit -->
+        <stat name="ALU_duty_cycle" value="{stats.system.cpu2.drops::total / stats.system.cpu0.numCycles}"/>	
+        <stat name="alu_accesses" value="300000"/>			
+        <!-- ConfigTable -->
+				<stat name="CT_duty_cycle" value="0.15"/>	
+				<stat name="CT_reads" value="100"/>	
+        <!-- FilterLookupTable -->
+				<stat name="FLT_duty_cycle" value="0.15"/>	
+				<stat name="FLT_reads" value="100"/>	
+      </component>
+
       <param name="number_of_BTB" value="0"/>
       <component id="system.core0.BTB" name="BTB">
 	<!-- all the buffer related are optional -->

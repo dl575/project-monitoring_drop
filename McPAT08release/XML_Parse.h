@@ -174,6 +174,17 @@ typedef struct {
   // FunctionalUnit
   int alu_accesses;
 } MIM_systemcore;
+typedef struct {
+  // FunctionalUnit
+  double ALU_duty_cycle;
+  int alu_accesses;
+  // ConfigTable
+  double CT_duty_cycle;
+  int CT_reads;
+  // FilterLookupTable
+  double FLT_duty_cycle;
+  int FLT_reads;
+} MFM_systemcore;
 typedef struct{
 	//all params at the level of system.core(0-n)
 	int clock_rate;
@@ -310,6 +321,7 @@ typedef struct{
 	dcache_systemcore dcache;
 	BTB_systemcore BTB;
   MIM_systemcore MIM;
+  MFM_systemcore MFM;
 
 } system_core;
 typedef struct{
