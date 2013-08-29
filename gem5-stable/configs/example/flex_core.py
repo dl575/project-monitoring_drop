@@ -297,11 +297,14 @@ if options.caches:
                      latency = options.l1i_latency)
     dcache = L1Cache(size = options.invalidation_cache_size,
                      assoc = options.l1d_assoc,
-                     block_size=options.cacheline_size,
+                     block_size=16,
                      latency = options.l1d_latency)
     system.cpu[2].addPrivateSplitL1Caches(icache, dcache)
-system.cpu[2].connectAllPorts(system.membus)
 system.cpu[2].createInterruptController()
+if options.l2cache:
+    system.cpu[2].connectAllPorts(system.tol2bus, system.membus)
+else:
+    system.cpu[2].connectAllPorts(system.membus)
 
 # Run simulation
 root = Root(full_system = False, system = system)
