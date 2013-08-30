@@ -77,6 +77,8 @@ parser.add_option("--invalidation", action="store_true")
 parser.add_option("--overhead", type="float", default=0.0)
 # Emulate filtering
 parser.add_option("--emulate_filtering", action="store_true")
+# Invalidation cache size
+parser.add_option("--invalidation_cache_size", type="string", default="2kB")
 
 available_monitors = {
   "none" : 0,
@@ -293,7 +295,7 @@ if options.caches:
                      assoc = options.l1i_assoc,
                      block_size=options.cacheline_size,
                      latency = options.l1i_latency)
-    dcache = L1Cache(size = '2kB',
+    dcache = L1Cache(size = options.invalidation_cache_size,
                      assoc = options.l1d_assoc,
                      block_size=16,
                      latency = options.l1d_latency)
