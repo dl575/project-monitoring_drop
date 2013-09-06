@@ -662,7 +662,7 @@ DropSimpleCPU::pageAllocate(Addr addr)
     if (!p->pTable->translate(addr)){
         // allocate page
         Addr page_addr = roundDown(addr, VMPageSize);
-        p->allocateMem(page_addr, VMPageSize);
+        p->allocateMonMem(page_addr, VMPageSize);
         // clear page
         uint8_t zero  = 0;
         SETranslatingPortProxy &tp = tc->getMemProxy();

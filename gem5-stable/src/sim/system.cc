@@ -74,7 +74,7 @@ int System::numSystemsRunning = 0;
 System::System(Params *p)
     : MemObject(p), _systemPort("system_port", this),
       _numContexts(0),
-      pagePtr(0),
+      pagePtr(0), monPtr(131072),
       init_param(p->init_param),
       physProxy(_systemPort),
       virtProxy(_systemPort),
@@ -302,6 +302,16 @@ System::allocPhysPages(int npages)
     Addr return_addr = pagePtr << LogVMPageSize;
     pagePtr += npages;
     if ((pagePtr << LogVMPageSize) > physmem.totalSize())
+        fatal("Out of memory, please increase size of physical memory.");
+    return return_addr;
+}
+
+Addr
+System::allocMonPages(int npages)
+{
+    Addr return_addr = monPtr << LogVMPageSize;
+    monPtr += npages;
+    if ((monPtr << LogVMPageSize) > physmem.totalSize())
         fatal("Out of memory, please increase size of physical memory.");
     return return_addr;
 }

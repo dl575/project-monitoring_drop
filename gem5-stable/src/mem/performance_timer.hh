@@ -122,7 +122,7 @@ class PerformanceTimer : public AbstractMemory
     // Drop Statistics
     unsigned drops, not_drops;
     // Overhead
-    float povr;
+    double povr;
     
     // Start task ticks
     Tick start_ticks;
