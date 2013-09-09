@@ -218,7 +218,8 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             } else if (write_addr == TIMER_END_DECREMENT) {
               if (stored_tp.intask){
                   stored_tp.isDecrement = false;
-                  Tick delay_time = (curTick() - stored_tp.decrementStart);
+                  //Include povr to offset increase in slack over the delay time
+                  Tick delay_time = (curTick() - stored_tp.decrementStart)*(1+povr);
                   long long int slack = stored_tp.slack - delay_time;
                   if (slack > stored_tp.slack){
                     panic("Timer Underflow.");

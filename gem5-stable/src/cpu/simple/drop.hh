@@ -170,6 +170,13 @@ class DropSimpleCPU : public BaseSimpleCPU
      * debugging).
      */
     void printAddr(Addr a);
+    
+    // statistics
+    virtual void regStats();
+    Stats::Scalar numCacheLoads;
+    Stats::Scalar numCacheStores;
+    Stats::Scalar numRegLoads;
+    Stats::Scalar numRegStores;
 
   private:
 

@@ -718,7 +718,7 @@ AtomicSimpleMonitor::handlePageTableFault(Addr addr)
 {
     Process *p = tc->getProcessPtr();
     Addr page_base_addr = roundDown(addr, VMPageSize);
-    p->allocateMem(page_base_addr, VMPageSize);
+    p->allocateMonMem(page_base_addr, VMPageSize);
     // clear page
     SETranslatingPortProxy &tp = tc->getMemProxy();
     tp.memsetBlob(page_base_addr, 0, VMPageSize);

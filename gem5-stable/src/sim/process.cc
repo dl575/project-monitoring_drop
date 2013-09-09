@@ -332,6 +332,14 @@ Process::allocateMem(Addr vaddr, int64_t size, bool clobber)
     pTable->map(vaddr, paddr, size, clobber);
 }
 
+void
+Process::allocateMonMem(Addr vaddr, int64_t size, bool clobber)
+{
+    int npages = divCeil(size, (int64_t)VMPageSize);
+    Addr paddr = system->allocMonPages(npages);
+    pTable->map(vaddr, paddr, size, clobber);
+}
+
 bool
 Process::fixupStackFault(Addr vaddr)
 {

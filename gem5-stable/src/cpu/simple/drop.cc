@@ -148,6 +148,35 @@ DropSimpleCPU::~DropSimpleCPU()
 }
 
 void
+DropSimpleCPU::regStats()
+{
+    using namespace Stats;
+
+    BaseSimpleCPU::regStats();
+
+    numCacheLoads
+        .name(name() + ".flagCacheLoads")
+        .desc("Number of loads from flag cache")
+        ;
+    
+    numRegLoads
+        .name(name() + ".flagRegLoads")
+        .desc("Number of loads from flag register")
+        ;
+    
+    numCacheStores
+        .name(name() + ".flagCacheStores")
+        .desc("Number of stores to flag cache")
+        ;
+    
+    numRegStores
+        .name(name() + ".flagRegStores")
+        .desc("Number of stores to flag register")
+        ;
+    
+}
+
+void
 DropSimpleCPU::serialize(ostream &os)
 {
     SimObject::State so_state = SimObject::getState();
@@ -633,7 +662,7 @@ DropSimpleCPU::pageAllocate(Addr addr)
     if (!p->pTable->translate(addr)){
         // allocate page
         Addr page_addr = roundDown(addr, VMPageSize);
-        p->allocateMem(page_addr, VMPageSize);
+        p->allocateMonMem(page_addr, VMPageSize);
         // clear page
         uint8_t zero  = 0;
         SETranslatingPortProxy &tp = tc->getMemProxy();
@@ -681,8 +710,12 @@ DropSimpleCPU::readFromFlagCache(Addr addr, uint8_t * data,
         // Copy back data
         memcpy(data, &value, size);
         DPRINTF(FlagCache, "Flag cache read @ %x -> %x: %x -> %d\n", fc_addr, cache_addr, invalid_bits, value);
+        numCacheLoads++;
     } else {
         fault = BaseSimpleCPU::readFromFlagCache(addr, data, size, flags);
+        if (addr == FC_GET_FLAG_A) {
+            numRegLoads++;
+        }
     }
     
     return fault;
@@ -728,8 +761,13 @@ DropSimpleCPU::writeToFlagCache(Addr addr, uint8_t * data,
             DPRINTF(FlagCache, "Flag cache clear @ %x -> %x: invalid bits are %x -> %x\n", fc_addr, cache_addr, invalid_bits, invalid_bits_new);
         }
         
+        numCacheStores++;
     } else {
         fault = BaseSimpleCPU::writeToFlagCache(addr, data, size, flags);
+        
+        if ((addr == FC_SET_FLAG || addr == FC_CLEAR_FLAG) && get_data == 0){
+            numRegStores++;
+        }
     }
 
     return fault;

@@ -155,6 +155,7 @@ class System : public MemObject
     int numRunningContexts();
 
     Addr pagePtr;
+    Addr monPtr;
 
     uint64_t init_param;
 
@@ -375,6 +376,7 @@ class System : public MemObject
     /// Allocate npages contiguous unused physical pages
     /// @return Starting address of first page
     Addr allocPhysPages(int npages);
+    Addr allocMonPages(int npages);
 
     int registerThreadContext(ThreadContext *tc, int assigned=-1);
     void replaceThreadContext(ThreadContext *tc, int context_id);
