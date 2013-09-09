@@ -19,3 +19,6 @@ gem5-stable/tests/malarden_monitor/generated
 *.arm
 *.obj
 *.o
+
+# Mac
+.DS_Store

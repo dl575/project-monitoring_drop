@@ -289,7 +289,7 @@
         <stat name="CT_duty_cycle" value="{stats.system.cpu2.drops::total / stats.system.cpu0.numCycles}"/>	
         <stat name="CT_reads" value="{stats.system.cpu2.drops::total}"/>	
         <!-- FunctionalUnit -->
-        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU) / stats.system.cpu0.numCycles}"/>	
+        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU) / stats.system.cpu0.numCycles}"/>	
         <stat name="alu_accesses" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU)}"/>			
       </component>
 

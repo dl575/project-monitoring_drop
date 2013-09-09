@@ -1197,7 +1197,7 @@ void MIM::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
     // Cache
     if (lsu->exist) 
     {
-			cout << indent_str<< "Load Store Unit:" << endl;
+			cout << indent_str<< "Metadata Load Store Unit:" << endl;
 			cout << indent_str_next << "Area = " << lsu->area.get_area()*1e-6  << " mm^2" << endl;
 			cout << indent_str_next << "Peak Dynamic = " << lsu->power.readOp.dynamic*clockRate  << " W" << endl;
 			cout << indent_str_next << "Subthreshold Leakage = "
