@@ -290,6 +290,8 @@ class BaseSimpleCPU : public BaseCPU
     Stats::Scalar dcacheRetryCycles;
     Counter lastDcacheRetry;
     
+    // Number of monitored micro ops
+    Stats::Scalar numMonOps;
     // drop statistics
     Stats::Vector dropstats;
     Stats::Vector filterstats;
@@ -592,7 +594,12 @@ class BaseSimpleCPU : public BaseCPU
         bool store;   // Store instruction
         bool call;    // Function call instruction
         bool ret;     // Return instruction
-        bool intalu;  // Integer ALU instruction
+        bool intalu;  // Integer ALU instruction - includes below int*
+          bool intmov; // Integer move
+          bool intadd; // Integer add
+          bool intsub; // Integer subtract
+          bool intand; // Integer AND (logical)
+          bool intmul; // Integer multiply
         bool indctrl; // Indirect control instruction
 
         // Constructor sets all flags to false 
@@ -602,6 +609,11 @@ class BaseSimpleCPU : public BaseCPU
           call = false;
           ret = false;
           intalu = false;
+            intmov = false;
+            intadd = false;
+            intsub = false;
+            intand = false;
+            intmul = false;
           indctrl = false;
         }
     };

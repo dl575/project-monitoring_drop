@@ -50,6 +50,11 @@ class BaseSimpleCPU(BaseCPU):
     monitoring_filter_call = Param.Bool(False, "monitoring call instructions")
     monitoring_filter_ret = Param.Bool(False, "monitoring return instructions")
     monitoring_filter_intalu = Param.Bool(False, "monitoring integer ALU instructions")
+    monitoring_filter_intand = Param.Bool(False, "monitoring integer AND instructions")
+    monitoring_filter_intmov = Param.Bool(False, "monitoring integer move instructions")
+    monitoring_filter_intadd = Param.Bool(False, "monitoring integer add instructions")
+    monitoring_filter_intsub = Param.Bool(False, "monitoring integer subtract instructions")
+    monitoring_filter_intmul = Param.Bool(False, "monitoring integer multiply instructions")
     monitoring_filter_indctrl = Param.Bool(False, "monitoring indirect control instructions")
     # Check if WCET violated
     hard_wcet = Param.Bool(True, "check if hard real-time deadline met")

@@ -182,7 +182,12 @@ elif options.monitor == "bc":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
-  MainCPUClass.monitoring_filter_intalu = True
+  #MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_intand = True
+  MainCPUClass.monitoring_filter_intmov = True
+  MainCPUClass.monitoring_filter_intadd = True
+  MainCPUClass.monitoring_filter_intsub = True
+  MainCPUClass.monitoring_filter_intmul = True
   if options.invalidation:
     # Load the invalidation file
     DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/dift_invalidation.txt"
@@ -193,7 +198,12 @@ elif options.monitor == "hb":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
-  MainCPUClass.monitoring_filter_intalu = True
+  # MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_intand = True
+  MainCPUClass.monitoring_filter_intmov = True
+  MainCPUClass.monitoring_filter_intadd = True
+  MainCPUClass.monitoring_filter_intsub = True
+  MainCPUClass.monitoring_filter_intmul = True
   if options.invalidation:
     # Load the invalidation file
     DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/dift_invalidation.txt"
@@ -208,7 +218,7 @@ else:
 
 # Create system, CPUs, bus, and memory
 system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1), DropCPUClass(cpu_id=2)],
-                physmem = SimpleMemory(range=AddrRange("512MB"), latency='15ns'),
+                physmem = SimpleMemory(range=AddrRange("768MB"), latency='15ns'),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
 # Connect port between drop and monitoring cpu

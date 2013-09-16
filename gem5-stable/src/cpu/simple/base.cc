@@ -107,6 +107,11 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     mf.call = p->monitoring_filter_call;
     mf.ret = p->monitoring_filter_ret;
     mf.intalu = p->monitoring_filter_intalu;
+      mf.intand = p->monitoring_filter_intand;
+      mf.intmov = p->monitoring_filter_intmov;
+      mf.intadd = p->monitoring_filter_intadd;
+      mf.intsub = p->monitoring_filter_intsub;
+      mf.intmul = p->monitoring_filter_intmul;
     mf.indctrl = p->monitoring_filter_indctrl;
     
     // Initialize table if specified
@@ -319,6 +324,12 @@ BaseSimpleCPU::regStats()
         .name(name() + ".dcache_retry_cycles")
         .desc("DCache total retry cycles")
         .prereq(dcacheRetryCycles)
+        ;
+
+    // Number of monitored/forwarded micro ops
+    numMonOps
+        .name(name() + ".num_mon_ops")
+        .desc("Number of monitored instructions")
         ;
         
     // Drop statistics      
@@ -649,10 +660,11 @@ BaseSimpleCPU::performMonitoring() {
     }
 
     /* Monitoring */
-    // Currently on loads, generate fifo event
+    // For certain instruction types, depending on mf (monitoring filter)
     // Fifo and monitoring must be enabled
-    // Address cannot be for fifo or timer unless it is a fifo
-    // write to indicate that the main core is done.
+    // Address cannot be for fifo, timer, or flagcache.
+    std::string inst_dis = curStaticInst->disassemble(tc->instAddr(), NULL); // String representaiton of instruction
+    OpClass inst_opclass = curStaticInst->opClass();
     if (fifo_enabled && ( (mp.done && curStaticInst->isStore()) || 
       (monitoring_enabled && predicate_result &&
        (
@@ -660,7 +672,15 @@ BaseSimpleCPU::performMonitoring() {
         (curStaticInst->isStore() && mf.store) ||
         (curStaticInst->isCall() && mf.call) || 
         (curStaticInst->isReturn() && mf.ret) ||
-        ((curStaticInst->opClass() == IntAluOp) && mf.intalu) || // FIXME: also need to include mul/div
+        // integer ALU, not including memory barrier, thready sync, etc. instructions
+        (((inst_opclass == IntAluOp) || (inst_opclass == IntMultOp) || (inst_opclass == IntDivOp)) && curStaticInst->isInteger() &&
+         // and not including control instructions
+         !(curStaticInst->isControl()) && mf.intalu) || 
+        ((inst_dis.find("mov") != string::npos) && mf.intmov) ||
+        ((inst_dis.find("add") != string::npos) && mf.intadd) ||
+        ((inst_dis.find("sub") != string::npos) && mf.intsub) ||
+        ((inst_dis.find("and") != string::npos) && mf.intand) ||
+        ((inst_dis.find("mul") != string::npos) && mf.intmul) ||
         (curStaticInst->isIndirectCtrl() && mf.indctrl)
        )
        &&
@@ -673,7 +693,9 @@ BaseSimpleCPU::performMonitoring() {
 
         DPRINTF(Fifo, "Monitoring event at %d, PC: %x\n", 
             curTick(), tc->instAddr());
-        
+        // Count number of monitored operations
+        numMonOps++;
+      
         // Monitoring packet to be sent
         mp.valid = true;
         mp.instAddr = tc->instAddr(); // current PC
