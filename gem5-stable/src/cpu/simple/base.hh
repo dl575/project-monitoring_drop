@@ -638,6 +638,12 @@ class BaseSimpleCPU : public BaseCPU
     unsigned last_stalls;
 #endif
 
+    // Monitoring is performed when this flag is set to true.
+    // This is used to skip monitoring for postExecute of
+    // translationFault(). If this stalls, then the actual
+    // execution of the instruction after handling the
+    // translation is skipped.
+    bool perf_mon;
     // Function that performs monitoring operation during postExecute
     void performMonitoring();
     // Requests for reading/writing to fifo/timer
