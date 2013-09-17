@@ -89,6 +89,8 @@ def run(config, n_jobs):
       config_args += ' --maxinsts=%d' % (config['max_insts'])
     if config['cache_enabled']:
       config_args += ' --caches --simulatestalls'
+      if config['l2_cache_enabled']:
+        config_args += ' --l2cache --l2_size=%s' % (config['l2_size'])
       if 'cache_sizes' in config and prod[1] in config['cache_sizes']:
         config_args += ' --l1d_size=%s --l1i_size=%s' % (config['cache_sizes'][prod[1]], config['cache_sizes'][prod[1]])
     if config['invalidation']:
