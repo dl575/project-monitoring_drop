@@ -98,7 +98,8 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     filtertab2("Filter Table 2"),
     fptab("Filter Pointers"),
     fifoStall(false), timerStalled(false),
-    fifoEmpty(false)
+    fifoEmpty(false),
+    perf_mon(true)
 {
 
     // Monitoring filter parameters
@@ -590,7 +591,9 @@ BaseSimpleCPU::postExecute()
         traceData = NULL;
     }
 
-    performMonitoring();
+    if (perf_mon) {
+      performMonitoring();
+    }
 }
 
 void 

@@ -334,7 +334,11 @@ TimingSimpleCPU::translationFault(Fault fault)
         traceData = NULL;
     }
 
+    // Don't perform monitoring for the translationFault
+    perf_mon = false;
     postExecute();
+    // Reset perform monitoring flag
+    perf_mon = true;
 
     if (getState() == SimObject::Draining) {
         advancePC(fault);
