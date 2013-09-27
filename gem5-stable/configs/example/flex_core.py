@@ -1,4 +1,4 @@
-# Copyright (c) 2012 ARM Limited
+# Copyright (c) 2013 ARM Limited
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -119,7 +119,12 @@ if (options.simulatestalls and options.cpu_type == 'atomic'):
     MainCPUClass.simulate_data_stalls = True
 
 # Create new CPU type for monitoring core
-(MonCPUClass, test_mem_mode, FutureClass) = (AtomicSimpleMonitor, test_mem_mode, None)
+if options.cpu_type == 'atomic':
+  (MonCPUClass, test_mem_mode, FutureClass) = (AtomicSimpleMonitor, test_mem_mode, None)
+elif options.cpu_type == 'timing':
+  (MonCPUClass, test_mem_mode, FutureClass) = (TimingSimpleMonitor, test_mem_mode, None)
+else:
+  raise Exception("Unknown what drop core to use for cpu_type %s" % options.cpu_type)
 MonCPUClass.clock = options.monfreq
 MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
@@ -135,7 +140,13 @@ if (options.simulatestalls and options.cpu_type == 'atomic'):
     MonCPUClass.simulate_data_stalls = True
 
 # Create drop core
-options.cpu_type = 'drop'
+if options.cpu_type == 'atomic':
+  options.cpu_type = 'drop'
+elif options.cpu_type == 'timing':
+  #options.cpu_type = 'drop_timing'
+  options.cpu_type = 'drop'
+else:
+  raise Exception("Unknown what drop core to use for cpu_type %s" % options.cpu_type)
 (DropCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
 DropCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
@@ -290,31 +301,51 @@ process2.executable = process1.executable
 process2.cmd = process1.cmd
 system.cpu[2].workload = process2
 
-# Connect system to the bus
-system.system_port = system.membus.slave
-# Connect memory to bus
-system.physmem.port = system.membus.master
-# Set up caches if enabled, connect to memory bus, and set up interrupts
 options.l1i_latency = '1ps'
 options.l1d_latency = '1ps'
 options.num_cpus = 2
-CacheConfig.config_cache(options, system)
+if options.ruby:
+  options.num_cpus = 3
+  options.use_map = True
+  Ruby.create_system(options, system)
+  assert(options.num_cpus == len(system.ruby._cpu_ruby_ports))
 
-if options.caches:
-    icache = L1Cache(size = options.l1i_size,
-                     assoc = options.l1i_assoc,
-                     block_size=options.cacheline_size,
-                     latency = options.l1i_latency)
-    dcache = L1Cache(size = options.invalidation_cache_size,
-                     assoc = options.l1d_assoc,
-                     block_size=16,
-                     latency = options.l1d_latency)
-    system.cpu[2].addPrivateSplitL1Caches(icache, dcache)
-system.cpu[2].createInterruptController()
-if options.l2cache:
-    system.cpu[2].connectAllPorts(system.tol2bus, system.membus)
+  for i in xrange(options.num_cpus):
+    ruby_port = system.ruby._cpu_ruby_ports[i]
+
+    # Create the interrupt controller and connect its ports to Ruby
+    system.cpu[i].createInterruptController()
+    # system.cpu[i].interrupts.pio = ruby_port.master
+    # system.cpu[i].interrupts.int_master = ruby_port.slave
+    # system.cpu[i].interrupts.int_slave = ruby_port.master
+
+    # Connect the cpu's cache ports to Ruby
+    system.cpu[i].icache_port = ruby_port.slave
+    system.cpu[i].dcache_port = ruby_port.slave
 else:
-    system.cpu[2].connectAllPorts(system.membus)
+  # Connect system to the bus
+  system.system_port = system.membus.slave
+  # Connect memory to bus
+  system.physmem.port = system.membus.master
+  # Set up caches for main and monitoring cores if enabled, connect to memory
+  # bus, and set up interrupts
+  CacheConfig.config_cache(options, system)
+
+  if options.caches:
+      icache = L1Cache(size = options.l1i_size,
+                       assoc = options.l1i_assoc,
+                       block_size=options.cacheline_size,
+                       latency = options.l1i_latency)
+      dcache = L1Cache(size = options.invalidation_cache_size,
+                       assoc = options.l1d_assoc,
+                       block_size=16,
+                       latency = options.l1d_latency)
+      system.cpu[2].addPrivateSplitL1Caches(icache, dcache)
+  system.cpu[2].createInterruptController()
+  if options.l2cache:
+      system.cpu[2].connectAllPorts(system.tol2bus, system.membus)
+  else:
+      system.cpu[2].connectAllPorts(system.membus)
 
 # Run simulation
 root = Root(full_system = False, system = system)

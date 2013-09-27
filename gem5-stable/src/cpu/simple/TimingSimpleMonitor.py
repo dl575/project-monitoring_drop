@@ -1,6 +1,4 @@
-# -*- mode:python -*-
-
-# Copyright (c) 2006 The Regents of The University of Michigan
+# Copyright (c) 2007 The Regents of The University of Michigan
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,56 +26,10 @@
 #
 # Authors: Nathan Binkert
 
-Import('*')
+from m5.params import *
+from BaseSimpleCPU import BaseSimpleCPU
 
-need_simple_base = False
-if 'AtomicSimpleCPU' in env['CPU_MODELS']:
-    need_simple_base = True
-    SimObject('AtomicSimpleCPU.py')
-    Source('atomic.cc')
-
-if 'DropSimpleCPU' in env['CPU_MODELS']:
-    need_simple_base = True
-    SimObject('DropSimpleCPU.py')
-    Source('drop.cc')
-
-if 'WCETSimpleCPU' in env['CPU_MODELS']:
-    need_simple_base = True
-    SimObject('WCETSimpleCPU.py')
-    Source('wcet.cc')
-
-if 'AtomicSimpleMonitor' in env['CPU_MODELS']:
-    need_simple_base = True
-    SimObject('AtomicSimpleMonitor.py')
-    Source('atomic_monitor.cc')
-
-if 'TimingSimpleMonitor' in env['CPU_MODELS']:
-    need_simple_base = True
-    SimObject('TimingSimpleMonitor.py')
-    Source('timing_monitor.cc')
-
-if 'TimingSimpleCPU' in env['CPU_MODELS']:
-    need_simple_base = True
-    SimObject('TimingSimpleCPU.py')
-    Source('timing.cc')
-
-if 'AtomicSimpleCPU' in env['CPU_MODELS'] or \
-       'WCETSimpleCPU' in env['CPU_MODELS'] or \
-       'AtomicSimpleMonitor' in env['CPU_MODELS'] or \
-       'TimingSimpleCPU' in env['CPU_MODELS']:
-    DebugFlag('SimpleCPU')
-
-if need_simple_base:
-    Source('base.cc')
-    SimObject('BaseSimpleCPU.py')
-
-
-DebugFlag('Fifo')
-DebugFlag('FifoStall')
-DebugFlag('SlackTimer')
-DebugFlag('Monitoring')
-DebugFlag('Task')
-DebugFlag('FlagCache')
-DebugFlag('Invalidation')
-DebugFlag('Monitor')
-
+class TimingSimpleMonitor(BaseSimpleCPU):
+    type = 'TimingSimpleMonitor'
+    monitor_port = MasterPort("Monitor Port")
+    monitor_type = Param.Int(0, "Type of monitor")
