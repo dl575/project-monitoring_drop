@@ -63,6 +63,8 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
 
     virtual void init();
 
+    SimpleThread* monitor_thread;
+
   private:
 
     // monitoring extensions

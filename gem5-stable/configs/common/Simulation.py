@@ -62,6 +62,8 @@ def setCPUClass(options):
     elif options.cpu_type == "drop":
         class TmpClass(DropSimpleCPU): pass
         atomic = True
+    elif options.cpu_type == "drop_timing":
+        class TmpClass(DropTimingSimpleCPU): pass
     else:
         class TmpClass(AtomicSimpleCPU): pass
         atomic = True
