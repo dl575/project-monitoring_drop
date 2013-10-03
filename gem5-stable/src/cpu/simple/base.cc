@@ -1268,6 +1268,13 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
     mp.valid = true;
     mp.memAddr = fed.data;
     DPRINTF(Fifo, "Starting custom packet\n");
+
+    // virtual -> physical address translation
+    Request *req = &data_write_req;
+    req->setVirt(0, mp.memAddr, size, flags, dataMasterId(), thread->pcState().instAddr());
+    Fault fault = thread->dtb->translateAtomic(req, tc, BaseTLB::Write);
+    assert(fault == NoFault);
+    mp.physAddr = req->getPaddr();
   } else if (addr == FIFO_CUSTOM_SIZE) {
     mp.size = fed.data;
     mp.memEnd = mp.memAddr + mp.size - 1;

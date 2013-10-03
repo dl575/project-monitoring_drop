@@ -518,7 +518,7 @@ TimingSimpleMonitor::readMem(Addr addr, uint8_t *data,
 
     _status = DTBWaitResponse;
     if (split_addr > addr) {
-      //FIXME: remove
+      //FIXME
 panic("split read not handled\n");
         RequestPtr req1, req2;
         assert(!req->isLLSC() && !req->isSwap());
@@ -542,14 +542,11 @@ panic("split read not handled\n");
             = new DataTranslation<TimingSimpleMonitor *>(this, state);
         thread->dtb->translateTiming(req, tc, translation, mode);
             */
-      //FIXME: switch back to timing version of translate
         Fault fault = thread->dtb->translateAtomic(req, tc, mode);
+        // return fault if found
         if (fault != NoFault) {
-          handlePageTableFault(addr);
-          // Redo translation to make sure we don't have fault.
-          fault = thread->dtb->translateAtomic(req, tc, mode);
+          return fault;
         }
-        assert(fault == NoFault);
         WholeTranslationState *state =
             new WholeTranslationState(req, new uint8_t[size], NULL, mode);
         DataTranslation<TimingSimpleMonitor *> *translation
@@ -731,13 +728,11 @@ TimingSimpleMonitor::writeMem(uint8_t *data, unsigned size,
             new DataTranslation<TimingSimpleMonitor *>(this, state);
         thread->dtb->translateTiming(req, tc, translation, mode);
         */
-      //FIXME: switch back to timing version of translate
         Fault fault = thread->dtb->translateAtomic(req, tc, mode);
+        // Return fault if found
         if (fault != NoFault) {
-          handlePageTableFault(addr);
-          Fault fault = thread->dtb->translateAtomic(req, tc, mode);
+          return fault;
         }
-        assert(fault == NoFault);
         WholeTranslationState *state =
             new WholeTranslationState(req, newData, res, mode);
         DataTranslation<TimingSimpleMonitor *> *translation =
@@ -2047,6 +2042,7 @@ TimingSimpleMonitor::writeDWordTag(Addr addr, uint64_t tag)
     // make sure tag address can fit into memory space
     assert(addr < 0x80000000);
     Addr tag_addr = addr << 1;
+
     Fault fault = writeMem((uint8_t*)&tag, sizeof(uint64_t), tag_addr, TheISA::TLB::AllowUnaligned | TheISA::TLB::MustBeOne, NULL);
     if (fault != NoFault) {
         // page table fault
