@@ -545,6 +545,8 @@ panic("split read not handled\n");
         Fault fault = thread->dtb->translateAtomic(req, tc, mode);
         // return fault if found
         if (fault != NoFault) {
+          // Monitor functions handle fault and continue running
+          _status = Running;
           return fault;
         }
         WholeTranslationState *state =
@@ -731,6 +733,8 @@ TimingSimpleMonitor::writeMem(uint8_t *data, unsigned size,
         Fault fault = thread->dtb->translateAtomic(req, tc, mode);
         // Return fault if found
         if (fault != NoFault) {
+          // Monitor functions handle fault and continue running
+          _status = Running;
           return fault;
         }
         WholeTranslationState *state =
