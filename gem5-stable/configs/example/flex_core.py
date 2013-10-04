@@ -143,8 +143,7 @@ if (options.simulatestalls and options.cpu_type == 'atomic'):
 if options.cpu_type == 'atomic':
   options.cpu_type = 'drop'
 elif options.cpu_type == 'timing':
-  #options.cpu_type = 'drop_timing'
-  options.cpu_type = 'drop'
+  options.cpu_type = 'drop_timing'
 else:
   raise Exception("Unknown what drop core to use for cpu_type %s" % options.cpu_type)
 (DropCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
@@ -157,7 +156,7 @@ if options.invalidation:
     DropCPUClass.timer_enabled = True
     # Need flag cache for monitoring core
     DropCPUClass.flagcache_enabled = True
-if (options.simulatestalls):
+if (options.simulatestalls) and options.cpu_type == 'atomic':
     # Simulate d cache stalls
     DropCPUClass.simulate_data_stalls = True
 

@@ -1,6 +1,4 @@
-# -*- mode:python -*-
-
-# Copyright (c) 2006 The Regents of The University of Michigan
+# Copyright (c) 2007 The Regents of The University of Michigan
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,33 +26,16 @@
 #
 # Authors: Nathan Binkert
 
-Import('*')
+from m5.params import *
+from BaseSimpleCPU import BaseSimpleCPU
 
-CpuModel('AtomicSimpleCPU', 'atomic_simple_cpu_exec.cc',
-         '#include "cpu/simple/atomic.hh"',
-         { 'CPU_exec_context': 'AtomicSimpleCPU' },
-         default=True)
-CpuModel('DropSimpleCPU', 'drop_simple_cpu_exec.cc',
-         '#include "cpu/simple/drop.hh"',
-         { 'CPU_exec_context': 'DropSimpleCPU' },
-         default=True)
-CpuModel('DropTimingSimpleCPU', 'drop_timing_simple_cpu_exec.cc',
-         '#include "cpu/simple/drop_timing.hh"',
-         { 'CPU_exec_context': 'DropTimingSimpleCPU' },
-         default=True)
-CpuModel('WCETSimpleCPU', 'wcet_simple_cpu_exec.cc',
-         '#include "cpu/simple/wcet.hh"',
-         { 'CPU_exec_context': 'WCETSimpleCPU' },
-         default=True)
-CpuModel('AtomicSimpleMonitor', 'atomic_simple_monitor_exec.cc',
-         '#include "cpu/simple/atomic_monitor.hh"',
-         { 'CPU_exec_context': 'AtomicSimpleMonitor' },
-         default=True)
-CpuModel('TimingSimpleMonitor', 'timing_simple_monitor_exec.cc',
-         '#include "cpu/simple/timing_monitor.hh"',
-         { 'CPU_exec_context': 'TimingSimpleMonitor' },
-         default=True)
-CpuModel('TimingSimpleCPU', 'timing_simple_cpu_exec.cc',
-         '#include "cpu/simple/timing.hh"',
-         { 'CPU_exec_context': 'TimingSimpleCPU' },
-         default=True)
+class DropTimingSimpleCPU(BaseSimpleCPU):
+    type = 'DropTimingSimpleCPU'
+
+    forward_fifo_enabled = Param.Bool(False, "monitoring forward fifo port enabled")
+    full_clock = Param.Clock('500MHz', "Full monitoring clock frequency")
+    
+    monitor_port = SlavePort("Monitor Port")
+    
+    if forward_fifo_enabled:
+      forward_fifo_port = MasterPort("Forward Fifo Port")

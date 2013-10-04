@@ -41,6 +41,11 @@ if 'DropSimpleCPU' in env['CPU_MODELS']:
     SimObject('DropSimpleCPU.py')
     Source('drop.cc')
 
+if 'DropTimingSimpleCPU' in env['CPU_MODELS']:
+    need_simple_base = True
+    SimObject('DropTimingSimpleCPU.py')
+    Source('drop_timing.cc')
+
 if 'WCETSimpleCPU' in env['CPU_MODELS']:
     need_simple_base = True
     SimObject('WCETSimpleCPU.py')

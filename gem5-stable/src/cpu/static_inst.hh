@@ -64,6 +64,7 @@ class AtomicSimpleCPU;
 class TimingSimpleCPU;
 class WCETSimpleCPU;
 class DropSimpleCPU;
+class DropTimingSimpleCPU;
 class AtomicSimpleMonitor;
 class TimingSimpleMonitor;
 class InorderCPU;
