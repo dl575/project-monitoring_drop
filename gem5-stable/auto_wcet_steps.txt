@@ -10,13 +10,13 @@
     scripts/auto_program_wcet.pl
 7. Create malardens:
     scripts/create_malardens.py
-7. Build binaries (change sweep ranges):
+8. Build binaries (change sweep ranges):
     scripts/build_malarden.py
-8. Run binaries (update monitor and model at top of file):
+9. Run binaries (update monitor and model at top of file):
     scripts/run_sweep_local.sh
     OR
     scripts/run_sweep_cluster.sh
    If running on cluster, remember to copy over .bz2 files for monitors,
    malarden programs, and monitors.py
-9. Generate CSVs:
+10. Generate CSVs:
     scripts/generate_csv.pl m5out/malarden/*/*
