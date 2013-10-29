@@ -50,6 +50,7 @@
 #include "debug/Config.hh"
 #include "debug/ExecFaulting.hh"
 #include "debug/SimpleCPU.hh"
+#include "debug/MonitorSimpleCPU.hh"
 #include "debug/Monitor.hh"
 #include "mem/packet.hh"
 #include "mem/packet_access.hh"
@@ -162,6 +163,7 @@ void
 TimingSimpleMonitor::resume()
 {
     DPRINTF(SimpleCPU, "Resume\n");
+    DPRINTF(MonitorSimpleCPU, "Resume\n");
     if (_status != SwitchedOut && _status != Idle) {
         assert(system->getMemoryMode() == Enums::timing);
 
@@ -215,6 +217,7 @@ void
 TimingSimpleMonitor::activateContext(ThreadID thread_num, int delay)
 {
     DPRINTF(SimpleCPU, "ActivateContext %d (%d cycles)\n", thread_num, delay);
+    DPRINTF(MonitorSimpleCPU, "ActivateContext %d (%d cycles)\n", thread_num, delay);
 
     assert(thread_num == 0);
     assert(thread);
@@ -428,80 +431,6 @@ TimingSimpleMonitor::readMem(Addr addr, uint8_t *data,
     if (traceData) {
         traceData->setAddr(addr);
     }
-    // Save address for monitoring
-    fed.memAddr = addr;
-
-    // Read from fifo
-    if (fifo_enabled && addr >= FIFO_ADDR_START && addr <= FIFO_ADDR_END) {
-      // Read from fifo into data
-      Fault result = readFromFifo(addr, data, size, flags);
-
-      // Create packet and request to be used in completeDataAccess
-      const int asid = 0;
-      const ThreadID tid = 0;
-      const Addr pc = thread->instAddr();
-      RequestPtr req2  = new Request(asid, addr, size,
-                                    flags, dataMasterId(), pc, _cpuId, tid);
-      MemCmd cmd2 = MemCmd::ReadReq;
-      PacketPtr pkt2 = new Packet(req2, cmd2);
-      pkt2->dataStatic(data);
-      pkt2->req->setFlags(Request::NO_ACCESS);
-
-      // Only return data if no fault
-      if (result == NoFault) {
-        completeDataAccess(pkt2);
-      }
-
-      return result;  
-    }
-
-    // Read from timer
-    if (timer_enabled && (addr == TIMER_READ_SLACK || addr == TIMER_READ_DROP)) {
-      // Read from timer into data
-      Fault result = readFromTimer(addr, data, size, flags);
-
-      // Create packet and request to be used in completeDataAccess
-      const int asid = 0;
-      const ThreadID tid = 0;
-      const Addr pc = thread->instAddr();
-      RequestPtr req2  = new Request(asid, addr, size,
-                                    flags, dataMasterId(), pc, _cpuId, tid);
-      MemCmd cmd2 = MemCmd::ReadReq;
-      PacketPtr pkt2 = new Packet(req2, cmd2);
-      pkt2->dataStatic(data);
-      pkt2->req->setFlags(Request::NO_ACCESS);
-
-      // Only return data if no fault
-      if (result == NoFault){
-        completeDataAccess(pkt2);
-      }
-
-      return result;
-    }
-    
-    // Read from flag cache
-    if (flagcache_enabled && (addr >= FLAG_CACHE_ADDR_START && addr <= FLAG_CACHE_ADDR_END)) {
-      // Read from flag cache into data
-      Fault result = readFromFlagCache(addr, data, size, flags);
-
-      // Create packet and request to be used in completeDataAccess
-      const int asid = 0;
-      const ThreadID tid = 0;
-      const Addr pc = thread->instAddr();
-      RequestPtr req2  = new Request(asid, addr, size,
-                                    flags, dataMasterId(), pc, _cpuId, tid);
-      MemCmd cmd2 = MemCmd::ReadReq;
-      PacketPtr pkt2 = new Packet(req2, cmd2);
-      pkt2->dataStatic(data);
-      pkt2->req->setFlags(Request::NO_ACCESS);
-
-      // Only return data if no fault
-      if (result == NoFault){
-        completeDataAccess(pkt2);
-      }
-
-      return result;
-    }
 
     Fault fault;
     const int asid = 0;
@@ -677,27 +606,6 @@ TimingSimpleMonitor::writeMem(uint8_t *data, unsigned size,
     if (traceData) {
         traceData->setAddr(addr);
     }
-    // Save memory address for monitoring
-    fed.memAddr = addr;
-    // Save data being written
-    fed.data = 0;
-    memcpy(&fed.data, data, size);
-
-    // Write to fifo
-    // Used to handle fifo control (writing data to fifo is done 
-    // automatically by monitoring)
-    if (fifo_enabled && (addr >= FIFO_OP_RANGE_START && addr < FIFO_OP_RANGE_END)) {
-        return writeToFifo(addr, data, size, flags);
-    }
-    // Timer
-    if (timer_enabled && (addr >= TIMER_ADDR_START && addr <= TIMER_ADDR_END)) { 
-        return writeToTimer(addr, data, size, flags);
-    }
-    
-    // Write to flag cache
-    if (flagcache_enabled && (addr >= FLAG_CACHE_ADDR_START && addr <= FLAG_CACHE_ADDR_END)) {
-        return writeToFlagCache(addr, data, size, flags);
-    }
 
     RequestPtr req = new Request(asid, addr, size,
                                  flags, dataMasterId(), pc, _cpuId, tid);
@@ -872,6 +780,7 @@ void
 TimingSimpleMonitor::fetch()
 {
     DPRINTF(SimpleCPU, "Monitor Tick\n");
+    DPRINTF(MonitorSimpleCPU, "Monitor Tick\n");
 
     if (!initialized) {
         // initialize monitor on first cycle
@@ -905,7 +814,8 @@ TimingSimpleMonitor::fetch()
       if (fetchEvent.scheduled()) {
         deschedule(fetchEvent);
       }
-        schedule(fetchEvent, curTick() + ticks(1));
+      Tick latency = ticks(1);
+      schedule(fetchEvent, roundDown(curTick() + latency + 2, 3) - 2);
     }
 }
 
@@ -1383,6 +1293,7 @@ TimingSimpleMonitor::advanceInst(Fault fault)
     if (fault != NoFault) {
         advancePC(fault);
         DPRINTF(SimpleCPU, "Fault occured, scheduling fetch event\n");
+        DPRINTF(MonitorSimpleCPU, "Fault occured, scheduling fetch event\n");
         reschedule(fetchEvent, nextCycle(), true);
         _status = Faulting;
         return;
@@ -1395,7 +1306,10 @@ TimingSimpleMonitor::advanceInst(Fault fault)
         // kick off fetch of next instruction... callback from icache
         // response will cause that instruction to be executed,
         // keeping the CPU running.
-        fetch();
+        //fetch();
+      // schedule fetch event in future so it happens at -2 tick offset
+      Tick latency = ticks(1);
+      schedule(fetchEvent, roundDown(curTick() + latency + 2, 3) - 2);
     }
 }
 

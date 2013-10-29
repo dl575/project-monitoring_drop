@@ -1073,7 +1073,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         // Read instruction type from fifo
         itp = readFifoInstType();
         
-        // Fixme: Prevents settag packets from being dropped. Does not work in real-time settings.
+        // FIXME: Prevents settag packets from being dropped. Does not work in real-time settings.
         readFromFifo(FIFO_SETTAG, (uint8_t *)&skip_drop, sizeof(skip_drop), ArmISA::TLB::AllowUnaligned);
         
         // Perform filtering
@@ -1085,6 +1085,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             // Save address
             Addr saved_addr = 0;
             readFromFlagCache(FC_GET_ADDR, (uint8_t *)&saved_addr, sizeof(saved_addr), ArmISA::TLB::AllowUnaligned);
+            // Read first flag from flag cache
             if (filtertab1.initialized){
                 bool flag = false;
                 if (filtertab1.action[itp].size()){
@@ -1100,6 +1101,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                 }
                 if (flag) { select += 2; }
             }
+            // Read second flag from flag cache
             if (filtertab2.initialized){
                 bool flag = false;
                 if (filtertab2.action[itp].size()){
@@ -1118,10 +1120,11 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             // Get index from filter pointer table
             unsigned itidx = fptab.table[itp][select];
             DPRINTF(Invalidation, "Filter table select %d @ %d points to %d\n", select, itp, itidx);
-            // Perform filtering operation
+            // Perform filtering operation if one exists
             if (invtab.action[itidx].size()){
                 filterstats[itp]++;
                 DPRINTF(Invalidation, "Filtering fifo entry: num_filtered: %d\n", filterstats.total());
+                // Filtering is enabled
                 if (!emulate_filtering){
                     if (invtab.action[itidx] == "SW"){
                         // Perform filtering in SW
@@ -1135,10 +1138,16 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                         DPRINTF(Invalidation, "Filtered in HW.\n");
                         return (result != NoFault)? result : ReExecFault; // Stay in HW
                     }
+                // Emulating filtering to determine what system without
+                // filtering would be like
                 } else {
+                    // Mark that entry would have been filtered. Even if full
+                    // monitoring is performed on these, they should not count
+                    // towards valid monitoring.
                     entry_filtered = true;
                 }
             }
+            // No entry in filter table, packet not filtered
             DPRINTF(Invalidation, "Entry not filtered\n");
         }
     }
@@ -1148,6 +1157,9 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     // read data
     long long int read_timer = 1;
     
+    // If the packet is droppable, read whether there is enough slack to
+    // perform full monitoring into read_timer.
+    // read_timer = 1 indicates enough slack, = 0 indicates drop.
     if (!skip_drop){
         // Create request at timer location
         req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
@@ -1177,12 +1189,16 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         
         uint8_t intask = false;
         readFromTimer(TIMER_TASK_PACKET, &intask, sizeof(intask), ArmISA::TLB::AllowUnaligned);
+        // If the entry should not have been marked as filtered, then it
+        // contributes to either drop or non-drop statistics.
         if (!entry_filtered && intask){
+            // Increment full statistics if we have enough slack
             if (read_timer){ fullstats[itp]++; }
+            // Increment drop statistics if we don't have enough slack
             else { dropstats[itp]++; }
         }
         
-        // Hardware invalidation
+        // Not enough slack, perform hardware invalidation
         if (fifo_enabled && !read_timer && flagcache_enabled && invtab.initialized){
             DPRINTF(Invalidation, "Starting hardware invalidation.\n");
             // Check if LUT says to go back to software

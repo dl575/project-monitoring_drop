@@ -124,6 +124,7 @@ class DropSimpleCPU : public BaseSimpleCPU
         virtual AddrRangeList getAddrRanges();
     };
 
+    // Port directly to monitor
     MonitorPort monitorPort;
 
     bool fastmem;
