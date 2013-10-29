@@ -24,7 +24,9 @@ the WCET for the monitor with and without dropping.
 
 END
 
-open my $ex, "-|", "gem5.debug --debug-flags=SlackTimer,Fifo $gem5/configs/example/flex_core.py -c $gem5/tests/monitoring/wcet_program.arm --caches" or die "Failed to run gem5\n";
+open my $ex, "-|", "gem5.debug --debug-flags=SlackTimer,Fifo $gem5/configs/example/flex_core_emulate.py -c $gem5/tests/monitoring/wcet_program.arm --caches; ".
+                   "gem5.debug --debug-flags=SlackTimer,Fifo $gem5/configs/example/flex_core_emulate.py -c $gem5/tests/monitoring/wcet_program_timer.arm --caches"
+                    or die "Failed to run gem5\n";
 
 my $intask = 0;
 my $stall_start;
@@ -47,11 +49,11 @@ while (<$ex>){
     }
     if (/Written to timer: task start/){
         $intask = 1;
-        undef $last_pop;
+        undef $last_pop unless defined $stall_start;
     }
     if (/Written to timer: task end/){
         $intask = 0;
-        undef $last_pop;
+        undef $last_pop unless defined $stall_start;
     }
     
     if (/^(\d+).*?Pop fifo/){

@@ -27,6 +27,8 @@ int main(int argc, char *argv[]) {
   
   ENABLE_MONITOR;
   
+  START_TASK(0);
+  
   unsigned volatile int arr[ARRSIZE];
   unsigned int i;
   register volatile int sum = 0;
@@ -38,6 +40,8 @@ int main(int argc, char *argv[]) {
     //sum += arr[i];
     sum = add(sum, arr[i], i%100);
   }
+  
+  END_TASK(ARRSIZE*200);
   
   DISABLE_MONITOR;
 

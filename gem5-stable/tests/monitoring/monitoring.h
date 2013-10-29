@@ -37,11 +37,13 @@
 // bss initialization
 #define INIT_BSS extern void * __bss_start__; \
   extern void * __bss_end__; \
+  while (!READ_FIFO_EMPTY); \
   WRITE_FIFO_RANGE((unsigned int)&__bss_start__, (unsigned int)&__bss_end__) \
   while (!READ_FIFO_EMPTY);
 
 // code region initializatoin
 #define INIT_CODE extern void * _init , * _end; \
+  while (!READ_FIFO_EMPTY); \
   WRITE_FIFO_RANGE((unsigned int)&_init, (unsigned int) &_end) \
   while (!READ_FIFO_EMPTY);
   

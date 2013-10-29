@@ -2,8 +2,8 @@ monitor = os.environ["MONITOR"]
 model = os.environ["MODEL"]
 
 # Kindle config
-MainCPUClass.clock = '2GHz'
-MonCPUClass.clock = '250MHz'
+MainCPUClass.clock = '500MHz'
+MonCPUClass.clock = '500MHz'
 # Flexcore config
 # MainCPUClass.clock = '1250MHz'
 # MonCPUClass.clock = '7500MHz'
@@ -26,12 +26,12 @@ if monitor == "UMC_FULL":
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
   if model == 'ATOMIC':
-    delay = 22
+    delay = 19
   if model == 'TIMING':
-    delay = 32
+    delay = 30
   if model == 'FLEX':
-    MonCPUClass.clock = '5500MHz'
-    delay = 103
+    MonCPUClass.clock = '4750MHz'
+    delay = 91
   # Define monitoring executable
   monitor_bin = "umc_full"
 elif monitor == "UMC_SWDROP":
@@ -39,12 +39,12 @@ elif monitor == "UMC_SWDROP":
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
   if model == 'ATOMIC':
-    delay = 30
+    delay = 25
   if model == 'TIMING':
-    delay = 40
+    delay = 44
   if model == 'FLEX':
-    MonCPUClass.clock = '7500MHz'
-    delay = 135
+    MonCPUClass.clock = '6250MHz'
+    delay = 118
   # Define monitoring executable
   monitor_bin = "umc_swdrop"
 elif monitor == "UMC_HWDROP":
@@ -52,7 +52,7 @@ elif monitor == "UMC_HWDROP":
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
   if model == 'FLEX':
-    MonCPUClass.clock = '7250MHz'
+    MonCPUClass.clock = '6750MHz'
   # Load the invalidation file
   invalidation_cpu.invalidation_file = "tables/umc_invalidation.txt"
   # Define monitoring executable
@@ -62,7 +62,7 @@ elif monitor == "UMC_HWFILTER":
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
   if model == 'FLEX':
-    MonCPUClass.clock = '6500MHz'
+    MonCPUClass.clock = '6000MHz'
   # Load the invalidation file
   invalidation_cpu.invalidation_file = "tables/umc_invalidation.txt"
   invalidation_cpu.filter_file_1 = "tables/umc_filter.txt"
@@ -86,12 +86,12 @@ elif monitor == "LRC_FULL":
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
   if model == 'ATOMIC':
-    delay = 15
+    delay = 6
   if model == 'TIMING':
     delay = 16
   if model == 'FLEX':
-    MonCPUClass.clock = '3750MHz'
-    delay = 62
+    MonCPUClass.clock = '1500MHz'
+    delay = 29
   # Define monitoring executable
   monitor_bin = "lrc_full"
 elif monitor == "LRC_SWDROP":
@@ -99,12 +99,12 @@ elif monitor == "LRC_SWDROP":
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
   if model == 'ATOMIC':
-    delay = 19
+    delay = 9
   if model == 'TIMING':
-    delay = 21
+    delay = 10
   if model == 'FLEX':
-    MonCPUClass.clock = '4750MHz'
-    delay = 19
+    MonCPUClass.clock = '2250MHz'
+    delay = 9
   # Define monitoring executable
   monitor_bin = "lrc_swdrop"
 elif monitor == "LRC_HWDROP":
@@ -112,7 +112,7 @@ elif monitor == "LRC_HWDROP":
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
   if model == 'FLEX':
-    MonCPUClass.clock = '5500MHz'
+    MonCPUClass.clock = '3250MHz'
   # Load the invalidation file
   invalidation_cpu.invalidation_file = "tables/lrc_invalidation.txt"
   # Define monitoring executable
@@ -122,7 +122,7 @@ elif monitor == "LRC_HWFILTER":
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
   if model == 'FLEX':
-    MonCPUClass.clock = '5000MHz'
+    MonCPUClass.clock = '3250MHz'
   # Load the invalidation file
   invalidation_cpu.invalidation_file = "tables/lrc_invalidation.txt"
   invalidation_cpu.filter_file_1 = "tables/lrc_filter.txt"
@@ -141,12 +141,12 @@ elif monitor == "DIFT_FULL":
   MainCPUClass.monitoring_filter_intalu = True
   MainCPUClass.monitoring_filter_indctrl = True
   if model == 'ATOMIC':
-    delay = 30
+    delay = 26
   if model == 'TIMING':
-    delay = 42
+    delay = 52
   if model == 'FLEX':
-    MonCPUClass.clock = '7500MHz'
-    delay = 140
+    MonCPUClass.clock = '6500MHz'
+    delay = 124
   # Define monitoring executable
   monitor_bin = "dift_full"
 # Drop handled in software
@@ -157,12 +157,12 @@ elif monitor == "DIFT_SWDROP":
   MainCPUClass.monitoring_filter_intalu = True
   MainCPUClass.monitoring_filter_indctrl = True
   if model == 'ATOMIC':
-    delay = 34
+    delay = 28
   if model == 'TIMING':
-    delay = 54
+    delay = 63
   if model == 'FLEX':
-    MonCPUClass.clock = '8500MHz'
-    delay = 159
+    MonCPUClass.clock = '7000MHz'
+    delay = 133
   # Define monitoring executable
   monitor_bin = "dift_swdrop"
 # Drop handled in hardware without filtering
@@ -173,7 +173,7 @@ elif monitor == "DIFT_HWDROP":
   MainCPUClass.monitoring_filter_intalu = True
   MainCPUClass.monitoring_filter_indctrl = True
   if model == 'FLEX':
-    MonCPUClass.clock = '11500MHz'
+    MonCPUClass.clock = '10500MHz'
   # Load the invalidation file
   invalidation_cpu.invalidation_file = "tables/dift_invalidation.txt"
   # Define monitoring executable
@@ -186,7 +186,7 @@ elif monitor == "DIFT_HWFILTER":
   MainCPUClass.monitoring_filter_intalu = True
   MainCPUClass.monitoring_filter_indctrl = True
   if model == 'FLEX':
-    MonCPUClass.clock = '11500MHz'
+    MonCPUClass.clock = '7500MHz'
   # Load the invalidation file
   invalidation_cpu.invalidation_file = "tables/dift_invalidation.txt"
   # Load the filter tables

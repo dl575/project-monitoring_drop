@@ -70,12 +70,12 @@ my $default_delay = 1000;
 
 my @monitors = ('UMC_FULL', 'UMC_SWDROP', 'LRC_FULL', 'LRC_SWDROP', 'LRC_HWDROP', 'DIFT_FULL', 'DIFT_SWDROP');
 my %defaliases = ( 'LRC_HWDROP' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER' );
-my %drop_delays = ('UMC_FULL'=>{'ATOMIC'=>22, 'TIMING'=>32, 'FLEX'=>10}, 
-                   'UMC_SWDROP'=>{'ATOMIC'=>6, 'TIMING'=>16, 'FLEX'=>8},
-                   'LRC_FULL'=>{'ATOMIC'=>15, 'TIMING'=>16, 'FLEX'=>9},
-                   'LRC_SWDROP'=>{'ATOMIC'=>12, 'TIMING'=>13, 'FLEX'=>2},
-                   'DIFT_FULL'=>{'ATOMIC'=>30, 'TIMING'=>42, 'FLEX'=>10},
-                   'DIFT_SWDROP'=>{'ATOMIC'=>20, 'TIMING'=>26, 'FLEX'=>9},
+my %drop_delays = ('UMC_FULL'=>{'ATOMIC'=>19, 'TIMING'=>30, 'FLEX'=>10}, 
+                   'UMC_SWDROP'=>{'ATOMIC'=>5, 'TIMING'=>15, 'FLEX'=>8},
+                   'LRC_FULL'=>{'ATOMIC'=>6, 'TIMING'=>16, 'FLEX'=>10},
+                   'LRC_SWDROP'=>{'ATOMIC'=>9, 'TIMING'=>10, 'FLEX'=>2},
+                   'DIFT_FULL'=>{'ATOMIC'=>26, 'TIMING'=>52, 'FLEX'=>10},
+                   'DIFT_SWDROP'=>{'ATOMIC'=>16, 'TIMING'=>35, 'FLEX'=>9},
                    );
 my @models = ('ATOMIC', 'TIMING', 'FLEX');
 
@@ -90,7 +90,7 @@ foreach my $model (@models){
         my $mon_drop_delays = (defined $drop_delays{$monitor})? $drop_delays{$monitor} : {};
         my $drop_delay = (defined $mon_drop_delays->{$model})? $mon_drop_delays->{$model} : 0;
         
-        $ENV{'WCET_SCALE'} = ($drop_delay > 0)? 4 : 1;
+        $ENV{'WCET_SCALE'} = ($drop_delay > 0)? 5 : 1;
         $ENV{'MONITOR'} = $monitor;
         $ENV{'MODEL'} = $model;
 

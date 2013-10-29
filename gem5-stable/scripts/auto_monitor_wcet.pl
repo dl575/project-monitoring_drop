@@ -10,11 +10,11 @@ die "GEM5 path not defined" unless defined $gem5;
 my @monitors = ('UMC_FULL', 'UMC_SWDROP', 'UMC_HWDROP', 'UMC_HWFILTER', 'LRC_FULL', 'LRC_SWDROP', 'LRC_HWDROP', 'LRC_HWFILTER', "DIFT_FULL", "DIFT_SWDROP", "DIFT_HWDROP", "DIFT_HWFILTER");
 my @models = ('ATOMIC', 'TIMING', 'FLEX');
 
-# FlexCore: 4 cycles for atomic
+# FlexCore: 2 cycles for atomic
 # Kindle: 500 MHz -> 2 ns -> 2000 ticks
-my %ticks_to_cycles = ('FLEX' => {'UMC_FULL'=>182, 'UMC_SWDROP'=>133, 'UMC_HWDROP'=>138, 'UMC_HWFILTER'=>154, 
-                                  'LRC_FULL'=>267, 'LRC_SWDROP'=>211, 'LRC_HWDROP'=>182, 'LRC_HWFILTER'=>200,
-                                  "DIFT_FULL"=>133, "DIFT_SWDROP"=>118, "DIFT_HWDROP"=>87, "DIFT_HWFILTER"=>87 },
+my %ticks_to_cycles = ('FLEX' => {'UMC_FULL'=>210, 'UMC_SWDROP'=>160, 'UMC_HWDROP'=>148, 'UMC_HWFILTER'=>166, 
+                                  'LRC_FULL'=>666, 'LRC_SWDROP'=>444, 'LRC_HWDROP'=>307, 'LRC_HWFILTER'=>307,
+                                  "DIFT_FULL"=>153, "DIFT_SWDROP"=>142, "DIFT_HWDROP"=>95, "DIFT_HWFILTER"=>133 },
                        'ATOMIC' => {'UMC_FULL'=>2000, 'UMC_SWDROP'=>2000, 'UMC_HWDROP'=>2000, 'UMC_HWFILTER'=>2000, 
                                     'LRC_FULL'=>2000, 'LRC_SWDROP'=>2000, 'LRC_HWDROP'=>2000, 'LRC_HWFILTER'=>2000,
                                     "DIFT_FULL"=>2000, "DIFT_SWDROP"=>2000, "DIFT_HWDROP"=>2000, "DIFT_HWFILTER"=>2000 },

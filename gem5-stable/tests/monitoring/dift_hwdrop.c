@@ -29,7 +29,7 @@
 
 char tagmem[METADATA_ADDRESSES];
 // Flag cache used for register file tags
-// bool tagrf[NUM_REGS];
+bool tagrf[NUM_REGS];
 
 int main(int argc, char *argv[]) {
   register unsigned int temp;
@@ -59,20 +59,32 @@ int main(int argc, char *argv[]) {
           rs = READ_FIFO_RS1;
           // Get source tag from flag cache array
           FC_SET_ADDR(rs);
-          register bool tag = FC_ARRAY_GET;
-          // Propagate to destination memory addresses
-          register unsigned int memend = (READ_FIFO_MEMEND >> 2);
-          for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
-            if (tag) {
-              // Bit mask to set taint
-              tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
-            } else {
-              // Bit mask to clear tag
-              tagmem[temp >> 3] = tagmem[temp >> 3] & ~(1 << (temp&0x07));
+          // Check if invalid
+          if (!FC_ARRAY_GET){
+            // Get tag
+            register bool tag = tagrf[rs];
+            // Propagate to destination memory addresses
+            register unsigned int memend = (READ_FIFO_MEMEND >> 2);
+            for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
+                if (tag) {
+                  // Bit mask to set taint
+                  tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
+                } else {
+                  // Bit mask to clear tag
+                  tagmem[temp >> 3] = tagmem[temp >> 3] & ~(1 << (temp&0x07));
+                }
+                // Set flag cache as valid (clear invalidation)
+                FC_SET_ADDR(temp)
+                FC_CACHE_CLEAR
             }
-            // Set flag cache as valid (clear invalidation)
-            FC_SET_ADDR(temp)
-            FC_CACHE_CLEAR
+          } else {
+            // Propagate to destination memory addresses
+            register unsigned int memend = (READ_FIFO_MEMEND >> 2);
+            for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
+                // Set flag cache as invalid
+                FC_SET_ADDR(temp)
+                FC_CACHE_SET
+            }
           }
         // Load
         } else if (READ_FIFO_LOAD) {
@@ -89,25 +101,22 @@ int main(int argc, char *argv[]) {
             FC_SET_ADDR(rd);
             // Invalid metadata, clear taint
             if (invalid) {
-                FC_ARRAY_CLEAR;
+                FC_ARRAY_SET;
             // Valid metadata, handle normally
             } else {
                 // Pull out correct bit in memory to store int tag register file
-                if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
-                  FC_ARRAY_SET;
-                } else {
-                  FC_ARRAY_CLEAR;
-                }
+                tagrf[rd] = ((tagmem[temp >> 3]) & (1 >> (temp&0x7)));
+                // Set register as valid
+                FC_ARRAY_CLEAR;
             }
           }
         // Indirect control
         } else if (READ_FIFO_INDCTRL) {
           rs = READ_FIFO_RS1;
-          // Get source register tag
+          // Get source register invalid
           FC_SET_ADDR(rs);
-          register bool tag = FC_ARRAY_GET;
           // on indirect jump, check tag taint
-          if (tag) {
+          if (!FC_ARRAY_GET && tagrf[rs]){
             printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
             return -1;
           }
@@ -115,18 +124,32 @@ int main(int argc, char *argv[]) {
         } else { 
           // on ALU instructions, propagate tag between registers
           // Read source tags and determine taint of destination
-          // Get first source tag
-          FC_SET_ADDR(READ_FIFO_RS1);
-          register bool tresult = FC_ARRAY_GET;
-          // Get second source tag
-          FC_SET_ADDR(READ_FIFO_RS2);
-          tresult |= FC_ARRAY_GET;
-          // Set destination tag
-          FC_SET_ADDR(READ_FIFO_RD);
-          if (tresult){
-            FC_ARRAY_SET;
-          } else {
-            FC_ARRAY_CLEAR;
+          register bool tresult = false;
+          register bool tinv = false;
+          // Get tags from rs1
+          rs = READ_FIFO_RS1;
+          if (rs < NUM_REGS){
+            FC_SET_ADDR(rs);
+            tinv |= FC_ARRAY_GET;
+            tresult |= tagrf[rs];
+          }
+          // Get tags from rs2
+          rs = READ_FIFO_RS2;
+          if (rs < NUM_REGS){
+            FC_SET_ADDR(rs);
+            tinv |= FC_ARRAY_GET;
+            tresult |= tagrf[rs];
+          }
+          // Propagate tags
+          rd = READ_FIFO_RD;
+          if (rd < NUM_REGS){
+            FC_SET_ADDR(rd);
+            if (tinv){
+                FC_ARRAY_SET;
+            } else {
+                FC_ARRAY_CLEAR;
+                tagrf[rd] = tresult;
+            }
           }
         } // inst type
         
