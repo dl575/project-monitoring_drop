@@ -69,6 +69,8 @@ Options.addSEOptions(parser)
 parser.add_option("--monitor", type="string", default="umc")
 # Monitor frequency
 parser.add_option("--monfreq", type="string", default="250MHz")
+# Size of fifo connecting main core to dropping core
+parser.add_option("--fifo_size", type="int", default=16)
 # Modeling atomic cache stalls
 parser.add_option("--simulatestalls", action="store_true")
 # Allow invalidations
@@ -123,6 +125,7 @@ if options.cpu_type == 'atomic':
   (MonCPUClass, test_mem_mode, FutureClass) = (AtomicSimpleMonitor, test_mem_mode, None)
 elif options.cpu_type == 'timing':
   (MonCPUClass, test_mem_mode, FutureClass) = (TimingSimpleMonitor, test_mem_mode, None)
+  #(MonCPUClass, test_mem_mode, FutureClass) = (AtomicSimpleMonitor, test_mem_mode, None)
 else:
   raise Exception("Unknown what drop core to use for cpu_type %s" % options.cpu_type)
 MonCPUClass.clock = options.monfreq
@@ -143,7 +146,8 @@ if (options.simulatestalls and options.cpu_type == 'atomic'):
 if options.cpu_type == 'atomic':
   options.cpu_type = 'drop'
 elif options.cpu_type == 'timing':
-  options.cpu_type = 'drop_timing'
+  #options.cpu_type = 'drop_timing'
+  options.cpu_type = 'drop'
 else:
   raise Exception("Unknown what drop core to use for cpu_type %s" % options.cpu_type)
 (DropCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
@@ -239,7 +243,7 @@ options.num_cpus = 3
 
 # Create a "fifo" memory
 fifo_main_to_dc = Fifo(range=AddrRange(start=0x30000000, size="64kB")) 
-# fifo.fifo_size = 32
+fifo_main_to_dc.fifo_size = options.fifo_size
 system.fifo_main_to_dc = fifo_main_to_dc
 # Create a second fifo
 fifo_dc_to_mon = Fifo(range=AddrRange(start=0x30030000, size="64kB")) 
@@ -249,7 +253,8 @@ system.fifo_dc_to_mon = fifo_dc_to_mon
 timer = PerformanceTimer(range=AddrRange(start=0x30010000, size="64kB"))
 timer.percent_overhead = options.overhead
 # For spec benchmarks, we set init slack here
-timer.start_cycles = 2000000
+#timer.start_cycles = 2000000
+timer.start_cycles = 1000000
 timer.start_cycles_clock = MainCPUClass.clock
 timer.use_start_ticks = True
 system.timer = timer
