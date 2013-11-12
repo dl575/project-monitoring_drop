@@ -1,0 +1,96 @@
+/*
+ * Invalidation Priority Table
+ *
+ * Authors: Tao Chen
+ */
+
+#include "base/intmath.hh"
+#include "mem/drop/ipt.hh"
+
+InvalidationPT::InvalidationPT(unsigned _numEntries, unsigned _tagBits, unsigned _instShiftAmt)
+	: numEntries(_numEntries), tagBits(_tagBits), instShiftAmt(_instShiftAmt)
+{
+    if (!isPowerOf2(numEntries)) {
+        fatal("IPT entries is not a power of 2!");
+    }
+    
+    ipt.resize(numEntries);
+    
+    for (unsigned i = 0; i < numEntries; ++i) {
+        ipt[i].valid = false;
+    }
+
+    idxMask = numEntries - 1;
+
+    tagMask = (1 << tagBits) - 1;
+
+    tagShiftAmt = instShiftAmt + floorLog2(numEntries);
+}
+
+void
+InvalidationPT::reset()
+{
+    for (unsigned i = 0; i < numEntries; ++i) {
+        ipt[i].valid = false;
+    }
+}
+
+inline
+unsigned
+InvalidationPT::getIndex(Addr addr)
+{
+    // Need to shift PC over by the word offset.
+    return (addr >> instShiftAmt) & idxMask;
+}
+
+inline
+Addr
+InvalidationPT::getTag(Addr addr)
+{
+    return (addr >> tagShiftAmt) & tagMask;
+}
+
+bool
+InvalidationPT::valid(Addr addr)
+{
+    unsigned ipt_idx = getIndex(addr);
+
+    Addr tag = getTag(addr);
+
+    assert(ipt_idx < numEntries);
+
+    if (ipt[ipt_idx].valid
+        && tag == ipt[ipt_idx].tag) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool
+InvalidationPT::lookup(Addr addr)
+{
+    unsigned ipt_idx = getIndex(addr);
+
+    Addr tag = getTag(addr);
+
+    assert(ipt_idx < numEntries);
+
+    if (ipt[ipt_idx].valid
+        && tag == ipt[ipt_idx].tag) {
+        return ipt[ipt_idx].priority;
+    } else {
+        return 0;
+    }
+}
+
+void InvalidationPT::update(Addr addr, const bool priority)
+{
+	unsigned ipt_idx = getIndex(addr);
+
+	assert(ipt_idx < numEntries);
+
+	ipt[ipt_idx].valid = true;
+	ipt[ipt_idx].priority = priority;
+	ipt[ipt_idx].tag = getTag(addr);
+}
