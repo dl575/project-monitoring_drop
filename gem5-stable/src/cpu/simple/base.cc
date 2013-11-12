@@ -365,6 +365,11 @@ BaseSimpleCPU::regStats()
         filterstats.subname(i, instTypeToString(i));
     }
 
+    importantFraction
+        .name(name() + ".important_fraction")
+        .desc("Percentage important instructions")
+        ;
+
     idleFraction = constant(1.0) - notIdleFraction;
     numIdleCycles = idleFraction * numCycles;
     numBusyCycles = (notIdleFraction)*numCycles;
@@ -375,6 +380,7 @@ BaseSimpleCPU::resetStats()
 {
 //    startNumInst = numInst;
      notIdleFraction = (_status != Idle);
+     importantFraction = (_important == true);
 }
 
 void
@@ -1068,7 +1074,6 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     bool skip_drop = false;
     instType itp = inst_undef;
     bool entry_filtered = false;
-    bool important = false;
     
     if (addr == TIMER_READ_DROP && fifo_enabled){
         // Pop the fifo entry
@@ -1083,10 +1088,10 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         readFromFifo(FIFO_SETTAG, (uint8_t *)&skip_drop, sizeof(skip_drop), ArmISA::TLB::AllowUnaligned);
         
         // calculate whether an instruction is important
-        important = backtrack();
+        _important = backtrack();
 
         // don't drop an important instruction
-        skip_drop |= important;
+        skip_drop |= _important;
 
         // Perform filtering
         if (!skip_drop && flagcache_enabled && invtab.initialized && fptab.initialized 

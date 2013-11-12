@@ -699,7 +699,10 @@ class BaseSimpleCPU : public BaseCPU
     InvalidationPT ipt;
 
     // backtrack
+    bool _important;
     bool backtrack();
+
+    Stats::Average importantFraction;
 
 };
 
