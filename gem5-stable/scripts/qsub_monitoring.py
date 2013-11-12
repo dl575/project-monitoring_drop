@@ -95,6 +95,8 @@ def run(config, n_jobs):
         config_args += ' --l1d_size=%s --l1i_size=%s' % (config['cache_sizes'][prod[1]], config['cache_sizes'][prod[1]])
     if config['invalidation']:
       config_args += ' --invalidation --invalidation_cache_size=%s --overhead=%.4f' % (prod[6], prod[5])
+    if config.get('backtrack'):
+      config_args += ' --backtrack'
     config_args += ' --cmd=%s%s' % (config['benchmarks'][prod[4]]['executable'], '' if prod[3] == 'none' else '-'+prod[3])
     config_args += ' --options=\'%s\'' % (config['benchmarks'][prod[4]]['options'])
     run_cmd = gem5_exe + gem5_args + sim_config + config_args
