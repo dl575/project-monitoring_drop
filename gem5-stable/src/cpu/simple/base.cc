@@ -99,7 +99,8 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     fptab("Filter Pointers"),
     fifoStall(false), timerStalled(false),
     fifoEmpty(false),
-    perf_mon(true)
+    perf_mon(true),
+    rptb(), mptb(0x100000, 10, 2), ipt(0x100000, 10, 2)
 {
 
     // Monitoring filter parameters
@@ -855,6 +856,10 @@ void BaseSimpleCPU::init() {
   fed.clear();
   ReExecFault = new ReExec();
   
+  // initialize structures to supporting backtracking
+  rptb.reset();
+  mptb.reset();
+  ipt.reset();
 }
 
 BaseSimpleCPU::instType
@@ -1063,6 +1068,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     bool skip_drop = false;
     instType itp = inst_undef;
     bool entry_filtered = false;
+    bool important = false;
     
     if (addr == TIMER_READ_DROP && fifo_enabled){
         // Pop the fifo entry
@@ -1076,6 +1082,12 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         // FIXME: Prevents settag packets from being dropped. Does not work in real-time settings.
         readFromFifo(FIFO_SETTAG, (uint8_t *)&skip_drop, sizeof(skip_drop), ArmISA::TLB::AllowUnaligned);
         
+        // calculate whether an instruction is important
+        important = backtrack();
+
+        // don't drop an important instruction
+        skip_drop |= important;
+
         // Perform filtering
         if (!skip_drop && flagcache_enabled && invtab.initialized && fptab.initialized 
             && (filtertab1.initialized || filtertab2.initialized))
@@ -1677,3 +1689,128 @@ BaseSimpleCPU::CacheOp(uint8_t Op, Addr EffAddr)
       }
     return fault;
 }*/
+
+/**
+ * Backtrack to identify important instructions
+ * @return Whether the current instruction is important or not
+ */
+bool
+BaseSimpleCPU::backtrack()
+{
+    // FIXME: only works for HB now
+    monitoringPacket mpkt;
+    bool important = false;
+    readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
+    if (ipt.valid(mpkt.instAddr))
+        important = ipt.lookup(mpkt.instAddr);
+    // determine instruction type
+    if (mpkt.load) {
+        Addr addr = mpkt.rs1;
+        uint8_t flag;
+
+        writeToFlagCache(FC_SET_ADDR, (uint8_t *)&addr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+        readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+        if (flag) {
+            // invalidated, find out the producer of rs1
+            if (rptb.valid(addr)) {
+                Addr producer1 = rptb.lookup1(addr);
+                if (producer1 != 0) {
+                    // mark producer as important
+                    ipt.update(producer1, true);
+                }
+            }
+        }
+        addr = mpkt.memAddr;
+        writeToFlagCache(FC_SET_ADDR, (uint8_t *)&addr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+        readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+        if (flag) {
+            // memory address is invalidated, find out producer
+            if (mptb.valid(addr)) {
+                Addr producer = mptb.lookup(addr);
+                if (producer != 0) {
+                    ipt.update(producer, true);
+                }
+            }
+        }
+
+        // update producer table
+        Addr rd = mpkt.rd;
+        rptb.update(rd, mpkt.instAddr, 0);
+
+    } else if (mpkt.store) {
+        Addr src = mpkt.rs1;
+        Addr ptr = mpkt.rs2;
+        uint8_t flag_src;
+        uint8_t flag_ptr;
+
+        writeToFlagCache(FC_SET_ADDR, (uint8_t *)&src, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+        readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag_src, sizeof(uint8_t), ArmISA::TLB::AllowUnaligned);
+        if (flag_src) {
+            // invalidated, find out the producer of rs1
+            if (rptb.valid(src)) {
+                Addr producer1 = rptb.lookup1(src);
+                if (producer1 != 0) {
+                    // mark producer as important
+                    ipt.update(producer1, true);
+                }
+            }
+        }
+        writeToFlagCache(FC_SET_ADDR, (uint8_t *)&ptr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+        readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag_ptr, sizeof(uint8_t), ArmISA::TLB::AllowUnaligned);
+        if (flag_ptr) {
+            // invalidated, find out the producer of rs1
+            if (rptb.valid(ptr)) {
+                Addr producer1 = rptb.lookup1(ptr);
+                if (producer1 != 0) {
+                    // mark producer as important
+                    ipt.update(producer1, true);
+                }
+            }
+        }
+
+        // update producer table
+        Addr addr = mpkt.memAddr;
+        mptb.update(addr, mpkt.instAddr);
+
+    } else if (mpkt.intalu) {
+        if (important) {
+            // find producers of sources
+            Addr rs1 = mpkt.rs1;
+            Addr rs2 = mpkt.rs2;
+            uint8_t flag_rs1;
+            uint8_t flag_rs2;
+            writeToFlagCache(FC_SET_ADDR, (uint8_t *)&rs1, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+            readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag_rs1, sizeof(uint8_t), ArmISA::TLB::AllowUnaligned);
+            writeToFlagCache(FC_SET_ADDR, (uint8_t *)&rs2, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+            readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag_rs2, sizeof(uint8_t), ArmISA::TLB::AllowUnaligned);
+            if (flag_rs1) {
+                // invalidated, find out the producer of rs1
+                if (rptb.valid(rs1)) {
+                    Addr producer1 = rptb.lookup1(rs1);
+                    if (producer1 != 0) {
+                        // mark producer as important
+                        ipt.update(producer1, true);
+                    }
+                }
+            }
+            if (flag_rs2) {
+                // invalidated, find out the producer of rs2
+                if (rptb.valid(rs2)) {
+                    Addr producer1 = rptb.lookup1(rs2);
+                    if (producer1 != 0) {
+                        // mark producer as important
+                        ipt.update(producer1, true);
+                    }
+                }
+            }
+
+            // update producer table
+            Addr addr = mpkt.rd;
+            rptb.update(addr, mpkt.instAddr, 0);
+
+        }
+    }
+
+
+    return important;
+}
