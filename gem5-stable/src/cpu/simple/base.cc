@@ -100,7 +100,8 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     fifoStall(false), timerStalled(false),
     fifoEmpty(false),
     perf_mon(true),
-    rptb(), mptb(0x100000, 10, 2), ipt(0x100000, 10, 2)
+    rptb(), mptb(0x100000, 10, 2), ipt(0x100000, 10, 2),
+    _backtrack(p->backtrack)
 {
 
     // Monitoring filter parameters
@@ -1087,11 +1088,12 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         // FIXME: Prevents settag packets from being dropped. Does not work in real-time settings.
         readFromFifo(FIFO_SETTAG, (uint8_t *)&skip_drop, sizeof(skip_drop), ArmISA::TLB::AllowUnaligned);
         
-        // calculate whether an instruction is important
-        _important = backtrack();
-
-        // don't drop an important instruction
-        skip_drop |= _important;
+        if (_backtrack) {
+            // calculate whether an instruction is important
+            _important = backtrack();
+            // don't drop an important instruction
+            skip_drop |= _important;
+        }
 
         // Perform filtering
         if (!skip_drop && flagcache_enabled && invtab.initialized && fptab.initialized 

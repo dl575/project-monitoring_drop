@@ -59,6 +59,7 @@ class BaseSimpleCPU(BaseCPU):
     # Check if WCET violated
     hard_wcet = Param.Bool(True, "check if hard real-time deadline met")
     emulate_filtering = Param.Bool(False, "emulate filtering but don't perform")
+    backtrack = Param.Bool(False, "backtrack to find out important instructions")
 
     if fifo_enabled:
       fifo_port = MasterPort("Fifo Port")

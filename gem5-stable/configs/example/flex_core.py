@@ -81,6 +81,8 @@ parser.add_option("--overhead", type="float", default=0.0)
 parser.add_option("--emulate_filtering", action="store_true")
 # Invalidation cache size
 parser.add_option("--invalidation_cache_size", type="string", default="2kB")
+# backtracking
+parser.add_option("--backtrack", action="store_true")
 
 available_monitors = {
   "none" : 0,
@@ -170,6 +172,8 @@ DropCPUClass.full_clock = MonCPUClass.clock
 DropCPUClass.forward_fifo_enabled = True
 # Emulate filtering set
 DropCPUClass.emulate_filtering = options.emulate_filtering
+# Backtrack
+DropCPUClass.backtrack = options.backtrack
 
 if options.monitor == "umc":
   # Set up monitoring filter

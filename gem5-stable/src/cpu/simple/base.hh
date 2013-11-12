@@ -699,6 +699,7 @@ class BaseSimpleCPU : public BaseCPU
     InvalidationPT ipt;
 
     // backtrack
+    bool _backtrack;
     bool _important;
     bool backtrack();
 
