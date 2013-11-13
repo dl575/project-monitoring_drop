@@ -1715,6 +1715,7 @@ BaseSimpleCPU::backtrack()
         Addr addr = mpkt.rs1;
         uint8_t flag;
 
+        // FIXME: is this necessary?
         writeToFlagCache(FC_SET_ADDR, (uint8_t *)&addr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
         readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
         if (flag) {
@@ -1729,7 +1730,7 @@ BaseSimpleCPU::backtrack()
         }
         addr = mpkt.memAddr;
         writeToFlagCache(FC_SET_ADDR, (uint8_t *)&addr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
-        readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+        readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
         if (flag) {
             // memory address is invalidated, find out producer
             if (mptb.valid(addr)) {
@@ -1762,6 +1763,7 @@ BaseSimpleCPU::backtrack()
                 }
             }
         }
+        // FIXME: is this necessary?
         writeToFlagCache(FC_SET_ADDR, (uint8_t *)&ptr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
         readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag_ptr, sizeof(uint8_t), ArmISA::TLB::AllowUnaligned);
         if (flag_ptr) {

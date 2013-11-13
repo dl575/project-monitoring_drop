@@ -817,7 +817,7 @@ DropSimpleCPU::tick()
     bool forward_successful = true;
 
     // reset instruction importance
-    _important = false;
+    // _important = false;
     
     // If we have a valid monitoring packet, then send it along
     if (mp.valid){
