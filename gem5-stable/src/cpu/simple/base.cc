@@ -735,7 +735,7 @@ BaseSimpleCPU::performMonitoring() {
         mp.control = curStaticInst->isControl(); // control inst
         mp.call    = curStaticInst->isCall() && mf.call;    // call inst
         mp.ret     = curStaticInst->isReturn() && mf.ret;  // return inst
-        mp.intalu  = (curStaticInst->opClass() == IntAluOp && !curStaticInst->isIndirectCtrl()) && mf.intalu; // integer ALU inst
+        mp.intalu  = (curStaticInst->opClass() == IntAluOp && !curStaticInst->isIndirectCtrl()) && (mf.intalu || mf.intand || mf.intadd || mf.intsub || mf.intmul); // integer ALU inst
         mp.indctrl = curStaticInst->isIndirectCtrl() && mf.indctrl; // indirect control
         mp.lr      = tc->readIntReg(14); // Link register
         mp.nextpc  = tc->nextInstAddr(); // Next program counter
