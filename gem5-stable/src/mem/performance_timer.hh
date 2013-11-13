@@ -151,6 +151,9 @@ class PerformanceTimer : public AbstractMemory
     void doFunctionalAccess(PacketPtr pkt);
     virtual Tick calculateLatency(PacketPtr pkt);
 
+  public:
+    virtual void resume();
+
 };
 
 #endif //__PERFORMANCE_TIMER_HH__
