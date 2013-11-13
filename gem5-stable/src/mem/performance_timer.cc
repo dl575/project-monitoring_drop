@@ -200,14 +200,10 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
               stored_tp.slack = effectiveSlack();
               long long int wait_time = stored_tp.slack + additional_time;
               stored_tp.WCET_end = curTick() + wait_time; // Actual deadline
-            #ifdef DEBUG
               DPRINTF(SlackTimer, "Written to timer: task end, %d(slack) + %d(add) = %d\n", stored_tp.slack, additional_time, wait_time);
-            #endif
             } else if (write_addr == TIMER_SET_THRES) {
               drop_thres = get_data;
-            #ifdef DEBUG
               DPRINTF(SlackTimer, "Written to timer: drop threshold = %d\n", drop_thres);
-            #endif
             } else if (write_addr == TIMER_START_DECREMENT) {
               if (stored_tp.intask){
                   stored_tp.isDecrement = true;
@@ -280,6 +276,24 @@ PerformanceTimer::drain(Event *de)
     else
         changeState(Drained);
     return count;
+}
+
+void
+PerformanceTimer::resume()
+{
+  AbstractMemory::resume();
+
+  // Reset slack on resume (after fast-forward)
+  if (use_start_ticks) {
+    stored_tp.slack = start_ticks;
+    // Mark this as task start time so slack is calculated correctly. Slack is
+    // calculated based on the curTick and the task start time.
+    stored_tp.taskStart = curTick();
+  } else {
+    panic("No headstart slack specified\n");
+  }
+  DPRINTF(SlackTimer, "Resuming simulation, slack = %d\n", effectiveSlack());
+
 }
 
 PerformanceTimer::MemoryPort::MemoryPort(const std::string& _name,

@@ -85,4 +85,6 @@ DebugFlag('Task')
 DebugFlag('FlagCache')
 DebugFlag('Invalidation')
 DebugFlag('Monitor')
+DebugFlag('DropSimpleCPU')
+DebugFlag('MonitorSimpleCPU')
 

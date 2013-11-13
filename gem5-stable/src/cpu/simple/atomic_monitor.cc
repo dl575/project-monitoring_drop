@@ -51,6 +51,7 @@
 #include "cpu/exetrace.hh"
 #include "debug/ExecFaulting.hh"
 #include "debug/SimpleCPU.hh"
+#include "debug/MonitorSimpleCPU.hh"
 #include "debug/Monitor.hh"
 #include "mem/packet.hh"
 #include "mem/packet_access.hh"
@@ -1504,6 +1505,7 @@ void
 AtomicSimpleMonitor::tick()
 {
     DPRINTF(SimpleCPU, "Monitor Tick\n");
+    DPRINTF(MonitorSimpleCPU, "Monitor Tick\n");
 
     Tick latency = 0;
     Tick stall_ticks = 0;

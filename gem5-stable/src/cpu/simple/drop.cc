@@ -49,6 +49,7 @@
 #include "cpu/exetrace.hh"
 #include "debug/ExecFaulting.hh"
 #include "debug/SimpleCPU.hh"
+#include "debug/DropSimpleCPU.hh"
 #include "mem/packet.hh"
 #include "mem/packet_access.hh"
 #include "mem/physical.hh"
@@ -124,7 +125,7 @@ DropSimpleCPU::init()
         // Clean up
         delete timerpkt;
     }
-    
+
 }
 
 DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
@@ -802,6 +803,7 @@ void
 DropSimpleCPU::tick()
 {
     DPRINTF(SimpleCPU, "Tick\n");
+    DPRINTF(DropSimpleCPU, "Tick\n");
 
     Tick latency = 0;
 
@@ -814,10 +816,13 @@ DropSimpleCPU::tick()
     
     bool forward_successful = true;
     
+    // If we have a valid monitoring packet, then send it along
     if (mp.valid){
         if (forward_fifo_enabled) {
+            // Send packet to monitoring core
             forward_successful = forwardFifoPacket();
         }
+        // If succesful, then clear the monitoring packet
         if (forward_successful){
             mp.init();
         }
@@ -826,12 +831,18 @@ DropSimpleCPU::tick()
     if (forward_successful){
         bool drop = false;
         Fault fault = ReExecFault;
+        // If invalidation is enabled
         if (timer_enabled){
+            // Read from timer. Timer automatically performs filtering/drop if needed.
             fault = readFromTimer(TIMER_READ_DROP, (uint8_t *)&drop, sizeof(drop), ArmISA::TLB::AllowUnaligned);
+        // Not invalidating, but FIFO still exists
         } else if (fifo_enabled){
+            // Pop an entry off the incoming fifo from main core
             bool pop = true;
             fault = writeToFifo(FIFO_NEXT, (uint8_t *)&pop, sizeof(pop), ArmISA::TLB::AllowUnaligned);
         }
+        // If no faults (no drop/filter), read a monitoring packet to send to
+        // the monitoring core
         if (fault == NoFault){
             DPRINTF(Invalidation, "Perform full monitoring.\n");
             if (fifo_enabled){
