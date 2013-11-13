@@ -149,6 +149,7 @@ if (options.simulatestalls and options.cpu_type == 'atomic'):
     MonCPUClass.simulate_data_stalls = True
 
 # Create drop core
+prev_cpu_type = options.cpu_type
 if options.cpu_type == 'atomic':
   options.cpu_type = 'drop'
 elif options.cpu_type == 'timing':
@@ -157,6 +158,7 @@ elif options.cpu_type == 'timing':
 else:
   raise Exception("Unknown what drop core to use for cpu_type %s" % options.cpu_type)
 (DropCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
+options.cpu_type = prev_cpu_type
 DropCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 DropCPUClass.fifo_enabled = True
