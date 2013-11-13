@@ -1091,8 +1091,6 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         if (_backtrack) {
             // calculate whether an instruction is important
             _important = backtrack();
-            // don't drop an important instruction
-            skip_drop |= _important;
         }
 
         // Perform filtering
@@ -1179,7 +1177,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     // If the packet is droppable, read whether there is enough slack to
     // perform full monitoring into read_timer.
     // read_timer = 1 indicates enough slack, = 0 indicates drop.
-    if (!skip_drop){
+    if (!skip_drop && !_important){
         // Create request at timer location
         req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
         // Read command
