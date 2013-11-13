@@ -1177,7 +1177,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     // If the packet is droppable, read whether there is enough slack to
     // perform full monitoring into read_timer.
     // read_timer = 1 indicates enough slack, = 0 indicates drop.
-    if (!skip_drop && !_important){
+    if (!skip_drop && !(_backtrack && _important)) {
         // Create request at timer location
         req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
         // Read command
