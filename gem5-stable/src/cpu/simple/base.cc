@@ -610,7 +610,7 @@ BaseSimpleCPU::performMonitoring() {
         bool isempty = isFifoEmpty();
         DPRINTF(SlackTimer, "Checking if FIFO has emptied: %d\n", isempty);
         
-        if (!isempty){
+        if (!isempty && hard_wcet){
             panic("Could not finish monitoring within allotted time.\n");
         }
     }
