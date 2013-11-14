@@ -366,9 +366,9 @@ BaseSimpleCPU::regStats()
         filterstats.subname(i, instTypeToString(i));
     }
 
-    importantFraction
-        .name(name() + ".important_fraction")
-        .desc("Percentage important instructions")
+    numImportantInsts
+        .name(name() + ".num_important_insts")
+        .desc("Number of dynamic instructions marked as important")
         ;
 
     idleFraction = constant(1.0) - notIdleFraction;
@@ -381,7 +381,6 @@ BaseSimpleCPU::resetStats()
 {
 //    startNumInst = numInst;
      notIdleFraction = (_status != Idle);
-     importantFraction = (_important == true);
 }
 
 void
@@ -1091,6 +1090,8 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         if (_backtrack) {
             // calculate whether an instruction is important
             _important = backtrack();
+            if (_important)
+                numImportantInsts++;
         }
 
         // Perform filtering

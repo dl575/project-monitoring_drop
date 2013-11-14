@@ -703,7 +703,7 @@ class BaseSimpleCPU : public BaseCPU
     bool _important;
     bool backtrack();
 
-    Stats::Average importantFraction;
+    Stats::Scalar numImportantInsts;
 
 };
 
