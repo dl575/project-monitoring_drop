@@ -89,7 +89,7 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     : BaseCPU(p), traceData(NULL), thread(NULL),
     monitoring_enabled(p->monitoring_enabled), fifo_enabled(p->fifo_enabled),
     timer_enabled(p->timer_enabled), flagcache_enabled(p->flagcache_enabled),
-    hard_wcet(p->hard_wcet), emulate_filtering(p->emulate_filtering),
+    emulate_filtering(p->emulate_filtering),
     fifoPort(name() + "-iport", this),
     timerPort(name() + "-iport", this),
     fcPort(name() + "-iport", this),
@@ -97,7 +97,9 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     filtertab1("Filter Table 1"),
     filtertab2("Filter Table 2"),
     fptab("Filter Pointers"),
-    fifoStall(false), timerStalled(false),
+    hard_wcet(p->hard_wcet),
+    fifoStall(false), 
+    timerStalled(false),
     fifoEmpty(false),
     perf_mon(true)
 {

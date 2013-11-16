@@ -153,8 +153,7 @@ prev_cpu_type = options.cpu_type
 if options.cpu_type == 'atomic':
   options.cpu_type = 'drop'
 elif options.cpu_type == 'timing':
-  #options.cpu_type = 'drop_timing'
-  options.cpu_type = 'drop'
+  options.cpu_type = 'drop_timing'
 else:
   raise Exception("Unknown what drop core to use for cpu_type %s" % options.cpu_type)
 (DropCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
