@@ -16,24 +16,32 @@ foreach my $dir (@ARGV) {
     my %data;
     my %stats;
     foreach my $file (@files) {
-        next unless $file =~ /^malarden_(\w+)_(\d+).log$/;
+        next unless $file =~ /^malarden_(\w+)_(\d+).txt$/;
         my $bmark = $1;
         my $scale = $2;
         $data{$bmark} = {} unless defined $data{$bmark};
         $data{$bmark}->{$scale} = {};
         open my $fh, "<", "$dir/$file" or die "Could not open $dir/$file\n";
         while (<$fh>){
-            if (/Drops = (\d+), Non-drops = (\d+), Filtered = (\d+), Aliased = (\d+)/){
+            if (/system.flagcache.num_aliased\s+(\d+)/){
+                $data{$bmark}->{$scale}->{'Aliased'} = $1;
+            }
+            if (/system.cpu1.drops::total\s+(\d+)/){
                 $data{$bmark}->{$scale}->{'Drops'} = $1;
-                $data{$bmark}->{$scale}->{'Non-Drops'} = $2;
-                $data{$bmark}->{$scale}->{'Filtered'} = $3;
-                $data{$bmark}->{$scale}->{'Aliased'} = $4;
+            } elsif (/system.cpu1.filtered::total\s+(\d+)/){
+                $data{$bmark}->{$scale}->{'Filtered'} = $1;
+            } elsif (/system.cpu1.non_drops::total\s+(\d+)/){
+                $data{$bmark}->{$scale}->{'Non-Drops'} = $1;
+            } elsif (/system.cpu1.drops::(\w+)\s+(\d+)/){
+                my $stat_name = 'Drop_'.$1;
+                $data{$bmark}->{$scale}->{$stat_name} = $2;
+                $stats{$stat_name} = 1;
+            } elsif (/system.cpu1.filtered::(\w+)\s+(\d+)/){
+                my $stat_name = 'Filter_'.$1;
+                $data{$bmark}->{$scale}->{$stat_name} = $2;
+                $stats{$stat_name} = 1;
             }
-            if (/^\s*(\w+)\s*:\s*(\d+)\s*$/){
-                $data{$bmark}->{$scale}->{$1} = $2;
-                $stats{$1} = 1;
-            }
-            if (/tick (\d+)/){
+            if (/final_tick\s+(\d+)/){
                 $data{$bmark}->{$scale}->{'Exec-Time'} = $1;
             }
         }

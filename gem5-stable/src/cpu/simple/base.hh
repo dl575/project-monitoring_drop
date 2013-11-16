@@ -537,8 +537,6 @@ class BaseSimpleCPU : public BaseCPU
     Fault setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx);
     // Perform invalidation in the flag cache
     Fault performInvalidation(unsigned idx);
-    // hard wcet deadline
-    bool hard_wcet;
     // emulate filtering but don't perform
     bool emulate_filtering;
 
@@ -557,6 +555,8 @@ class BaseSimpleCPU : public BaseCPU
     InvalidationTable <> filtertab2;
     FilterPtrTable fptab;
 
+    // hard wcet deadline
+    bool hard_wcet;
     // Stall because need to write to fifo but fifo is full
     bool fifoStall;
     // Stall due to having extra slack in timer

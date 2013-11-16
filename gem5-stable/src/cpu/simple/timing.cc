@@ -818,15 +818,19 @@ TimingSimpleCPU::completeIfetch(PacketPtr pkt)
 
 // function to handle end_task command
 void TimingSimpleCPU::endTask() {
-  timerStalled = true;
-  DPRINTF(SlackTimer, "The CPU will be stalled for %d ticks\n", fed.data);
+  if (hard_wcet) {
+    timerStalled = true;
+    DPRINTF(SlackTimer, "The CPU will be stalled for %d ticks\n", fed.data);
 
-  // Set state of CPU to stall
-  _status = FifoStall;
-  // Do not advance PC yet
-  stayAtPC = true;
-  // Schedule stall event
-  schedule(endTaskEvent, curTick() + fed.data);
+    // Set state of CPU to stall
+    _status = FifoStall;
+    // Do not advance PC yet
+    stayAtPC = true;
+    // Schedule stall event
+    schedule(endTaskEvent, curTick() + fed.data);
+  } else {
+    DPRINTF(SlackTimer, "hard_wcet = false. CPU is not stalled at end of task.\n");
+  }
 }
 
 void 

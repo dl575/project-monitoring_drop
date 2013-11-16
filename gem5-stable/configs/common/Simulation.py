@@ -413,3 +413,117 @@ def run(options, root, testsys, cpu_class):
     if options.checkpoint_at_end:
         m5.checkpoint(joinpath(cptdir, "cpt.%d"))
 
+"""
+Run simulation with fast-forwarding. During the fast-forwarding period,
+full monitoring is performed. After that, dropping/filtering is performed.
+"""
+def run_ff(options, root, testsys, cpu_list):
+    if options.maxtick:
+        maxtick = options.maxtick
+    elif options.maxtime:
+        simtime = m5.ticks.seconds(simtime)
+        print "simulating for: ", simtime
+        maxtick = simtime
+    else:
+        maxtick = m5.MaxTick
+
+    if options.checkpoint_dir:
+        cptdir = options.checkpoint_dir
+    elif m5.options.outdir:
+        cptdir = m5.options.outdir
+    else:
+        cptdir = getcwd()
+
+    if options.fast_forward:
+        fatal("options.fast_forward not supported with --fastforward_insts")
+    if options.checkpoint_restore:
+        fatal("options.checkpoint_restore not supported with --fastforward_insts")
+    if options.standard_switch:
+        fatal("options.standard_switch not supported with --fastforward_insts")
+
+    np = options.num_cpus
+    max_checkpoints = options.max_checkpoints
+    switch_cpus = None
+
+    if options.prog_interval:
+        fatal("options.prog_interval not supported with --fastforward_insts")
+
+    # Modified from "if cpu_class:" in run()
+    switch_cpus = [cpu_list[i](defer_registration=True, cpu_id=(np+i)) for i in xrange(np)]
+    for i in xrange(np):
+        # Fast forward
+        testsys.cpu[i].max_insts_any_thread = options.fastforward_insts
+
+        switch_cpus[i].system = testsys
+        switch_cpus[i].workload = testsys.cpu[i].workload
+        switch_cpus[i].clock = testsys.cpu[i].clock
+        # Simulation period
+        switch_cpus[i].max_insts_any_thread = options.maxinsts
+
+    testsys.switch_cpus = switch_cpus
+    # Hook up all the fifos for the new cpu models
+    testsys.switch_cpus[1].monitor_port = testsys.switch_cpus[2].monitor_port
+    if testsys.switch_cpus[0].fifo_enabled:
+        testsys.switch_cpus[0].fifo_port = testsys.fifo_main_to_dc.port
+    if testsys.switch_cpus[1].fifo_enabled:
+        testsys.switch_cpus[1].fifo_port = testsys.fifo_dc_to_mon.port
+    if testsys.switch_cpus[2].fifo_enabled:
+        testsys.switch_cpus[2].fifo_port = testsys.fifo_main_to_dc.port
+    if testsys.switch_cpus[2].forward_fifo_enabled:
+        testsys.switch_cpus[2].forward_fifo_port = testsys.fifo_dc_to_mon.port
+    # Connect to timer and flagcache to new CPUs
+    for i in xrange(np):
+        # Connect CPU to timer
+        if testsys.switch_cpus[i].timer_enabled:
+            testsys.switch_cpus[i].timer_port = testsys.timer.port
+        # Connect CPU to flag cache
+        if testsys.switch_cpus[i].flagcache_enabled:
+            testsys.switch_cpus[i].flagcache_port = testsys.flagcache.port
+    # Enable monitoring after switch
+    testsys.switch_cpus[0].monitoring_enabled = True
+    # Disable invalidation/filtering before switch
+    testsys.cpu[2].invalidation_file = ""
+    testsys.cpu[2].filter_file_1 = ""
+    testsys.cpu[2].filter_file_2 = ""
+    testsys.cpu[2].filter_ptr_file = ""
+ 
+    switch_cpu_list = [(testsys.cpu[i], switch_cpus[i]) for i in xrange(np)]
+
+    checkpoint_dir = None
+    m5.instantiate(checkpoint_dir)
+
+    # Modified "if options.standard_switch or cpu_class:"
+    print "Switch at instruction count: %s" % \
+        str(testsys.cpu[0].max_insts_any_thread)
+    exit_event = m5.simulate()
+    print "Switched CPUS @ tick %s" % (m5.curTick())
+
+    # Switch to second set of CPUs
+    m5.switchCpus(switch_cpu_list)
+    # Reset so stats are for post-fast forward (mainly for sim_ticks)
+    m5.stats.reset()
+    m5.resume(testsys)
+
+    num_checkpoints = 0
+    exit_cause = ''
+
+    print "**** REAL SIMULATION ****"
+    exit_event = m5.simulate(maxtick)
+
+    while exit_event.getCause() == "checkpoint":
+        m5.checkpoint(joinpath(cptdir, "cpt.%d"))
+        num_checkpoints += 1
+        if num_checkpoints == max_checkpoints:
+            exit_cause = "maximum %d checkpoints dropped" % max_checkpoints
+            break
+
+        exit_event = m5.simulate(maxtick - m5.curTick())
+        exit_cause = exit_event.getCause()
+
+    if exit_cause == '':
+        exit_cause = exit_event.getCause()
+    print 'Exiting @ tick %i because %s' % (m5.curTick(), exit_cause)
+
+    if options.checkpoint_at_end:
+        m5.checkpoint(joinpath(cptdir, "cpt.%d"))
+

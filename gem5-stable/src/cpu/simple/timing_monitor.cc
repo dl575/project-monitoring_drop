@@ -1400,15 +1400,7 @@ TimingSimpleMonitor::completeIfetch(PacketPtr pkt)
 
 // function to handle end_task command
 void TimingSimpleMonitor::endTask() {
-  timerStalled = true;
-  DPRINTF(SlackTimer, "The CPU will be stalled for %d ticks\n", fed.data);
-
-  // Set state of CPU to stall
-  _status = FifoStall;
-  // Do not advance PC yet
-  stayAtPC = true;
-  // Schedule stall event
-  schedule(endTaskEvent, curTick() + fed.data);
+  panic("TimingSimpleMonitor should not be calling endTask.\n");
 }
 
 void 

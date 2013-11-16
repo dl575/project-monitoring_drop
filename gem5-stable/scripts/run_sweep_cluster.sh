@@ -8,6 +8,7 @@ export GEM5=`pwd`/
 # export MONITOR='LRC_HWFILTER'
 # export MONITOR='DIFT_HWDROP'
 # export MONITOR='DIFT_HWFILTER'
+# export MODEL='TIMING'
 export MODEL='FLEX'
 
 for MONITOR in 'UMC_HWDROP' 'UMC_HWFILTER' 'LRC_HWDROP' 'LRC_HWFILTER' 'DIFT_HWDROP' 'DIFT_HWFILTER'
@@ -24,8 +25,8 @@ do
 
     for file in tests/malarden_monitor/generated/malarden*.arm
     do
-        echo qsub -p 20 -b y "$GEM5/scripts/run_node.sh $GEM5/$file"
-        qsub -p 20 -b y "$GEM5/scripts/run_node.sh $GEM5/$file"
+        echo qsub -b y "$GEM5/scripts/run_node.sh $GEM5/$file"
+        qsub -b y "$GEM5/scripts/run_node.sh $GEM5/$file"
         sleep 0.2
     done
 

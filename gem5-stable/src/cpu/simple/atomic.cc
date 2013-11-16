@@ -621,9 +621,13 @@ AtomicSimpleCPU::tick()
 
 // function to handle end_task command
 void AtomicSimpleCPU::endTask() {
-  timerStalled = true;
-  timer_latency = fed.data;
-  DPRINTF(SlackTimer, "The CPU will be stalled for %d ticks\n", fed.data);
+  if (hard_wcet) {
+    timerStalled = true;
+    timer_latency = fed.data;
+    DPRINTF(SlackTimer, "The CPU will be stalled for %d ticks\n", fed.data);
+  } else {
+    DPRINTF(SlackTimer, "hard_wcet = false. CPU is not stalled at end of task.\n");
+  }
 }
 
 void AtomicSimpleCPU::handleFifoEvent() {

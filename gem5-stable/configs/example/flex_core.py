@@ -83,6 +83,12 @@ parser.add_option("--emulate_filtering", action="store_true")
 parser.add_option("--invalidation_cache_size", type="string", default="2kB")
 # backtracking
 parser.add_option("--backtrack", action="store_true")
+# Headstart (initial) slack
+parser.add_option("--headstart_slack", type="int", default=2000000)
+# Number of instructions to fast-forward
+# During fast-forwarding, full monitoring is performed. Invalidation is enabled
+# after fast-forward period.
+parser.add_option("--fastforward_insts", type="int", default=0)
 
 available_monitors = {
   "none" : 0,
@@ -145,14 +151,15 @@ if (options.simulatestalls and options.cpu_type == 'atomic'):
     MonCPUClass.simulate_data_stalls = True
 
 # Create drop core
+prev_cpu_type = options.cpu_type
 if options.cpu_type == 'atomic':
   options.cpu_type = 'drop'
 elif options.cpu_type == 'timing':
-  #options.cpu_type = 'drop_timing'
-  options.cpu_type = 'drop'
+  options.cpu_type = 'drop_timing'
 else:
   raise Exception("Unknown what drop core to use for cpu_type %s" % options.cpu_type)
 (DropCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
+options.cpu_type = prev_cpu_type
 DropCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 DropCPUClass.fifo_enabled = True
@@ -239,6 +246,10 @@ system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1), DropCPUCla
                 physmem = SimpleMemory(range=AddrRange("768MB"), latency='15ns'),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
+# Save a list of the CPU classes. These will be used in fast-forwarding
+# to create a replica CPU set that runs after fast-forward.
+cpu_list = [MainCPUClass, MonCPUClass, DropCPUClass]
+
 # Connect port between drop and monitoring cpu
 system.cpu[1].monitor_port = system.cpu[2].monitor_port
 
@@ -257,8 +268,7 @@ system.fifo_dc_to_mon = fifo_dc_to_mon
 timer = PerformanceTimer(range=AddrRange(start=0x30010000, size="64kB"))
 timer.percent_overhead = options.overhead
 # For spec benchmarks, we set init slack here
-#timer.start_cycles = 2000000
-timer.start_cycles = 1000000
+timer.start_cycles = options.headstart_slack
 timer.start_cycles_clock = MainCPUClass.clock
 timer.use_start_ticks = True
 system.timer = timer
@@ -275,7 +285,6 @@ if system.cpu[2].fifo_enabled:
   system.cpu[2].fifo_port = system.fifo_main_to_dc.port
 if system.cpu[2].forward_fifo_enabled:
   system.cpu[2].forward_fifo_port = system.fifo_dc_to_mon.port
-  
 
 for i in range(options.num_cpus):
   # Connect CPU to timer
@@ -311,6 +320,7 @@ system.cpu[2].workload = process2
 
 options.l1i_latency = '1ps'
 options.l1d_latency = '1ps'
+# Remove drop core for connecting up caches
 options.num_cpus = 2
 if options.ruby:
   options.num_cpus = 3
@@ -354,7 +364,12 @@ else:
       system.cpu[2].connectAllPorts(system.tol2bus, system.membus)
   else:
       system.cpu[2].connectAllPorts(system.membus)
+# Reinclude drop core for switching CPU count in Simulation.run
+options.num_cpus = 3
 
 # Run simulation
 root = Root(full_system = False, system = system)
-Simulation.run(options, root, system, FutureClass)
+if options.fastforward_insts == 0:
+    Simulation.run(options, root, system, FutureClass)
+else:
+    Simulation.run_ff(options, root, system, cpu_list)

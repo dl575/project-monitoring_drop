@@ -278,6 +278,24 @@ PerformanceTimer::drain(Event *de)
     return count;
 }
 
+void
+PerformanceTimer::resume()
+{
+  AbstractMemory::resume();
+
+  // Reset slack on resume (after fast-forward)
+  if (use_start_ticks) {
+    stored_tp.slack = start_ticks;
+    // Mark this as task start time so slack is calculated correctly. Slack is
+    // calculated based on the curTick and the task start time.
+    stored_tp.taskStart = curTick();
+  } else {
+    panic("No headstart slack specified\n");
+  }
+  DPRINTF(SlackTimer, "Resuming simulation, slack = %d\n", effectiveSlack());
+
+}
+
 PerformanceTimer::MemoryPort::MemoryPort(const std::string& _name,
                                      PerformanceTimer& _memory)
     : SimpleTimingPort(_name, &_memory), memory(_memory)
