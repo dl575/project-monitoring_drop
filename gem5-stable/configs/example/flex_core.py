@@ -83,6 +83,10 @@ parser.add_option("--emulate_filtering", action="store_true")
 parser.add_option("--invalidation_cache_size", type="string", default="2kB")
 # backtracking
 parser.add_option("--backtrack", action="store_true")
+parser.add_option("--backtrack_read_table", action="store_true")
+parser.add_option("--backtrack_write_table", action="store_true")
+# backtracking table directory
+parser.add_option("--backtrack_table_dir", type="string", default="m5out")
 # Headstart (initial) slack
 parser.add_option("--headstart_slack", type="int", default=2000000)
 # Number of instructions to fast-forward
@@ -181,6 +185,9 @@ DropCPUClass.forward_fifo_enabled = True
 DropCPUClass.emulate_filtering = options.emulate_filtering
 # Backtrack
 DropCPUClass.backtrack = options.backtrack
+DropCPUClass.backtrack_read_table = options.backtrack_read_table
+DropCPUClass.backtrack_write_table = options.backtrack_write_table
+DropCPUClass.backtrack_table_dir = options.backtrack_table_dir
 
 if options.monitor == "umc":
   # Set up monitoring filter

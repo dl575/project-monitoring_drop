@@ -7,6 +7,9 @@
 #include "base/intmath.hh"
 #include "mem/drop/ipt.hh"
 
+#define SERIALIZE(x) os.write((const char*)&x, sizeof(x));
+#define UNSERIALIZE(x) is.read((char*)&x, sizeof(x));
+
 InvalidationPT::InvalidationPT(unsigned _numEntries, unsigned _tagBits, unsigned _instShiftAmt)
 	: numEntries(_numEntries), tagBits(_tagBits), instShiftAmt(_instShiftAmt)
 {
@@ -93,4 +96,41 @@ void InvalidationPT::update(Addr addr, const bool priority)
 	ipt[ipt_idx].valid = true;
 	ipt[ipt_idx].priority = priority;
 	ipt[ipt_idx].tag = getTag(addr);
+}
+
+void InvalidationPT::serialize(std::ostream &os)
+{
+    // serialize parameters
+    SERIALIZE(numEntries)
+    SERIALIZE(idxMask)
+    SERIALIZE(tagBits)
+    SERIALIZE(tagMask)
+    SERIALIZE(instShiftAmt)
+    SERIALIZE(tagShiftAmt)
+    // serialize the actual table
+    for (unsigned i = 0; i < numEntries; ++i) {
+        PTEntry &entry = ipt[i];
+        SERIALIZE(entry.tag)
+        SERIALIZE(entry.priority)
+        SERIALIZE(entry.valid)
+    }
+}
+
+void InvalidationPT::unserialize(std::istream &is)
+{
+    // unserialize parameters
+    UNSERIALIZE(numEntries)
+    UNSERIALIZE(idxMask)
+    UNSERIALIZE(tagBits)
+    UNSERIALIZE(tagMask)
+    UNSERIALIZE(instShiftAmt)
+    UNSERIALIZE(tagShiftAmt)
+    // unserialize the actual table
+    ipt.resize(numEntries);
+    for (unsigned i = 0; i < numEntries; ++i) {
+        PTEntry &entry = ipt[i];
+        UNSERIALIZE(entry.tag)
+        UNSERIALIZE(entry.priority)
+        UNSERIALIZE(entry.valid)
+    }
 }

@@ -7,6 +7,9 @@
 #ifndef __REGISTER_PTB_HH__
 #define __REGISTER_PTB_HH__
 
+#include <iostream>
+#include <fstream>
+
 #include "arch/types.hh"
 #include "config/the_isa.hh"
 #include "arch/registers.hh"
@@ -48,6 +51,16 @@ class RegisterPTB
      * Update the producer of an memory location
      */
     void update(int reg, const Addr producerPC1, const Addr producerPC2);
+
+    /**
+     * Serialize the table to an output stream
+     */
+    void serialize(std::ostream &os);
+
+    /**
+     * Unserialize the table from an input stream
+     */
+    void unserialize(std::istream &is);
 
   private:
     /** The actual PTB */

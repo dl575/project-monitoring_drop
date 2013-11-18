@@ -7,6 +7,9 @@
 #ifndef __MEMORY_PTB_HH__
 #define __MEMORY_PTB_HH__
 
+#include <iostream>
+#include <fstream>
+
 #include "arch/types.hh"
 
 class MemoryPTB
@@ -49,6 +52,16 @@ class MemoryPTB
      * Update the producer of an memory location
      */
     void update(Addr addr, const Addr producerPC);
+
+    /**
+     * Serialize the table to an output stream
+     */
+    void serialize(std::ostream &os);
+
+    /**
+     * Unserialize the table from an input stream
+     */
+    void unserialize(std::istream &is);
 
   private:
     /**

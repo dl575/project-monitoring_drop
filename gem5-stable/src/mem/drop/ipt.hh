@@ -7,6 +7,9 @@
 #ifndef __INVALIDATION_PT_HH__
 #define __INVALIDATION_PT_HH__
 
+#include <iostream>
+#include <fstream>
+
 #include "arch/types.hh"
 
 class InvalidationPT
@@ -49,6 +52,16 @@ class InvalidationPT
      * Update the priority of an memory location
      */
     void update(Addr addr, const bool priority);
+
+    /**
+     * Serialize the table to an output stream
+     */
+    void serialize(std::ostream &os);
+
+    /**
+     * Unserialize the table from an input stream
+     */
+    void unserialize(std::istream &is);
 
   private:
     /**

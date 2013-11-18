@@ -6,6 +6,9 @@
 
 #include "mem/drop/rptb.hh"
 
+#define SERIALIZE(x) os.write((const char*)&x, sizeof(x));
+#define UNSERIALIZE(x) is.read((char*)&x, sizeof(x));
+
 RegisterPTB::RegisterPTB()
     : numEntries(TheISA::NUM_INTREGS)
 {
@@ -63,4 +66,30 @@ void RegisterPTB::update(int reg, const Addr producerPC1, const Addr producerPC2
 	ptb[reg].valid = true;
     ptb[reg].producerPC1 = producerPC1;
 	ptb[reg].producerPC2 = producerPC2;
+}
+
+void RegisterPTB::serialize(std::ostream &os)
+{
+    // serialize parameters
+    SERIALIZE(numEntries)
+    // serialize the actual table
+    for (unsigned i = 0; i < numEntries; ++i) {
+        PTBEntry &entry = ptb[i];
+        SERIALIZE(entry.producerPC1)
+        SERIALIZE(entry.producerPC2)
+        SERIALIZE(entry.valid)
+    }
+}
+
+void RegisterPTB::unserialize(std::istream &is)
+{
+    // unserialize parameters
+    UNSERIALIZE(numEntries)
+    // unserialize the actual table
+    for (unsigned i = 0; i < numEntries; ++i) {
+        PTBEntry &entry = ptb[i];
+        UNSERIALIZE(entry.producerPC1)
+        UNSERIALIZE(entry.producerPC2)
+        UNSERIALIZE(entry.valid)
+    }
 }

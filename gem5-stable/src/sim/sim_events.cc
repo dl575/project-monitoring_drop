@@ -29,6 +29,8 @@
  */
 
 #include <string>
+#include <iostream>
+#include <fstream>
 
 #include "base/callback.hh"
 #include "base/hostinfo.hh"
@@ -121,4 +123,44 @@ const char *
 CountedExitEvent::description() const
 {
     return "counted exit";
+}
+
+
+
+// Backtrack table write event
+
+BacktrackTableWriteEvent::BacktrackTableWriteEvent(const std::string &_cause, const std::string &_outdir, InvalidationPT *_ipt, MemoryPTB *_mptb, RegisterPTB *_rptb)
+    : cause(_cause), outdir(_outdir), ipt(_ipt), mptb(_mptb), rptb(_rptb)
+{
+}
+
+
+//
+// handle backtrack table write event
+//
+void
+BacktrackTableWriteEvent::process()
+{
+    ofstream os;
+    // write out invalidation priority table
+    os.open(outdir + "/ipt.table");
+    ipt->serialize(os);
+    os.close();
+    
+    // write out memory producer tracking table
+    os.open(outdir + "/mptb.table");
+    mptb->serialize(os);
+    os.close();
+    
+    // write out register producer tracking table
+    os.open(outdir + "/rptb.table");
+    rptb->serialize(os);
+    os.close();
+}
+
+
+const char *
+BacktrackTableWriteEvent::description() const
+{
+    return "write backtrack tables";
 }
