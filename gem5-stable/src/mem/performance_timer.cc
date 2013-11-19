@@ -65,6 +65,20 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
     }
     
     start_ticks = p->start_cycles * p->start_cycles_clock;
+    
+    if (p->slack_lo <= p->slack_hi){
+        slack_lo = p->slack_lo * p->start_cycles_clock;
+        slack_hi = p->slack_hi * p->start_cycles_clock;
+    } else {
+        warn("Low slack value higher than high slack value. Switching...");
+        slack_hi = p->slack_lo * p->start_cycles_clock;
+        slack_lo = p->slack_hi * p->start_cycles_clock;
+    }
+    
+    srand(p->seed);
+    
+    // printf("Random init: %d, %d\n", rand(), p->seed);
+    // DPRINTF(SlackTimer, "Performance timer initialized with probabilistic range {%lld, %lld}\n", slack_lo, slack_hi);
 }
 
 void
@@ -152,7 +166,25 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             if (read_addr == TIMER_READ_SLACK){
                 send_data = slack;
             } else if (read_addr == TIMER_READ_DROP) {
-                int drop_status = (slack >= drop_thres);
+                long long int adjusted_slack = slack - drop_thres;
+                int drop_status;
+                if (adjusted_slack < slack_lo){
+                    drop_status = 0; // Drop
+                } else if (adjusted_slack >= slack_hi){
+                    drop_status = 1; // Not Drop
+                } else {
+                    // We assume a linear probability model between slack_hi and slack_lo.
+                    // Note (slack_hi != slack_lo) in this part of the code (due to above conditions).
+                    // At slack_hi not_drop_rate = 1
+                    // At slack_lo not_drop_rate = 0
+                    double not_drop_rate = (double)(adjusted_slack - slack_lo)/(double)(slack_hi - slack_lo);
+                    // Get a random number
+                    double random_number = (double)rand()/RAND_MAX; 
+                    // If we get any random number under the not_drop_rate, we don't drop
+                    drop_status = (random_number <= not_drop_rate);
+                    
+                    DPRINTF(SlackTimer, "Prob computation: slack = %lld, rate = %f, number = %f, result = %d\n", adjusted_slack, not_drop_rate, random_number, drop_status);
+                }
                 send_data = drop_status;
                 if (stored_tp.intask || curTick() < stored_tp.WCET_end){
                     if (drop_status) { not_drops++; }

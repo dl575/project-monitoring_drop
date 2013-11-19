@@ -82,6 +82,8 @@
 #include "sim/system.hh"
 #include "sim/sim_exit.hh"
 
+#include "debug/CheckId.hh"
+
 using namespace std;
 using namespace TheISA;
 
@@ -1094,6 +1096,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     bool entry_filtered = false;
     uint8_t intask = false;
     bool coverage_drop = false;
+    bool ischeck = false;
     
     if (addr == TIMER_READ_DROP){
         // Check if we are in a task
@@ -1110,9 +1113,9 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         itp = readFifoInstType();
         
         // Test if it is a check packet
-        bool ischeck = (check_load && (itp == inst_load))
-                       ||(check_store && (itp == inst_store))
-                       ||(check_indctrl && (itp == inst_indctrl));
+        ischeck = (check_load && (itp == inst_load))
+                  ||(check_store && (itp == inst_store))
+                  ||(check_indctrl && (itp == inst_indctrl));
         
         // Reevaluate packet drop rate
         if (check_frequency && total_checks && ischeck && intask
@@ -1267,7 +1270,12 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         }
         
         if (intask){
-            if (read_timer && !coverage_drop) { full_packets++; }
+            if (read_timer && !coverage_drop) { 
+                full_packets++;
+                if (ischeck) {
+                    DPRINTF(CheckId, "Full check: %d\n", total_checks);
+                }
+            }
             all_packets++;
         }
         

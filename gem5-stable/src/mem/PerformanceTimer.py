@@ -51,3 +51,6 @@ class PerformanceTimer(AbstractMemory):
     start_cycles = Param.Tick(0, "Cycles to use for Start Task")
     start_cycles_clock = Param.Clock('2GHz', "Clock to use for tick conversion")
     use_start_ticks = Param.Bool(False, "Use param based start ticks")
+    slack_lo = Param.Int(0, "Low slack range for probabilistic dropping")
+    slack_hi = Param.Int(0, "High slack range for probabilistic dropping")
+    seed = Param.Int(0, "Seed for random values in probabilistic dropping")

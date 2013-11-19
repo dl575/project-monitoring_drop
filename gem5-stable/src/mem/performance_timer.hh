@@ -123,6 +123,8 @@ class PerformanceTimer : public AbstractMemory
     unsigned drops, not_drops;
     // Overhead
     double povr;
+    // Probabilistic slack range
+    long long int slack_lo, slack_hi;
     
     // Start task ticks
     Tick start_ticks;

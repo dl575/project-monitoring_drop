@@ -45,6 +45,7 @@
 import optparse
 import sys
 import os
+import random
 
 import m5
 from m5.defines import buildEnv
@@ -93,6 +94,8 @@ parser.add_option("--control_coverage", action="store_true")
 parser.add_option("--coverage", type="float", default=1.0)
 # Set coverage adjustment frequency (after x checks, we will readjust)
 parser.add_option("--coverage_adjust", type="int", default=0)
+# Enable probabilistic drop
+parser.add_option("--probabilistic_drop", action="store_true")
 
 available_monitors = {
   "none" : 0,
@@ -296,6 +299,11 @@ timer.percent_overhead = options.overhead
 timer.start_cycles = options.headstart_slack
 timer.start_cycles_clock = MainCPUClass.clock
 timer.use_start_ticks = True
+# We can also set a probabilistic range
+if options.probabilistic_drop:
+  timer.seed = random.randint(-2**30,2**30)
+  timer.slack_lo = -100
+  timer.slack_hi = 100
 system.timer = timer
 # Create flag cache
 flagcache = FlagCache(range=AddrRange(start=0x30020000, size="64kB"))

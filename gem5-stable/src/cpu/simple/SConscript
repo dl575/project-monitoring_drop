@@ -87,4 +87,5 @@ DebugFlag('Invalidation')
 DebugFlag('Monitor')
 DebugFlag('DropSimpleCPU')
 DebugFlag('MonitorSimpleCPU')
+DebugFlag('CheckId')
 
