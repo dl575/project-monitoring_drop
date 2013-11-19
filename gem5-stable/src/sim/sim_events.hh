@@ -32,6 +32,9 @@
 #define __SIM_SIM_EVENTS_HH__
 
 #include "sim/eventq.hh"
+#include "mem/drop/ipt.hh"
+#include "mem/drop/mptb.hh"
+#include "mem/drop/rptb.hh"
 
 //
 // Event to terminate simulation at a particular cycle/instruction
@@ -90,5 +93,24 @@ class CountedExitEvent : public Event
     virtual const char *description() const;
 };
 
+//
+// Event class to write out backtrack table
+//
+class BacktrackTableWriteEvent : public Event
+{
+  private:
+    std::string cause;  // string explaining why event is triggered
+    std::string outdir; // directory to write tables to
+    InvalidationPT *ipt;  // pointer to invalidation priority table
+    MemoryPTB *mptb;      // pointer to memory producer tracking table
+    RegisterPTB *rptb;    // pointer to register producer tracking table
+
+  public:
+    BacktrackTableWriteEvent(const std::string &_cause, const std::string &_outdir, InvalidationPT *_ipt, MemoryPTB *_mptb, RegisterPTB *_rptb);
+
+    void process();     // process event
+
+    virtual const char *description() const;
+};
 
 #endif  // __SIM_SIM_EVENTS_HH__

@@ -69,6 +69,9 @@
 #include "mem/fifo.hh"
 #include "mem/timer.hh"
 #include "mem/flag_cache.hh"
+#include "mem/drop/mptb.hh"
+#include "mem/drop/rptb.hh"
+#include "mem/drop/ipt.hh"
 
 // forward declarations
 class Checkpoint;
@@ -695,6 +698,24 @@ class BaseSimpleCPU : public BaseCPU
 
     // Additional functionality to stall due to fifo
     virtual void stallFromFifo() {}
+
+    /**
+     * structures to supporting backtracking
+     */
+    
+    // Register Producer Tracking Table
+    RegisterPTB rptb;
+    // Memory Producer Tracking Table
+    MemoryPTB mptb;
+    // Invalidation Priority Table
+    InvalidationPT ipt;
+
+    // backtrack
+    bool _backtrack;
+    bool _important;
+    bool backtrack();
+
+    Stats::Scalar numImportantInsts;
 
 };
 

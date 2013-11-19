@@ -179,6 +179,11 @@ class DropSimpleCPU : public BaseSimpleCPU
     Stats::Scalar numRegLoads;
     Stats::Scalar numRegStores;
 
+    bool backtrack_write_table;
+    bool backtrack_read_table;
+    std::string backtrack_table_dir;
+    void writeBacktrackTable();
+
   private:
 
     // function to handle end_task command

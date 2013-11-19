@@ -66,6 +66,10 @@ class BaseSimpleCPU(BaseCPU):
     # Check if WCET violated
     hard_wcet = Param.Bool(True, "check if hard real-time deadline met")
     emulate_filtering = Param.Bool(False, "emulate filtering but don't perform")
+    backtrack = Param.Bool(False, "backtrack to find out important instructions")
+    backtrack_read_table = Param.Bool(False, "read backtrack table at start of simulation")
+    backtrack_write_table = Param.Bool(False, "write backtrack table at end of simulation")
+    backtrack_table_dir = Param.String("", "directory to read/write backtrack table")
 
     if fifo_enabled:
       fifo_port = MasterPort("Fifo Port")

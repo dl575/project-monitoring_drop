@@ -44,6 +44,7 @@
 #include "arch/mmapped_ipr.hh"
 #include "arch/utility.hh"
 #include "base/bigint.hh"
+#include "base/callback.hh"
 #include "config/the_isa.hh"
 #include "cpu/simple/drop.hh"
 #include "cpu/exetrace.hh"
@@ -57,6 +58,7 @@
 #include "sim/faults.hh"
 #include "sim/system.hh"
 #include "sim/full_system.hh"
+#include "sim/sim_events.hh"
 
 #include "mem/fifo.hh"
 #include "mem/timer.hh"
@@ -126,6 +128,16 @@ DropSimpleCPU::init()
         delete timerpkt;
     }
 
+    if (_backtrack && backtrack_read_table) {
+        ifstream is;
+        // read invalidation priority table
+        is.open(backtrack_table_dir + "/ipt.table", std::ios::in | std::ios::binary);
+        if (is.good())
+            ipt.unserialize(is);
+        else
+            warn("invalidation priority table could not be opened.\n");
+        is.close();
+    }
 }
 
 DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
@@ -138,6 +150,28 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
       full_ticks(p->full_clock)
 {
     _status = Idle;    
+
+    // set up instruction-count-based event to write out backtrack tables
+    // if (p->backtrack && p->backtrack_write_table) {
+    //     if (p->max_insts_any_thread != 0) {
+    //         const char *cause = "writing out backtrack tables max instruction count";
+    //         for (ThreadID tid = 0; tid < numThreads; ++tid) {
+    //             Event *event = new BacktrackTableWriteEvent(cause, p->backtrack_table_dir, &ipt, &mptb, &rptb);
+    //             comInstEventQueue[tid]->schedule(event, p->max_insts_any_thread-1);
+    //         }
+    //     }    
+    // }
+
+    backtrack_write_table = p->backtrack_write_table;
+    backtrack_read_table = p->backtrack_read_table;
+    backtrack_table_dir = p->backtrack_table_dir;
+
+    // set up callback at simulation exit to write out backtrack tables
+    if (p->backtrack && p->backtrack_write_table) {
+        Callback *cb = new MakeCallback<DropSimpleCPU, &DropSimpleCPU::writeBacktrackTable>(this);
+        registerExitCallback(cb);
+    }
+
 }
 
 
@@ -295,6 +329,37 @@ DropSimpleCPU::suspendContext(ThreadID thread_num)
     _status = Idle;
 }
 
+//
+// write backtrack table
+//
+void
+DropSimpleCPU::writeBacktrackTable()
+{
+    ofstream os;
+    // write out invalidation priority table
+    os.open(backtrack_table_dir + "/ipt.table", std::ios::out | std::ios::binary);
+    if (os.good())
+        ipt.serialize(os);
+    else
+        warn("invalidation priority table could not be opened.\n");
+    os.close();
+    
+    // write out memory producer tracking table
+    os.open(backtrack_table_dir + "/mptb.table", std::ios::out | std::ios::binary);
+    if (os.good())
+        mptb.serialize(os);
+    else
+        warn("invalidation priority table could not be opened.\n");
+    os.close();
+    
+    // write out register producer tracking table
+    os.open(backtrack_table_dir + "/rptb.table", std::ios::out | std::ios::binary);
+    if (os.good())
+        rptb.serialize(os);
+    else
+        warn("invalidation priority table could not be opened.\n");
+    os.close();
+}
 
 Fault
 DropSimpleCPU::readMem(Addr addr, uint8_t * data,
@@ -815,6 +880,9 @@ DropSimpleCPU::tick()
     Tick stall_ticks = 0;
     
     bool forward_successful = true;
+
+    // reset instruction importance
+    // _important = false;
     
     // If we have a valid monitoring packet, then send it along
     if (mp.valid){
