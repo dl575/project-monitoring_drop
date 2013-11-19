@@ -298,6 +298,7 @@ class BaseSimpleCPU : public BaseCPU
     // drop statistics
     Stats::Vector dropstats;
     Stats::Vector filterstats;
+    Stats::Vector coveragedropstats;
     Stats::Vector fullstats;
 
     virtual void serialize(std::ostream &os);
@@ -565,6 +566,17 @@ class BaseSimpleCPU : public BaseCPU
     bool fifoEmpty;
     // Amount of time spent stalled
     int fifoStallTicks;
+    // Check flags
+    bool check_load;
+    bool check_store;
+    bool check_indctrl;
+    // Coverage controls
+    double target_coverage;
+    double packet_drop_rate;
+    unsigned check_frequency;
+    unsigned total_checks;
+    unsigned full_packets;
+    unsigned all_packets;
 
     // Data structure for handling fifo event
     class fifoEventDetails {
@@ -598,11 +610,11 @@ class BaseSimpleCPU : public BaseCPU
         bool call;    // Function call instruction
         bool ret;     // Return instruction
         bool intalu;  // Integer ALU instruction - includes below int*
-          bool intmov; // Integer move
-          bool intadd; // Integer add
-          bool intsub; // Integer subtract
-          bool intand; // Integer AND (logical)
-          bool intmul; // Integer multiply
+        bool intmov; // Integer move
+        bool intadd; // Integer add
+        bool intsub; // Integer subtract
+        bool intand; // Integer AND (logical)
+        bool intmul; // Integer multiply
         bool indctrl; // Indirect control instruction
 
         // Constructor sets all flags to false 

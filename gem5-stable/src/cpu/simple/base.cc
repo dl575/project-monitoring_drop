@@ -101,6 +101,12 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     fifoStall(false), 
     timerStalled(false),
     fifoEmpty(false),
+    check_load(p->check_load),
+    check_store(p->check_store),
+    check_indctrl(p->check_indctrl),
+    target_coverage(p->target_coverage),
+    check_frequency(p->check_frequency),
+    total_checks(0), full_packets(1), all_packets(1),
     perf_mon(true),
     rptb(), mptb(0x100000, 10, 2), ipt(0x100000, 10, 2),
     _backtrack(p->backtrack)
@@ -112,11 +118,11 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     mf.call = p->monitoring_filter_call;
     mf.ret = p->monitoring_filter_ret;
     mf.intalu = p->monitoring_filter_intalu;
-      mf.intand = p->monitoring_filter_intand;
-      mf.intmov = p->monitoring_filter_intmov;
-      mf.intadd = p->monitoring_filter_intadd;
-      mf.intsub = p->monitoring_filter_intsub;
-      mf.intmul = p->monitoring_filter_intmul;
+    mf.intand = p->monitoring_filter_intand;
+    mf.intmov = p->monitoring_filter_intmov;
+    mf.intadd = p->monitoring_filter_intadd;
+    mf.intsub = p->monitoring_filter_intsub;
+    mf.intmul = p->monitoring_filter_intmul;
     mf.indctrl = p->monitoring_filter_indctrl;
     
     // Initialize table if specified
@@ -147,6 +153,17 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
         if(fptab.initialized) fptab.printTable();
     }
 #endif
+
+    if (target_coverage > 1){
+        warn("Target coverage exceeds 100%%. Setting to 100%%.\n");
+        target_coverage = 1; 
+    }
+    if (target_coverage < 0){
+        warn("Target coverage less than 0%%. Setting to 0%%.\n");
+        target_coverage = 0;
+    }
+    
+    packet_drop_rate = 1 - target_coverage;
 
     if (FullSystem)
         thread = new SimpleThread(this, 0, p->system, p->itb, p->dtb);
@@ -368,11 +385,21 @@ BaseSimpleCPU::regStats()
         filterstats.subname(i, instTypeToString(i));
     }
 
+    coveragedropstats
+        .init(num_inst_types)
+        .name(name() + ".coverage_drops")
+        .desc("Number of fifo packets that were dropped for coverage")
+        .flags(total)
+        ;
+    for (int i = 0; i < num_inst_types; i++) {
+        coveragedropstats.subname(i, instTypeToString(i));
+    }
+
     numImportantInsts
         .name(name() + ".num_important_insts")
         .desc("Number of dynamic instructions marked as important")
         ;
-
+    
     idleFraction = constant(1.0) - notIdleFraction;
     numIdleCycles = idleFraction * numCycles;
     numBusyCycles = (notIdleFraction)*numCycles;
@@ -1076,15 +1103,47 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     bool skip_drop = false;
     instType itp = inst_undef;
     bool entry_filtered = false;
+    uint8_t intask = false;
+    bool coverage_drop = false;
+    
+    if (addr == TIMER_READ_DROP){
+        // Check if we are in a task
+        readFromTimer(TIMER_TASK_PACKET, &intask, sizeof(intask), ArmISA::TLB::AllowUnaligned);
+    }
     
     if (addr == TIMER_READ_DROP && fifo_enabled){
         // Pop the fifo entry
         bool pop = true;
         Fault result = writeToFifo(FIFO_NEXT, (uint8_t *)&pop, sizeof(pop), ArmISA::TLB::AllowUnaligned);
         if (result != NoFault) { return result; }
-        
+                
         // Read instruction type from fifo
         itp = readFifoInstType();
+        
+        // Test if it is a check packet
+        bool ischeck = (check_load && (itp == inst_load))
+                       ||(check_store && (itp == inst_store))
+                       ||(check_indctrl && (itp == inst_indctrl));
+        
+        // Reevaluate packet drop rate
+        if (check_frequency && total_checks && ischeck && intask
+            && !(total_checks % check_frequency)){
+            double full_checks = ((check_load)? fullstats[inst_load].result() : 0) +
+                                 ((check_store)? fullstats[inst_store].result() : 0) +
+                                 ((check_indctrl)? fullstats[inst_indctrl].result() : 0);
+            double all_checks = ((check_load)? dropstats[inst_load].result() + filterstats[inst_load].result() + coveragedropstats[inst_load].result() + fullstats[inst_load].result() : 0) +
+                                ((check_store)? dropstats[inst_store].result() + filterstats[inst_store].result() + coveragedropstats[inst_store].result() + fullstats[inst_store].result() : 0) +
+                                ((check_indctrl)? dropstats[inst_indctrl].result() + filterstats[inst_indctrl].result() + coveragedropstats[inst_indctrl].result() + fullstats[inst_indctrl].result() : 0);
+            double actual_coverage = full_checks/all_checks;
+            packet_drop_rate += (actual_coverage - target_coverage);
+            if (packet_drop_rate > 1){ packet_drop_rate = 1; }
+            if (packet_drop_rate < 0){ packet_drop_rate = 0; }
+            all_packets = 1;
+            full_packets = 1;
+            DPRINTF(Invalidation, "Reevaluating coverage drop rate: Actual = %f, Target = %f, New drop rate = %f\n", actual_coverage, target_coverage, packet_drop_rate);
+        }
+        
+        if (ischeck && intask){ total_checks++; }
         
         // FIXME: Prevents settag packets from being dropped. Does not work in real-time settings.
         readFromFifo(FIFO_SETTAG, (uint8_t *)&skip_drop, sizeof(skip_drop), ArmISA::TLB::AllowUnaligned);
@@ -1146,6 +1205,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                 DPRINTF(Invalidation, "Filtering fifo entry: num_filtered: %d\n", filterstats.total());
                 // Filtering is enabled
                 if (!emulate_filtering){
+                    all_packets++;
                     if (invtab.action[itidx] == "SW"){
                         // Perform filtering in SW
                         int return_code = 2;
@@ -1170,6 +1230,14 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             // No entry in filter table, packet not filtered
             DPRINTF(Invalidation, "Entry not filtered\n");
         }
+    
+        // Perform coverage packet dropping
+        if (!skip_drop && intask && (((1.0-packet_drop_rate)*(double)all_packets) < (double)full_packets)){
+            coveragedropstats[itp]++;
+            coverage_drop = true;
+            DPRINTF(Invalidation, "Coverage packet drop fifo entry: num_coverage_dropped: %d\n", coveragedropstats.total());
+        }
+    
     }
     
     // use the CPU's statically allocated read request and packet objects
@@ -1207,19 +1275,22 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         
     } else if (addr == TIMER_READ_DROP) {
         
-        uint8_t intask = false;
-        readFromTimer(TIMER_TASK_PACKET, &intask, sizeof(intask), ArmISA::TLB::AllowUnaligned);
         // If the entry should not have been marked as filtered, then it
         // contributes to either drop or non-drop statistics.
-        if (!entry_filtered && intask){
+        if (!entry_filtered && !coverage_drop && intask){
             // Increment full statistics if we have enough slack
             if (read_timer){ fullstats[itp]++; }
             // Increment drop statistics if we don't have enough slack
             else { dropstats[itp]++; }
         }
         
+        if (intask){
+            if (read_timer && !coverage_drop) { full_packets++; }
+            all_packets++;
+        }
+        
         // Not enough slack, perform hardware invalidation
-        if (fifo_enabled && !read_timer && flagcache_enabled && invtab.initialized){
+        if (fifo_enabled && (!read_timer || coverage_drop) && flagcache_enabled && invtab.initialized){
             DPRINTF(Invalidation, "Starting hardware invalidation.\n");
             // Check if LUT says to go back to software
             if (invtab.action[itp].size() && (invtab.action[itp] != "SW")){
