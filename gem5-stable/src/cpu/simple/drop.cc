@@ -137,25 +137,7 @@ DropSimpleCPU::init()
         else
             warn("invalidation priority table could not be opened.\n");
         is.close();
-
-        // read memory producer tracking table
-        is.open(backtrack_table_dir + "/mptb.table", std::ios::in | std::ios::binary);
-        if (is.good())
-            mptb.unserialize(is);
-        else
-            warn("memory producer tracking table could not be opened.\n");
-        is.close();
-        
-        // read register producer tracking table
-        is.open(backtrack_table_dir + "/rptb.table", std::ios::in | std::ios::binary);
-        if (is.good())
-            rptb.unserialize(is);
-        else
-            warn("register producer tracking table could not be opened.\n");
-        is.close();
     }
-
-
 }
 
 DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
