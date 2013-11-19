@@ -56,6 +56,13 @@ class BaseSimpleCPU(BaseCPU):
     monitoring_filter_intsub = Param.Bool(False, "monitoring integer subtract instructions")
     monitoring_filter_intmul = Param.Bool(False, "monitoring integer multiply instructions")
     monitoring_filter_indctrl = Param.Bool(False, "monitoring indirect control instructions")
+    # Check definition parameters
+    check_load = Param.Bool(False, "check load instructions")
+    check_store = Param.Bool(False, "check store instructions")
+    check_indctrl = Param.Bool(False, "check indirect control instructions")
+    # Coverage Settings
+    target_coverage = Param.Float(1, "Target coverage rate")
+    check_frequency = Param.Unsigned(0, "How often to evaluate coverage")
     # Check if WCET violated
     hard_wcet = Param.Bool(True, "check if hard real-time deadline met")
     emulate_filtering = Param.Bool(False, "emulate filtering but don't perform")
