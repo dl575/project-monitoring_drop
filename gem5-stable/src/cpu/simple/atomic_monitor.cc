@@ -139,6 +139,7 @@ AtomicSimpleMonitor::AtomicSimpleMonitor(AtomicSimpleMonitorParams *p)
         case MONITOR_BC: monitorExt = MONITOR_BC; break;
         case MONITOR_SEC: monitorExt = MONITOR_SEC; break;
         case MONITOR_HB: monitorExt = MONITOR_HB; break;
+        case MONITOR_MULTIDIFT: monitorExt = MONITOR_MULTIDIFT; break;
         default: panic("Invalid monitor type\n");
     }
     
@@ -769,6 +770,32 @@ AtomicSimpleMonitor::readTagFunctional(Addr addr) {
 }
 
 /*
+ * Read a word tag from packed tag memory
+ */
+uint32_t
+AtomicSimpleMonitor::readWordTag(Addr addr) {
+    // assert(addr < TAG_MEM_SIZE_BITS);
+
+    Addr addr_h = addr & 0xFFFFFFFC;
+
+    uint32_t tag = 0;
+    Fault fault;
+
+    fault = readMem(addr_h, (uint8_t *)&tag, sizeof(tag), TheISA::TLB::AllowUnaligned | TheISA::TLB::MustBeOne);
+    if (fault != NoFault) {
+        // page table fault
+        handlePageTableFault(addr_h);
+        // retry
+        // fault = readMem(addr_h, &octet, sizeof(uint8_t), TheISA::TLB::AllowUnaligned | TheISA::TLB::MustBeOne);
+        // assert (fault == NoFault);
+        // the new page should always be clear
+        return 0;
+    }
+
+    return tag;
+}
+
+/*
  * Read a bit tag from packed tag memory
  */
 bool
@@ -884,6 +911,26 @@ AtomicSimpleMonitor::writeTagFunctional(Addr addr, Tag tag) {
         handlePageTableFault(addr);
         // retry
         fault = writeMemFunctional(&tag, sizeof(Tag), addr, TheISA::TLB::AllowUnaligned | TheISA::TLB::MustBeOne, NULL);
+        assert (fault == NoFault);
+    }
+}
+
+/*
+ * Write a bit tag to packed tag memory
+ */
+void
+AtomicSimpleMonitor::writeWordTag(Addr addr, uint32_t tag)
+{
+    // assert(addr < TAG_MEM_SIZE_BITS);
+
+    Addr addr_h = addr & 0xFFFFFFFC;
+    Fault fault;
+    fault = writeMem((uint8_t *)&tag, sizeof(tag), addr_h, TheISA::TLB::AllowUnaligned | TheISA::TLB::MustBeOne, NULL);
+    if (fault != NoFault) {
+        // page table fault
+        handlePageTableFault(addr_h);
+        // retry
+        fault = writeMemFunctional((uint8_t *)&tag, sizeof(tag), addr_h, TheISA::TLB::AllowUnaligned | TheISA::TLB::MustBeOne, NULL);
         assert (fault == NoFault);
     }
 }
@@ -1164,6 +1211,88 @@ AtomicSimpleMonitor::DIFTExecute()
         DIFTTag trs1 = (bool)thread->readIntReg(mp.rs1);
         if (trs1) {
             DPRINTF(Monitor, "DIFT: Fatal: indirect control transfer on tainted register, PC=0x%x\n", 
+                mp.instAddr);
+            numTaintedIndirectCtrlInsts++;
+        }
+        numIndirectCtrlInsts++;
+        numMonitorInsts++;
+    } else {
+        DPRINTF(Monitor, "Unknown instruction\n");
+        numMonitorInsts++;
+    }
+}
+
+/**
+ * Multi-bit DIFT Execution
+ */
+void
+AtomicSimpleMonitor::MultiDIFTExecute()
+{
+    DIFTTag tresult;
+    if (mp.intalu) {
+        // integer ALU operation
+        DPRINTF(Monitor, "Multi DIFT: Integer ALU instruction\n");
+        DIFTTag trd = thread->readIntReg(mp.rd);
+        tresult = false;
+
+        if (TheISA::isISAReg(mp.rs1))
+            tresult |= (DIFTTag)thread->readIntReg(mp.rs1);
+        if (TheISA::isISAReg(mp.rs2))
+            tresult |= (DIFTTag)thread->readIntReg(mp.rs1);
+        thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+        revalidateRegTag((int)mp.rd);
+
+        if (trd || tresult) {
+            numTaintedIntegerInsts++;
+        }
+        numIntegerInsts++;
+        numMonitorInsts++;
+    } else if (mp.load) {
+        DPRINTF(Monitor, "Multi DIFT: Load instruction, addr=0x%x\n", mp.memAddr);
+        uint64_t trd = thread->readIntReg(mp.rd);
+        tresult = false;
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
+            tresult |= (DIFTTag)readWordTag(pbyte);
+        }
+        thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+        revalidateRegTag((int)mp.rd);
+        
+        if (trd || tresult) {
+            numTaintedLoadInsts++;
+        }
+        numLoadInsts++;
+        numMonitorInsts++;
+    } else if (mp.store && !mp.settag) {
+        DPRINTF(Monitor, "Multi DIFT: Store instruction, addr=0x%x\n", mp.memAddr);
+        DIFTTag tsrc = (DIFTTag)thread->readIntReg(mp.rs1);
+        DIFTTag tdest = false;
+
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
+            tdest |= readTagFunctional(pbyte);
+            writeWordTag(pbyte, tsrc);
+        }
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+            revalidateMemTag(pbyte);
+        }
+
+        if (tdest || tsrc) {
+            numTaintedStoreInsts++;
+        }
+        numStoreInsts++;
+        numMonitorInsts++;
+    } else if (mp.store && mp.settag) {
+        DPRINTF(Monitor, "Multi DIFT: Set taint mem[0x%x:0x%x]=%d\n", mp.memAddr, mp.memEnd, mp.data);
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
+            writeWordTag(pbyte, (bool)mp.data);
+        }
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+            revalidateMemTag(pbyte);
+        }
+    } else if (mp.indctrl) {
+        DPRINTF(Monitor, "Multi DIFT: Indirect control transfer instruction\n");
+        DIFTTag trs1 = (bool)thread->readIntReg(mp.rs1);
+        if (trs1) {
+            DPRINTF(Monitor, "Multi DIFT: Fatal: indirect control transfer on tainted register, PC=0x%x\n", 
                 mp.instAddr);
             numTaintedIndirectCtrlInsts++;
         }
@@ -1490,6 +1619,8 @@ AtomicSimpleMonitor::processMonitoringPacket()
         UMCExecute();
     else if (monitorExt == MONITOR_DIFT)
         DIFTExecute();
+    else if (monitorExt == MONITOR_MULTIDIFT)
+        MultiDIFTExecute();
     else if (monitorExt == MONITOR_BC)
         BCExecute();
     else if (monitorExt == MONITOR_SEC)

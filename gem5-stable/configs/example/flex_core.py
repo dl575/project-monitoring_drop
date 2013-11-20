@@ -109,7 +109,8 @@ available_monitors = {
   "dift" : 2,
   "bc"   : 3,
   "sec"  : 4,
-  "hb"   : 5
+  "hb"   : 5,
+  "multidift" : 6
 }
 
 if '--ruby' in sys.argv:
@@ -215,7 +216,7 @@ if options.monitor == "umc":
     DropCPUClass.check_load = True
     DropCPUClass.check_store = False
     DropCPUClass.check_indctrl = False
-elif options.monitor == "dift":
+elif options.monitor == "dift" or options.monitor == "multidift":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True

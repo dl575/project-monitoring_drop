@@ -81,6 +81,8 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
       MONITOR_SEC,
       // hard bound
       MONITOR_HB,
+      // dift with 32-bit tags
+      MONITOR_MULTIDIFT,
       // number of monitoring extensions
       NUM_MONITORING_EXTENSIONS
     };
@@ -220,6 +222,7 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     Tag readTagFunctional(Addr addr);
     bool readBitTag(Addr addr);
     bool readBitTagFunctional(Addr addr);
+    uint32_t readWordTag(Addr addr);
     uint64_t readDWordTag(Addr addr);
     uint64_t readDWordTagFunctional(Addr addr);
 
@@ -227,6 +230,7 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     void writeTagFunctional(Addr addr, Tag tag);
     void writeBitTag(Addr addr, bool tag);
     void writeBitTagFunctional(Addr addr, bool tag);
+    void writeWordTag(Addr addr, uint32_t tag);
     void writeDWordTag(Addr addr, uint64_t tag);
     void writeDWordTagFunctional(Addr addr, uint64_t tag);
     void handlePageTableFault(Addr addr);
@@ -234,6 +238,7 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     void processMonitoringPacket();
     void UMCExecute();
     void DIFTExecute();
+    void MultiDIFTExecute();
     void BCExecute();
     void SECExecute();
     void HBExecute();
