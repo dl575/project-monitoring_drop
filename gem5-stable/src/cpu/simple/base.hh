@@ -713,7 +713,7 @@ class BaseSimpleCPU : public BaseCPU
     // backtrack
     bool _backtrack;
     bool _important;
-    bool backtrack();
+    virtual bool backtrack();
 
     Stats::Scalar numImportantInsts;
 

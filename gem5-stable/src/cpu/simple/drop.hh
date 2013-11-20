@@ -60,6 +60,27 @@ class DropSimpleCPU : public BaseSimpleCPU
 
   private:
 
+    // monitoring extensions
+    enum MonitoringExtension {
+      // no monitoring
+      MONITOR_NONE,
+      // uninitialized memory check
+      MONITOR_UMC,
+      // dynamic information flow tracking
+      MONITOR_DIFT,
+      // boundary checking
+      MONITOR_BC,
+      // soft error checking
+      MONITOR_SEC,
+      // hard bound
+      MONITOR_HB,
+      // number of monitoring extensions
+      NUM_MONITORING_EXTENSIONS
+    };
+    
+    // monitoring extension
+    enum MonitoringExtension monitorExt;
+
     struct TickEvent : public Event
     {
         DropSimpleCPU *cpu;
@@ -203,7 +224,17 @@ class DropSimpleCPU : public BaseSimpleCPU
     CpuPort forwardFifoPort;
     // Full monitoring ticks
     Tick full_ticks;
-    
+
+  protected:
+    virtual bool backtrack();
+    bool backtrack_hb();
+    bool backtrack_dift();
+    bool backtrack_umc();
+    void backtrack_inst_indctrl(monitoringPacket &mpkt);
+    void backtrack_inst_load(monitoringPacket &mpkt);
+    void backtrack_inst_store(monitoringPacket &mpkt);
+    void backtrack_inst_intalu(monitoringPacket &mpkt);
+
 };
 
 #endif // __CPU_SIMPLE_DROP_HH__

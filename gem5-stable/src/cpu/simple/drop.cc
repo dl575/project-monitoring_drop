@@ -51,6 +51,7 @@
 #include "debug/ExecFaulting.hh"
 #include "debug/SimpleCPU.hh"
 #include "debug/DropSimpleCPU.hh"
+#include "debug/Backtrack.hh"
 #include "mem/packet.hh"
 #include "mem/packet_access.hh"
 #include "mem/physical.hh"
@@ -151,16 +152,16 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
 {
     _status = Idle;    
 
-    // set up instruction-count-based event to write out backtrack tables
-    // if (p->backtrack && p->backtrack_write_table) {
-    //     if (p->max_insts_any_thread != 0) {
-    //         const char *cause = "writing out backtrack tables max instruction count";
-    //         for (ThreadID tid = 0; tid < numThreads; ++tid) {
-    //             Event *event = new BacktrackTableWriteEvent(cause, p->backtrack_table_dir, &ipt, &mptb, &rptb);
-    //             comInstEventQueue[tid]->schedule(event, p->max_insts_any_thread-1);
-    //         }
-    //     }    
-    // }
+    // monitoring extension type
+    switch(p->monitor_type) {
+        case MONITOR_NONE: monitorExt = MONITOR_NONE; break;
+        case MONITOR_UMC: monitorExt = MONITOR_UMC; break;
+        case MONITOR_DIFT: monitorExt = MONITOR_DIFT; break;
+        case MONITOR_BC: monitorExt = MONITOR_BC; break;
+        case MONITOR_SEC: monitorExt = MONITOR_SEC; break;
+        case MONITOR_HB: monitorExt = MONITOR_HB; break;
+        default: panic("Invalid monitor type\n");
+    }
 
     backtrack_write_table = p->backtrack_write_table;
     backtrack_read_table = p->backtrack_read_table;
@@ -862,6 +863,284 @@ DropSimpleCPU::forwardFifoPacket() {
   }
   
   return success;
+}
+
+/**
+ * Backtrack to identify important instructions
+ * @return Whether the current instruction is important or not
+ */
+bool
+DropSimpleCPU::backtrack()
+{
+    // execute monitoring operations
+    if (monitorExt == MONITOR_UMC)
+        return backtrack_umc();
+    else if (monitorExt == MONITOR_DIFT)
+        return backtrack_dift();
+    else if (monitorExt == MONITOR_HB)
+        return backtrack_hb();
+    else
+        return false;
+}
+
+bool
+DropSimpleCPU::backtrack_hb()
+{
+    monitoringPacket mpkt;
+    bool important = false;
+    readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
+    if (ipt.valid(mpkt.instAddr))
+        important = ipt.lookup(mpkt.instAddr);
+    // determine instruction type
+    if (mpkt.load) {
+        backtrack_inst_load(mpkt);
+
+        // update producer table
+        Addr rd = mpkt.rd;
+        rptb.update(rd, mpkt.instAddr, 0);
+
+    } else if (mpkt.store) {
+        backtrack_inst_store(mpkt);
+
+        // update producer table
+        Addr addr = mpkt.memAddr;
+        mptb.update(addr, mpkt.instAddr);
+
+    } else if (mpkt.intalu) {
+        if (important) {
+            backtrack_inst_intalu(mpkt);
+        }
+
+        // update producer table
+        Addr addr = mpkt.rd;
+        rptb.update(addr, mpkt.instAddr, 0);
+
+    }
+
+    return important;
+}
+
+bool
+DropSimpleCPU::backtrack_umc()
+{
+    monitoringPacket mpkt;
+    bool important = false;
+    readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
+    if (ipt.valid(mpkt.instAddr))
+        important = ipt.lookup(mpkt.instAddr);
+
+    // determine instruction type
+    if (mpkt.load) {
+        backtrack_inst_load(mpkt);
+
+        // update producer table
+        Addr rd = mpkt.rd;
+        rptb.update(rd, mpkt.instAddr, 0);
+
+    } else if (mpkt.store) {
+        if (important) {
+            backtrack_inst_store(mpkt);
+        }
+
+        // update producer table
+        Addr addr = mpkt.memAddr;
+        mptb.update(addr, mpkt.instAddr);
+
+    } else if (mpkt.intalu) {
+        if (important) {
+            backtrack_inst_intalu(mpkt);
+        }
+
+        // update producer table
+        Addr addr = mpkt.rd;
+        rptb.update(addr, mpkt.instAddr, 0);
+
+    }
+
+    return important;
+}
+
+bool
+DropSimpleCPU::backtrack_dift()
+{
+    monitoringPacket mpkt;
+    bool important = false;
+    readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
+    if (ipt.valid(mpkt.instAddr))
+        important = ipt.lookup(mpkt.instAddr);
+
+    // determine instruction type
+    if (mpkt.indctrl) {
+        backtrack_inst_indctrl(mpkt);
+    } else if (mpkt.load) {
+        if (important) {
+            backtrack_inst_load(mpkt);
+        }
+
+        // update producer table
+        Addr rd = mpkt.rd;
+        rptb.update(rd, mpkt.instAddr, 0);
+
+    } else if (mpkt.store) {
+        if (important) {
+            backtrack_inst_store(mpkt);
+        }
+
+        // update producer table
+        Addr addr = mpkt.memAddr;
+        mptb.update(addr, mpkt.instAddr);
+
+    } else if (mpkt.intalu) {
+        if (important) {
+            backtrack_inst_intalu(mpkt);
+        }
+
+        // update producer table
+        Addr addr = mpkt.rd;
+        rptb.update(addr, mpkt.instAddr, 0);
+
+    }
+
+    return important;
+}
+
+void DropSimpleCPU::backtrack_inst_indctrl(monitoringPacket &mpkt)
+{
+    // indirect control transfer instruction with incvalidated data initiates backtracking
+    Addr addr = mpkt.rs1;
+    uint8_t flag;
+    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&addr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+    readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+    if (flag) {
+        // invalidated, find out the producer of rs1
+        if (rptb.valid(addr)) {
+            Addr producer1 = rptb.lookup1(addr);
+            if (producer1 != 0) {
+                // mark producer as important
+                ipt.update(producer1, true);
+            }
+        } else {
+            DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", addr, mpkt.instAddr);
+        }
+    }
+}
+
+void DropSimpleCPU::backtrack_inst_load(monitoringPacket &mpkt)
+{
+    Addr addr = mpkt.rs1;
+    uint8_t flag;
+
+    // FIXME: is this necessary?
+    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&addr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+    readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+    if (flag) {
+        // invalidated, find out the producer of rs1
+        if (rptb.valid(addr)) {
+            Addr producer1 = rptb.lookup1(addr);
+            if (producer1 != 0) {
+                // mark producer as important
+                ipt.update(producer1, true);
+                DPRINTF(Backtrack, "mark producer(r%d)=0x%x as important, instAddr=0x%x\n", addr, producer1, mpkt.instAddr);
+            }
+        } else {
+            DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", addr, mpkt.instAddr);
+        }
+    }
+    addr = mpkt.memAddr;
+    Addr cacheAddr = addr >> 2;
+    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&cacheAddr, sizeof(cacheAddr), ArmISA::TLB::AllowUnaligned);
+    readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+    if (flag) {
+        // memory address is invalidated, find out producer
+        if (mptb.valid(addr)) {
+            Addr producer = mptb.lookup(addr);
+            if (producer != 0) {
+                ipt.update(producer, true);
+                DPRINTF(Backtrack, "mark producer(0x%x)=0x%x as important, instAddr=0x%x\n", addr, producer, mpkt.instAddr);
+            }
+        } else {
+            DPRINTF(Backtrack, "warning: cannot find producer of 0x%x, instAddr=0x%x\n", addr, mpkt.instAddr);
+        }
+    }
+}
+
+void DropSimpleCPU::backtrack_inst_store(monitoringPacket &mpkt)
+{
+    Addr src = mpkt.rs1;
+    Addr ptr = mpkt.rs2;
+    uint8_t flag_src;
+    uint8_t flag_ptr;
+
+    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&src, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+    readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag_src, sizeof(uint8_t), ArmISA::TLB::AllowUnaligned);
+    if (flag_src) {
+        // invalidated, find out the producer of rs1
+        if (rptb.valid(src)) {
+            Addr producer1 = rptb.lookup1(src);
+            if (producer1 != 0) {
+                // mark producer as important
+                ipt.update(producer1, true);
+                DPRINTF(Backtrack, "mark producer(r%d)=0x%x as important, instAddr=0x%x\n", src, producer1, mpkt.instAddr);
+            }
+        } else {
+            DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", src, mpkt.instAddr);
+        }
+    }
+    // FIXME: is this necessary?
+    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&ptr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+    readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag_ptr, sizeof(uint8_t), ArmISA::TLB::AllowUnaligned);
+    if (flag_ptr) {
+        // invalidated, find out the producer of rs1
+        if (rptb.valid(ptr)) {
+            Addr producer1 = rptb.lookup1(ptr);
+            if (producer1 != 0) {
+                // mark producer as important
+                ipt.update(producer1, true);
+                DPRINTF(Backtrack, "mark producer(r%d)=0x%x as important, instAddr=0x%x\n", ptr, producer1, mpkt.instAddr);
+            }
+        } else {
+            DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", ptr, mpkt.instAddr);
+        }
+    }
+}
+
+void DropSimpleCPU::backtrack_inst_intalu(monitoringPacket &mpkt)
+{
+    // find producers of sources
+    Addr rs1 = mpkt.rs1;
+    Addr rs2 = mpkt.rs2;
+    uint8_t flag_rs1;
+    uint8_t flag_rs2;
+    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&rs1, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+    readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag_rs1, sizeof(uint8_t), ArmISA::TLB::AllowUnaligned);
+    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&rs2, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+    readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag_rs2, sizeof(uint8_t), ArmISA::TLB::AllowUnaligned);
+    if (flag_rs1) {
+        // invalidated, find out the producer of rs1
+        if (rptb.valid(rs1)) {
+            Addr producer1 = rptb.lookup1(rs1);
+            if (producer1 != 0) {
+                // mark producer as important
+                ipt.update(producer1, true);
+                DPRINTF(Backtrack, "mark producer(r%d)=0x%x as important, instAddr=0x%x\n", rs1, producer1, mpkt.instAddr);
+            }
+        } else {
+            DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", rs1, mpkt.instAddr);
+        }
+    }
+    if (flag_rs2) {
+        // invalidated, find out the producer of rs2
+        if (rptb.valid(rs2)) {
+            Addr producer1 = rptb.lookup1(rs2);
+            if (producer1 != 0) {
+                // mark producer as important
+                ipt.update(producer1, true);
+                DPRINTF(Backtrack, "mark producer(r%d)=0x%x as important, instAddr=0x%x\n", rs2, producer1, mpkt.instAddr);
+            }
+        } else {
+            DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", rs2, mpkt.instAddr);
+        }
+    }
 }
 
 void

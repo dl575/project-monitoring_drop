@@ -178,6 +178,7 @@ DropCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 DropCPUClass.fifo_enabled = True
 DropCPUClass.monitoring_enabled = False
+DropCPUClass.monitor_type = available_monitors[options.monitor]
 if options.invalidation:
     # Enable slack timer so it can read from it
     DropCPUClass.timer_enabled = True

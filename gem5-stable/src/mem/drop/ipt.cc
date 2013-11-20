@@ -6,6 +6,7 @@
 
 #include "base/intmath.hh"
 #include "mem/drop/ipt.hh"
+#include "debug/Backtrack.hh"
 
 #define SERIALIZE(x) os.write((const char*)&x, sizeof(x));
 #define UNSERIALIZE(x) is.read((char*)&x, sizeof(x));
@@ -113,6 +114,9 @@ void InvalidationPT::serialize(std::ostream &os)
         SERIALIZE(entry.tag)
         SERIALIZE(entry.priority)
         SERIALIZE(entry.valid)
+        if (entry.valid && entry.priority)
+            DPRINTF(Backtrack, "serialize important instruction 0x%08x\n",
+                entry.tag << tagShiftAmt | i << instShiftAmt);
     }
 }
 
@@ -132,5 +136,8 @@ void InvalidationPT::unserialize(std::istream &is)
         UNSERIALIZE(entry.tag)
         UNSERIALIZE(entry.priority)
         UNSERIALIZE(entry.valid)
+        if (entry.valid && entry.priority)
+            DPRINTF(Backtrack, "unserialize important instruction 0x%08x\n",
+                entry.tag << tagShiftAmt | i << instShiftAmt);
     }
 }
