@@ -482,6 +482,7 @@ def run_ff(options, root, testsys, cpu_list):
     # Enable monitoring after switch
     testsys.switch_cpus[0].monitoring_enabled = True
     # Disable invalidation/filtering before switch
+    testsys.cpu[2].timer_enabled = False
     testsys.cpu[2].invalidation_file = ""
     testsys.cpu[2].filter_file_1 = ""
     testsys.cpu[2].filter_file_2 = ""
