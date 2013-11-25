@@ -201,6 +201,8 @@ DropCPUClass.backtrack_table_dir = options.backtrack_table_dir
 # Coverage options
 DropCPUClass.target_coverage = options.coverage
 DropCPUClass.check_frequency = options.coverage_adjust
+if options.probabilistic_drop:
+  DropCPUClass.print_checkid = True
 
 if options.monitor == "umc":
   # Set up monitoring filter
@@ -211,11 +213,10 @@ if options.monitor == "umc":
     DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/umc_invalidation.txt"
     DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/umc_filter.txt"
     DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/umc_filter_ptrs.txt"
-  if options.control_coverage:
-    # Set coverage check flags
-    DropCPUClass.check_load = True
-    DropCPUClass.check_store = False
-    DropCPUClass.check_indctrl = False
+  # Set coverage check flags
+  DropCPUClass.check_load = True
+  DropCPUClass.check_store = False
+  DropCPUClass.check_indctrl = False
 elif options.monitor == "dift" or options.monitor == "multidift":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
@@ -228,7 +229,6 @@ elif options.monitor == "dift" or options.monitor == "multidift":
     DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/dift_filter1.txt"
     DropCPUClass.filter_file_2 = os.environ["GEM5"] + "/tables/dift_filter2.txt"
     DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/dift_filter_ptrs.txt"
-  if options.control_coverage:
     # Set coverage check flags
     DropCPUClass.check_load = False
     DropCPUClass.check_store = False
@@ -249,11 +249,10 @@ elif options.monitor == "bc":
     DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/dift_filter1.txt"
     DropCPUClass.filter_file_2 = os.environ["GEM5"] + "/tables/dift_filter2.txt"
     DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/dift_filter_ptrs.txt"
-  if options.control_coverage:
-    # Set coverage check flags
-    DropCPUClass.check_load = True
-    DropCPUClass.check_store = True
-    DropCPUClass.check_indctrl = False
+  # Set coverage check flags
+  DropCPUClass.check_load = True
+  DropCPUClass.check_store = True
+  DropCPUClass.check_indctrl = False
 elif options.monitor == "hb":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
@@ -270,11 +269,10 @@ elif options.monitor == "hb":
     DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/dift_filter1.txt"
     DropCPUClass.filter_file_2 = os.environ["GEM5"] + "/tables/dift_filter2.txt"
     DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/dift_filter_ptrs.txt"
-  if options.control_coverage:
-    # Set coverage check flags
-    DropCPUClass.check_load = True
-    DropCPUClass.check_store = True
-    DropCPUClass.check_indctrl = False
+  # Set coverage check flags
+  DropCPUClass.check_load = True
+  DropCPUClass.check_store = True
+  DropCPUClass.check_indctrl = False
 elif options.monitor == "none":
   # Set up monitoring filter
   pass

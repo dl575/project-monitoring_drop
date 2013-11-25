@@ -715,6 +715,12 @@ class BaseSimpleCPU : public BaseCPU
     bool _important;
     bool backtrack();
 
+    // Flag for whether to print out ID #s of checks that are monitored in full
+    bool print_checkid;
+    // Save IDs of checks that are monitored in full by using bit vectors
+    int checkid_base;
+    uint64_t checkid_vec;
+
     Stats::Scalar numImportantInsts;
 
 };
