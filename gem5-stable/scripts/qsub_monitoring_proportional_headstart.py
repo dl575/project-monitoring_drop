@@ -85,10 +85,14 @@ def run(config, n_jobs):
     gem5_args = ' --remote-gdb-port=0 --outdir=%s ' % (out_dir)
     sim_config = config['config']
     config_args = ' --cpu-type=%s --clock=%s --monfreq=%s --monitor=%s' % (prod[0], prod[1], prod[2], prod[3])
+    # Scale headstart based on slack and cycles of simulation
+    config_args += ' --headstart_slack=%d' % (prod[5]*config['max_insts']/10)
     if config['max_insts']:
       config_args += ' --maxinsts=%d' % (config['max_insts'])
     if config['ff_insts']:
       config_args += ' --fastforward_insts=%d' % (config['ff_insts'])
+    if config['emulate_filtering']:
+      config_args += ' --emulate_filtering'
     if config['cache_enabled']:
       config_args += ' --caches --simulatestalls'
       if config['l2_cache_enabled']:
@@ -97,9 +101,13 @@ def run(config, n_jobs):
         config_args += ' --l1d_size=%s --l1i_size=%s' % (config['cache_sizes'][prod[1]], config['cache_sizes'][prod[1]])
     if config['invalidation']:
       config_args += ' --invalidation --invalidation_cache_size=%s --overhead=%.4f' % (prod[6], prod[5])
-    if config.get('backtrack'):
-      config_args += ' --backtrack'
-    config_args += ' --cmd=%s%s' % (config['benchmarks'][prod[4]]['executable'], '' if prod[3] == 'none' else '-'+prod[3])
+    if prod[3] == 'none':
+      suffix = ''
+    elif prod[3] == 'multidift':
+      suffix = '-dift'
+    else:
+      suffix = '-' + prod[3]
+    config_args += ' --cmd=%s%s' % (config['benchmarks'][prod[4]]['executable'], suffix) 
     config_args += ' --options=\'%s\'' % (config['benchmarks'][prod[4]]['options'])
     run_cmd = gem5_exe + gem5_args + sim_config + config_args
     tasks.append(run_cmd)

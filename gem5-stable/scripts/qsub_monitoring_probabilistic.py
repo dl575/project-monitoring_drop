@@ -77,32 +77,37 @@ def run(config, n_jobs):
   for prod in itertools.product(config['cpu_type'], config['core_frequency'], config['monitor_frequency'], 
                                 config['monitor'], config['benchmarks'], config['overhead'], 
                                 config['invalidation_cache_size']):
-    prod_list = list(prod)
-    out_dir = os.path.join(base_dir, current_time, prod[0], 'core_%s' % (prod[1]),
-                           'mon_%s' % (prod[2]), prod[3], prod[6], prod[4], 'overhead_%.4f' % (prod[5]))
-    if not config['dryrun']:
-      os.makedirs(out_dir)
-    gem5_args = ' --remote-gdb-port=0 --outdir=%s ' % (out_dir)
-    sim_config = config['config']
-    config_args = ' --cpu-type=%s --clock=%s --monfreq=%s --monitor=%s' % (prod[0], prod[1], prod[2], prod[3])
-    if config['max_insts']:
-      config_args += ' --maxinsts=%d' % (config['max_insts'])
-    if config['ff_insts']:
-      config_args += ' --fastforward_insts=%d' % (config['ff_insts'])
-    if config['cache_enabled']:
-      config_args += ' --caches --simulatestalls'
-      if config['l2_cache_enabled']:
-        config_args += ' --l2cache --l2_size=%s' % (config['l2_size'])
-      if 'cache_sizes' in config and prod[1] in config['cache_sizes']:
-        config_args += ' --l1d_size=%s --l1i_size=%s' % (config['cache_sizes'][prod[1]], config['cache_sizes'][prod[1]])
-    if config['invalidation']:
-      config_args += ' --invalidation --invalidation_cache_size=%s --overhead=%.4f' % (prod[6], prod[5])
-    if config.get('backtrack'):
-      config_args += ' --backtrack'
-    config_args += ' --cmd=%s%s' % (config['benchmarks'][prod[4]]['executable'], '' if prod[3] == 'none' else '-'+prod[3])
-    config_args += ' --options=\'%s\'' % (config['benchmarks'][prod[4]]['options'])
-    run_cmd = gem5_exe + gem5_args + sim_config + config_args
-    tasks.append(run_cmd)
+    for num_run in range(config['num_runs']):
+      prod_list = list(prod)
+      out_dir = os.path.join(base_dir, current_time, prod[0], 'core_%s' % (prod[1]),
+                             'mon_%s' % (prod[2]), prod[3], prod[6], prod[4], 'overhead_%.4f' % (prod[5]), 'run_%d' % (num_run))
+      if not config['dryrun']:
+        os.makedirs(out_dir)
+      gem5_args = ' --remote-gdb-port=0 --outdir=%s ' % (out_dir)
+      sim_config = config['config']
+      config_args = ' --cpu-type=%s --clock=%s --monfreq=%s --monitor=%s' % (prod[0], prod[1], prod[2], prod[3])
+      # Probabilistic drop
+      config_args += ' --probabilistic_drop'
+      # Scale headstart based on slack
+      config_args += ' --headstart_slack=%d' % (prod[5]*20000000)
+      if config['max_insts']:
+        config_args += ' --maxinsts=%d' % (config['max_insts'])
+      if config['ff_insts']:
+        config_args += ' --fastforward_insts=%d' % (config['ff_insts'])
+      if config['emulate_filtering']:
+        config_args += ' --emulate_filtering'
+      if config['cache_enabled']:
+        config_args += ' --caches --simulatestalls'
+        if config['l2_cache_enabled']:
+          config_args += ' --l2cache --l2_size=%s' % (config['l2_size'])
+        if 'cache_sizes' in config and prod[1] in config['cache_sizes']:
+          config_args += ' --l1d_size=%s --l1i_size=%s' % (config['cache_sizes'][prod[1]], config['cache_sizes'][prod[1]])
+      if config['invalidation']:
+        config_args += ' --invalidation --invalidation_cache_size=%s --overhead=%.4f' % (prod[6], prod[5])
+      config_args += ' --cmd=%s%s' % (config['benchmarks'][prod[4]]['executable'], '' if prod[3] == 'none' else '-'+prod[3])
+      config_args += ' --options=\'%s\'' % (config['benchmarks'][prod[4]]['options'])
+      run_cmd = gem5_exe + gem5_args + sim_config + config_args
+      tasks.append(run_cmd)
   if not config['dryrun']:
     dispatcher = ClusterDispatcher(n_jobs)
     for t in tasks:
