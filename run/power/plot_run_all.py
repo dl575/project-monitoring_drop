@@ -73,19 +73,25 @@ data = {}
 current_size = None
 current_bench = None
 current_extension = None
+baseline_area = [] 
+baseline_peak = []
+baseline_runtime = []
 for line in in_file:
   if "Area" in line:
     data[current_extension][current_size][current_bench][0] = float(line.strip().split()[-1])
-    res = re.search(" ([0-9\.]+)/", line)
+    res = re.search(" ([0-9\.]+)/([0-9\.]+)", line)
     data[current_extension][current_size][current_bench][3] = float(res.group(1))
+    baseline_area.append(float(res.group(2)))
   elif "Peak" in line:
     data[current_extension][current_size][current_bench][1] = float(line.strip().split()[-1])
-    res = re.search(" ([0-9\.]+)/", line)
+    res = re.search(" ([0-9\.]+)/([0-9\.]+)", line)
     data[current_extension][current_size][current_bench][4] = float(res.group(1))
+    baseline_peak.append(float(res.group(2)))
   elif "Runtime" in line:
     data[current_extension][current_size][current_bench][2] = float(line.strip().split()[-1])
-    res = re.search(" ([0-9\.]+)/", line)
+    res = re.search(" ([0-9\.]+)/([0-9\.]+)", line)
     data[current_extension][current_size][current_bench][5] = float(res.group(1))
+    baseline_runtime.append(float(res.group(2)))
   else:
     sline = line.split('/')
     current_extension = sline[-4]
@@ -100,17 +106,30 @@ for line in in_file:
 
 in_file.close()
 
-print data["dift"]["512B"].keys()
+baseline_area = numpy.array(baseline_area)
+baseline_peak = numpy.array(baseline_peak)
+baseline_runtime = numpy.array(baseline_runtime)
+print "Baseline:"
+print "  Area %.2f mm^2 std(%.1f)" % (baseline_area.mean(), baseline_area.std())
+print "  Peak Power %.1f mW std(%.1f)" % (baseline_peak.mean()*1000, baseline_peak.std()*1000)
+print "  Runtime power %.1f mW std(%.1f)" % (baseline_runtime.mean()*1000, baseline_runtime.std()*1000)
 
-for cache_size in ["512B", "1kB", "2kB", "4kB"]:
+print data["dift"]["1kB"].keys()
+
+#for cache_size in ["512B", "1kB", "2kB", "4kB"]:
+for cache_size in ["1kB"]:
   print cache_size
+  print "   Area (% mean, std) (absolute mean, std)"
   print "  ", average_area(data, cache_size), average_absolute_area(data, cache_size)
   for extension in ["dift", "umc", "hb"]:
     print "  ", extension
+    print "     Peak Power (% mean, std) (absolute mean, std)"
     print "    ", average_extension_peak_power(data, extension, cache_size), average_extension_absolute_peak_power(data, extension, cache_size)
+    print "     Runtime Power (% mean, std) (absolute mean, std)"
     print "    ", average_extension_runtime_power(data, extension, cache_size), average_extension_absolute_runtime_power(data, extension, cache_size)
 
 # Plot data
+"""
 fig = plot.figure()
 fig.suptitle("DIFT")
 plot_extension("dift")
@@ -124,3 +143,4 @@ fig.suptitle("BC")
 plot_extension("hb")
 
 plot.show()
+"""
