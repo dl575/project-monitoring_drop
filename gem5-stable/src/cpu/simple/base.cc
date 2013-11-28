@@ -418,6 +418,8 @@ BaseSimpleCPU::resetStats()
 void
 BaseSimpleCPU::serialize(ostream &os)
 {
+    SERIALIZE_SCALAR(monitoring_enabled);
+
     SERIALIZE_ENUM(_status);
     BaseCPU::serialize(os);
 //    SERIALIZE_SCALAR(inst);
@@ -428,6 +430,8 @@ BaseSimpleCPU::serialize(ostream &os)
 void
 BaseSimpleCPU::unserialize(Checkpoint *cp, const string &section)
 {
+    UNSERIALIZE_SCALAR(monitoring_enabled);
+
     UNSERIALIZE_ENUM(_status);
     BaseCPU::unserialize(cp, section);
 //    UNSERIALIZE_SCALAR(inst);
