@@ -899,12 +899,18 @@ DropSimpleCPU::backtrack_hb()
         Addr rd = mpkt.rd;
         rptb.update(rd, mpkt.instAddr, 0);
 
+        // update instruction priority table
+        ipt.update(mpkt.instAddr, true);
+
     } else if (mpkt.store) {
         backtrack_inst_store(mpkt);
 
         // update producer table
         Addr addr = mpkt.memAddr;
         mptb.update(addr, mpkt.instAddr);
+
+        // update instruction priority table
+        ipt.update(mpkt.instAddr, true);
 
     } else if (mpkt.intalu) {
         if (important) {
@@ -936,6 +942,9 @@ DropSimpleCPU::backtrack_umc()
         // update producer table
         Addr rd = mpkt.rd;
         rptb.update(rd, mpkt.instAddr, 0);
+
+        // update instruction priority table
+        ipt.update(mpkt.instAddr, true);
 
     } else if (mpkt.store) {
         if (important) {
@@ -972,6 +981,10 @@ DropSimpleCPU::backtrack_dift()
     // determine instruction type
     if (mpkt.indctrl) {
         backtrack_inst_indctrl(mpkt);
+
+        // update instruction priority table
+        ipt.update(mpkt.instAddr, true);
+
     } else if (mpkt.load) {
         if (important) {
             backtrack_inst_load(mpkt);
