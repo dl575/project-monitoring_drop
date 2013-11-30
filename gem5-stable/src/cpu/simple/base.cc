@@ -748,7 +748,23 @@ BaseSimpleCPU::performMonitoring() {
         mp.size = fed.dataSize;
         
         unsigned numSrc = curStaticInst->numSrcRegs();
-        if (TheISA::isISAReg(curStaticInst->srcRegIdx(numSrc-2))){
+        bool isMicroOp = inst_dis.find("uop") != string::npos;
+        bool isLoad = curStaticInst->isLoad();
+        bool isStore = curStaticInst->isStore();
+
+        if (isLoad && !isMicroOp && numSrc == 5) {
+            mp.rs1 = curStaticInst->srcRegIdx(0);
+            mp.rs2 = 33;
+        } else if (isLoad && !isMicroOp && numSrc == 6) {
+            mp.rs1 = curStaticInst->srcRegIdx(0);
+            mp.rs2 = curStaticInst->srcRegIdx(5);
+        } else if (isLoad && isMicroOp && numSrc == 5) {
+            mp.rs1 = curStaticInst->srcRegIdx(4);
+            mp.rs2 = 33;
+        } else if (isStore && !isMicroOp && numSrc == 6) {
+            mp.rs1 = curStaticInst->srcRegIdx(0);
+            mp.rs2 = curStaticInst->srcRegIdx(5);
+        } else if (TheISA::isISAReg(curStaticInst->srcRegIdx(numSrc-2))) {
             mp.rs1 = curStaticInst->srcRegIdx(numSrc-2);  // rs1 register field
             mp.rs2 = curStaticInst->srcRegIdx(numSrc-1);  // rs2 register field        
         } else {
