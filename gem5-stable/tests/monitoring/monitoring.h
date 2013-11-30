@@ -4,6 +4,35 @@
  * Author: Daniel Lo
  */
 
+#ifndef __SLACKTIMER_H__
+#define __SLACKTIMER_H__
+
+// Timer base address
+#define TIMER_ADDR 0x30010000
+
+// Initialization
+volatile int *timer;
+#define INIT_TIMER timer = (int *)TIMER_ADDR;
+
+// start/end task
+#define START_TASK(x)          *(timer) = x;
+#define END_TASK(x)            *(timer + 1)= x;
+// start/end subtask
+#define START_SUBTASK(WCET)    *(timer + 2) = WCET;
+#define END_SUBTASK            *(timer + 3) = 1;
+// end subtask and start a new one
+#define ENDSTART_SUBTASK(WCET) *(timer + 4) = WCET;
+// define drop threshold for monitor
+#define SET_THRES(WCET)        *(timer + 5) = WCET;
+
+// read from slack timer
+#define READ_SLACK             *(timer)
+// read if drop from slack timer
+#define READ_SLACK_DROP        *(timer + 1)
+
+#endif // __SLACKTIMER_H__
+
+
 #ifndef __MONITORING_H__
 #define __MONITORING_H__
 
@@ -19,11 +48,11 @@
 #define FIFO_SIZE 16
 
 // initialize fifo so it can be enabled/disabled
-#define INIT_MONITOR register volatile unsigned int *fifo = (unsigned int *)MONITOR_ADDR; 
+#define INIT_MONITOR register volatile unsigned int *fifo = (unsigned int *)MONITOR_ADDR; INIT_TIMER; 
 // enable monitoring
-#define ENABLE_MONITOR *fifo = 1;
+#define ENABLE_MONITOR *fifo = 1; START_TASK(1000000);
 // disable monitoring
-#define DISABLE_MONITOR *fifo = 0;
+#define DISABLE_MONITOR *fifo = 0; END_TASK(16);
 // main core has finished
 #define MAIN_DONE *fifo = 2; while(1);
 
@@ -37,13 +66,11 @@
 // bss initialization
 #define INIT_BSS extern void * __bss_start__; \
   extern void * __bss_end__; \
-  while (!READ_FIFO_EMPTY); \
   WRITE_FIFO_RANGE((unsigned int)&__bss_start__, (unsigned int)&__bss_end__) \
   while (!READ_FIFO_EMPTY);
 
 // code region initializatoin
 #define INIT_CODE extern void * _init , * _end; \
-  while (!READ_FIFO_EMPTY); \
   WRITE_FIFO_RANGE((unsigned int)&_init, (unsigned int) &_end) \
   while (!READ_FIFO_EMPTY);
   
@@ -107,3 +134,4 @@ inline void set_tag_bound(unsigned addr, unsigned value);
 void init_section_tags();
 
 #endif // __MONITORING_H__
+
