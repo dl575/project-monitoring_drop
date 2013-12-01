@@ -88,6 +88,10 @@ parser.add_option("--backtrack_read_table", action="store_true")
 parser.add_option("--backtrack_write_table", action="store_true")
 # backtracking table directory
 parser.add_option("--backtrack_table_dir", type="string", default="m5out")
+# Policy for forwarding important instructions
+parser.add_option("--important_policy", type="string", default="always")
+# Additional slack for important instructions
+parser.add_option("--important_slack", type="int", default=2000000)
 # Headstart (initial) slack
 parser.add_option("--headstart_slack", type="int", default=2000000)
 # Number of instructions to fast-forward
@@ -111,6 +115,12 @@ available_monitors = {
   "sec"  : 4,
   "hb"   : 5,
   "multidift" : 6
+}
+
+important_policy = {
+  "always"  : 0,
+  "slack"   : 1,
+  "percent" : 2
 }
 
 if '--ruby' in sys.argv:
@@ -312,6 +322,9 @@ timer.percent_overhead = options.overhead
 timer.start_cycles = options.headstart_slack
 timer.start_cycles_clock = MainCPUClass.clock
 timer.use_start_ticks = True
+# policy of forwarding important instructions
+timer.important_policy = important_policy[options.important_policy]
+timer.important_slack = options.important_slack
 # We can also set a probabilistic range
 if options.probabilistic_drop:
   timer.seed = random.randint(-2**30,2**30)

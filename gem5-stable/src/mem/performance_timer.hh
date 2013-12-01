@@ -125,6 +125,10 @@ class PerformanceTimer : public AbstractMemory
     double povr;
     // Probabilistic slack range
     long long int slack_lo, slack_hi;
+    // Policy for forwarding important instructions
+    int important_policy;
+    // Additional slack for important instructions
+    long long int important_slack;
     
     // Start task ticks
     Tick start_ticks;

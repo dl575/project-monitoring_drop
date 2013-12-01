@@ -75,6 +75,9 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
         slack_lo = p->slack_hi * p->start_cycles_clock;
     }
     
+    important_policy = p->important_policy;
+    important_slack = p->important_slack * p->start_cycles_clock;
+
     srand(p->seed);
     
     // printf("Random init: %d, %d\n", rand(), p->seed);
@@ -189,6 +192,21 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                 if (stored_tp.intask || curTick() < stored_tp.WCET_end){
                     if (drop_status) { not_drops++; }
                     else { drops++; }
+                }
+            } else if (read_addr == TIMER_READ_DROP_IMPORTANT) {
+                if (important_policy == 0) {
+                    // always forward
+                    int drop_status = 1;
+                    send_data = drop_status;
+                    not_drops++;
+                } else if (important_policy == 1) {
+                    // forward/drop based on slack
+                    int drop_status = (slack + important_slack >= 0);
+                    send_data = drop_status;
+                    if (stored_tp.intask || curTick() < stored_tp.WCET_end){
+                        if (drop_status) { not_drops++; }
+                        else { drops++; }
+                    }
                 }
             } else if (read_addr == TIMER_DROPS){
                 send_data = drops;

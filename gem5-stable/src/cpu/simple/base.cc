@@ -1267,21 +1267,38 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     // If the packet is droppable, read whether there is enough slack to
     // perform full monitoring into read_timer.
     // read_timer = 1 indicates enough slack, = 0 indicates drop.
-    if (!skip_drop && !(_backtrack && _important)) {
-        // Create request at timer location
-        req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
-        // Read command
-        MemCmd cmd = MemCmd::ReadReq;
-        // Create packet
-        PacketPtr pkt = new Packet(req, cmd);
-        // Point packet to data pointer
-        pkt->dataStatic(&read_timer);
+    if (!skip_drop) {
+        if (!(_backtrack && _important)) {
+            // Create request at timer location
+            req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
+            // Read command
+            MemCmd cmd = MemCmd::ReadReq;
+            // Create packet
+            PacketPtr pkt = new Packet(req, cmd);
+            // Point packet to data pointer
+            pkt->dataStatic(&read_timer);
 
-        // Send read request
-        timerPort.sendFunctional(pkt);
-        
-        // Clean up
-        delete pkt;
+            // Send read request
+            timerPort.sendFunctional(pkt);
+            
+            // Clean up
+            delete pkt;
+        } else {
+            // Create request at timer location
+            req->setPhys(TIMER_READ_DROP_IMPORTANT, sizeof(read_timer), flags, dataMasterId());
+            // Read command
+            MemCmd cmd = MemCmd::ReadReq;
+            // Create packet
+            PacketPtr pkt = new Packet(req, cmd);
+            // Point packet to data pointer
+            pkt->dataStatic(&read_timer);
+
+            // Send read request
+            timerPort.sendFunctional(pkt);
+            
+            // Clean up
+            delete pkt;
+        }
     }
     
     if (addr == TIMER_READ_SLACK) {

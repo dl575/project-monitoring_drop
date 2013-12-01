@@ -60,6 +60,7 @@
 // read registers
 #define TIMER_READ_SLACK       (TIMER_ADDR + 0x00)
 #define TIMER_READ_DROP        (TIMER_ADDR + 0x04)
+#define TIMER_READ_DROP_IMPORTANT (TIMER_ADDR + 0x18)
 // hidden read registers (should not be used by the program)
 #define TIMER_DROPS            (TIMER_ADDR + 0x100)
 #define TIMER_NOT_DROPS        (TIMER_ADDR + 0x104)
