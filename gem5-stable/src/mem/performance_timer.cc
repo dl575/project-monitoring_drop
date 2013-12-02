@@ -57,6 +57,7 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
     AbstractMemory(p),
     lat(p->latency), lat_var(p->latency_var),
     povr(p->percent_overhead),
+    important_percent(p->important_percent),
     use_start_ticks(p->use_start_ticks)
 {
     for (size_t i = 0; i < p->port_port_connection_count; ++i) {
@@ -128,6 +129,11 @@ PerformanceTimer::effectiveSlack(){
     return stored_tp.slack + (curTick() - stored_tp.taskStart)*povr;
 }
 
+long long int
+PerformanceTimer::effectiveImportantSlack(){
+    return stored_tp.slack + (curTick() - stored_tp.taskStart)*important_percent;
+}
+
 void
 PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
 {
@@ -151,16 +157,32 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             */
             
             long long int slack;
+            long long int impt_slack = 0;
             if (stored_tp.intask && !stored_tp.isDecrement){
                 slack = effectiveSlack();
+                if (important_policy == 2)
+                    impt_slack = effectiveImportantSlack();
             } else if (stored_tp.isDecrement){
                 slack = effectiveSlack() - (curTick() - stored_tp.decrementStart);
                 if (slack > effectiveSlack()){ panic("Timer Underflow."); }
+
+                if (important_policy == 2) {
+                    impt_slack = effectiveImportantSlack() - (curTick() - stored_tp.decrementStart);
+                    if (impt_slack > effectiveImportantSlack())
+                        panic("Timer Underflow.");
+                }
             } else if (!stored_tp.intask && curTick() < stored_tp.WCET_end){
                 slack = stored_tp.slack - (curTick() - stored_tp.decrementStart);
                 if (slack > stored_tp.slack){ panic("Timer Underflow."); }
+
+                if (important_policy == 2) {
+                    impt_slack = stored_tp.important_slack - (curTick() - stored_tp.decrementStart);
+                    if (impt_slack > stored_tp.important_slack)
+                        panic("Timer Underflow.");
+                }
             } else {
                 slack = LLONG_MAX;
+                impt_slack = LLONG_MAX;
             }
             
             Addr read_addr = pkt->getAddr();
@@ -207,6 +229,13 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                         if (drop_status) { not_drops++; }
                         else { drops++; }
                     }
+                } else if (important_policy == 2) {
+                    long long int adjusted_slack = impt_slack - drop_thres;
+                    int drop_status = (adjusted_slack >= 0);
+                    if (stored_tp.intask || curTick() < stored_tp.WCET_end) {
+                        if (drop_status) { not_drops++; }
+                        else { drops++; }
+                    }
                 }
             } else if (read_addr == TIMER_DROPS){
                 send_data = drops;
@@ -238,9 +267,13 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
               if (use_start_ticks){
                 // Use param based initial slack
                 stored_tp.slack = start_ticks;
+                if (important_policy == 2)
+                    stored_tp.important_slack = start_ticks;
               } else {
                 // Use optionally passed value as initial slack
                 stored_tp.slack = get_data;
+                if (important_policy == 2)
+                    stored_tp.important_slack = get_data;
               }
               DPRINTF(SlackTimer, "Written to timer: task start, slack = %d\n", effectiveSlack());
             } else if (write_addr == TIMER_END_TASK) {
@@ -248,6 +281,8 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
               stored_tp.decrementStart = curTick();
               long long int additional_time = get_data;
               stored_tp.slack = effectiveSlack();
+              if (important_policy == 2)
+                  stored_tp.important_slack = effectiveImportantSlack();
               long long int wait_time = stored_tp.slack + additional_time;
               stored_tp.WCET_end = curTick() + wait_time; // Actual deadline
               DPRINTF(SlackTimer, "Written to timer: task end, %d(slack) + %d(add) = %d\n", stored_tp.slack, additional_time, wait_time);
@@ -273,6 +308,15 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                   stored_tp.slack = slack;
                   
                   DPRINTF(SlackTimer, "Written to timer: decrement end, slack = %d\n", effectiveSlack());
+
+                  if (important_policy == 2) {
+                    delay_time = (curTick() - stored_tp.decrementStart)*(1 + important_percent);
+                    slack = stored_tp.important_slack - delay_time;
+                    if (slack > stored_tp.important_slack) {
+                      panic("Timer Underflow.");
+                    }
+                    stored_tp.important_slack = slack;
+                  }
               }
             } else {
               warn("Unknown address written to for timer: %x.", write_addr);

@@ -92,6 +92,8 @@ parser.add_option("--backtrack_table_dir", type="string", default="m5out")
 parser.add_option("--important_policy", type="string", default="always")
 # Additional slack for important instructions
 parser.add_option("--important_slack", type="int", default=2000000)
+# Additional slack for important instructions as percent of total cycles
+parser.add_option("--important_percent", type="float", default=0.0)
 # Headstart (initial) slack
 parser.add_option("--headstart_slack", type="int", default=2000000)
 # Number of instructions to fast-forward
@@ -325,6 +327,7 @@ timer.use_start_ticks = True
 # policy of forwarding important instructions
 timer.important_policy = important_policy[options.important_policy]
 timer.important_slack = options.important_slack
+timer.important_percent = options.important_percent
 # We can also set a probabilistic range
 if options.probabilistic_drop:
   timer.seed = random.randint(-2**30,2**30)

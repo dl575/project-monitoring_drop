@@ -71,6 +71,8 @@ class PerformanceTimer : public AbstractMemory
         Tick taskStart;
         // Accumulated slack
         long long int slack;
+        // Accumulated slack for important instructions
+        long long int important_slack;
         // currently executing a task
         bool intask;
         // currently decrementing slack
@@ -84,6 +86,7 @@ class PerformanceTimer : public AbstractMemory
         void init() {
           taskStart = 0;
           slack = 0;
+          important_slack = 0;
           intask = false;
           isDecrement = false;
           decrementStart = 0;
@@ -110,6 +113,7 @@ class PerformanceTimer : public AbstractMemory
     };
 
     long long int effectiveSlack();
+    long long int effectiveImportantSlack();
     
     std::vector<MemoryPort*> ports;
 
@@ -129,6 +133,8 @@ class PerformanceTimer : public AbstractMemory
     int important_policy;
     // Additional slack for important instructions
     long long int important_slack;
+    // Additional slack for important instructions as percent of total cycles
+    double important_percent;
     
     // Start task ticks
     Tick start_ticks;

@@ -55,4 +55,5 @@ class PerformanceTimer(AbstractMemory):
     slack_hi = Param.Int(0, "High slack range for probabilistic dropping")
     important_policy = Param.Int(0, "Policy for forwarding important instructions")
     important_slack = Param.Int(0, "Additional slack for important instructions")
+    important_percent = Param.Float(0, "Additional slack for important instructions as percent of total cycles")
     seed = Param.Int(0, "Seed for random values in probabilistic dropping")
