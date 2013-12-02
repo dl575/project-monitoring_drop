@@ -95,12 +95,31 @@ def run(config, n_jobs):
         config_args += ' --l1d_size=%s --l1i_size=%s' % (config['cache_sizes'][prod[1]], config['cache_sizes'][prod[1]])
     if config['invalidation']:
       config_args += ' --invalidation --invalidation_cache_size=%s --overhead=%.4f' % (prod[6], prod[5])
-    if config.get('backtrack'):
-      config_args += ' --backtrack'
     config_args += ' --cmd=%s%s' % (config['benchmarks'][prod[4]]['executable'], '' if prod[3] == 'none' else '-'+prod[3])
     config_args += ' --options=\'%s\'' % (config['benchmarks'][prod[4]]['options'])
-    run_cmd = gem5_exe + gem5_args + sim_config + config_args
-    tasks.append(run_cmd)
+    if config.get('headstart_slack'):
+      config_args += ' --headstart_slack=%d' % (config['headstart_slack'])
+    if config.get('backtrack'):
+      config_args += ' --backtrack'
+      if config.get('important_policy'):
+        config_args += ' --important_policy=%s' % config['important_policy']
+      if config.get('important_slack'):
+        config_args += ' --important_slack=%d' % config['important_slack']
+      if config.get('important_percent'):
+        config_args += ' --important_percent=%f' % config['important_percent']
+      run_cmd = [gem5_exe + gem5_args + sim_config + config_args + ' --backtrack_write_table' + ' --backtrack_table_dir=%s' % out_dir]
+      # compress table and stats
+      run_cmd.append("pushd %s\ntar czvf tables.0.tar.gz *.table\ntar czvf stats.0.tar.gz stats.txt\npopd" % out_dir)
+      for i in xrange(config.get('backtrack_iterations', 2)):
+        run_cmd.append(gem5_exe + gem5_args + sim_config + config_args + ' --backtrack_read_table --backtrack_write_table' + ' --backtrack_table_dir=%s' % out_dir)
+        # compress tables and stats
+        run_cmd.append("pushd %s\ntar czvf tables.%d.tar.gz *.table\ntar czvf stats.%d.tar.gz stats.txt\npopd" % (out_dir, i+1, i+1))
+      # remove tables to free up space
+      run_cmd.append("rm -f %s/*.table" % out_dir)
+      tasks.append('\n\n'.join(run_cmd))
+    else:
+      run_cmd = gem5_exe + gem5_args + sim_config + config_args
+      tasks.append(run_cmd)
   if not config['dryrun']:
     dispatcher = ClusterDispatcher(n_jobs)
     for t in tasks:
