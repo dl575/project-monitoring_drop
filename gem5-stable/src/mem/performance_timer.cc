@@ -391,6 +391,22 @@ PerformanceTimer::resume()
 
 }
 
+void
+PerformanceTimer::serialize(ostream &os) 
+{
+  AbstractMemory::serialize(os);
+
+  SERIALIZE_SCALAR(stored_tp.intask);
+}
+
+void
+PerformanceTimer::unserialize(Checkpoint *cp, const string &section)
+{
+  UNSERIALIZE_SCALAR(stored_tp.intask);
+
+  AbstractMemory::unserialize(cp, section);
+}
+
 PerformanceTimer::MemoryPort::MemoryPort(const std::string& _name,
                                      PerformanceTimer& _memory)
     : SimpleTimingPort(_name, &_memory), memory(_memory)

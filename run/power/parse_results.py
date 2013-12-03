@@ -46,6 +46,11 @@ for line in in_file:
       metadata_area = float(res.group(1))
 in_file.close()
 
+# Remove metadata area/power from core total
+core_area -= metadata_area
+core_total_peak -= metadata_total_peak
+core_total_runtime -= metadata_total_runtime
+
 out_file = open(out_filename, 'a')
 out_file.write("Area: %f/%f = %f\n" % (metadata_area, core_area, metadata_area/core_area))
 out_file.write("Peak: %f/%f = %f\n" % (metadata_total_peak, core_total_peak, metadata_total_peak/core_total_peak))

@@ -110,7 +110,8 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     check_frequency(p->check_frequency),
     total_checks(0), full_packets(1), all_packets(1),
     perf_mon(true),
-    _backtrack(p->backtrack)
+    _backtrack(p->backtrack),
+    print_checkid(p->print_checkid)
 {
 
     // Monitoring filter parameters
@@ -416,6 +417,8 @@ BaseSimpleCPU::resetStats()
 void
 BaseSimpleCPU::serialize(ostream &os)
 {
+    SERIALIZE_SCALAR(monitoring_enabled);
+
     SERIALIZE_ENUM(_status);
     BaseCPU::serialize(os);
 //    SERIALIZE_SCALAR(inst);
@@ -426,6 +429,8 @@ BaseSimpleCPU::serialize(ostream &os)
 void
 BaseSimpleCPU::unserialize(Checkpoint *cp, const string &section)
 {
+    UNSERIALIZE_SCALAR(monitoring_enabled);
+
     UNSERIALIZE_ENUM(_status);
     BaseCPU::unserialize(cp, section);
 //    UNSERIALIZE_SCALAR(inst);
@@ -907,6 +912,10 @@ void BaseSimpleCPU::init() {
   mp.init();
   fed.clear();
   ReExecFault = new ReExec();
+
+  // Initialize ranges for printing out what is checked in full
+  checkid_base = 0;
+  checkid_vec = 0;
 }
 
 BaseSimpleCPU::instType
@@ -1317,8 +1326,23 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         if (intask){
             if (read_timer && !coverage_drop) { 
                 full_packets++;
+
+                // ID checks so we can identify coverage across multiple runs
                 if (ischeck) {
                     DPRINTF(CheckId, "Full check: %d\n", total_checks);
+                    if (print_checkid) {
+                      // If past last bit vector
+                      if (total_checks / 64 > checkid_base) {
+                        // Print out last vector
+                        printf("%d,%lx\n", checkid_base, checkid_vec);
+                        // Update base
+                        checkid_base = total_checks / 64;
+                        // Reset bit vector
+                        checkid_vec = 0;
+                      } 
+                      // Set corresponding bit
+                      checkid_vec |= (((uint64_t)1) << (total_checks % 64));
+                    }
                 }
             }
             all_packets++;

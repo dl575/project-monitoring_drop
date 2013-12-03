@@ -71,6 +71,8 @@ class BaseSimpleCPU(BaseCPU):
     backtrack_write_table = Param.Bool(False, "write backtrack table at end of simulation")
     backtrack_table_dir = Param.String("", "directory to read/write backtrack table")
 
+    print_checkid = Param.Bool(False, "Print out ID# of checks as they occured. Used for probabilistic monitoring. Used instead of DPRINTF so gem5.fast executes it")
+
     if fifo_enabled:
       fifo_port = MasterPort("Fifo Port")
 

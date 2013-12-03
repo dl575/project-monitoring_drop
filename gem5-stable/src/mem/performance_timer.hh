@@ -165,6 +165,8 @@ class PerformanceTimer : public AbstractMemory
 
   public:
     virtual void resume();
+    virtual void serialize(std::ostream &os);
+    virtual void unserialize(Checkpoint *cp, const std::string &section);
 
 };
 
