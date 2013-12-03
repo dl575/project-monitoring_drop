@@ -131,7 +131,7 @@ PerformanceTimer::effectiveSlack(){
 
 long long int
 PerformanceTimer::effectiveImportantSlack(){
-    return stored_tp.slack + (curTick() - stored_tp.taskStart)*important_percent;
+    return stored_tp.important_slack + (curTick() - stored_tp.taskStart)*(povr+important_percent);
 }
 
 void
@@ -232,6 +232,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                 } else if (important_policy == 2) {
                     long long int adjusted_slack = impt_slack - drop_thres;
                     int drop_status = (adjusted_slack >= 0);
+                    send_data = drop_status;
                     if (stored_tp.intask || curTick() < stored_tp.WCET_end) {
                         if (drop_status) { not_drops++; }
                         else { drops++; }
