@@ -34,6 +34,7 @@ class RegisterPTB
      */
     RegisterPTB();
 
+    void init();
     void reset();
 
     /**

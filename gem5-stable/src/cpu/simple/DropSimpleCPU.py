@@ -55,3 +55,6 @@ class DropSimpleCPU(BaseSimpleCPU):
     
     if forward_fifo_enabled:
       forward_fifo_port = MasterPort("Forward Fifo Port")
+
+    mpt_size = Param.Int(0x100000, "Size of memory producer tracking table")
+    ipt_size = Param.Int(0x100000, "Size of instruction priority table")

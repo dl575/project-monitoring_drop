@@ -18,17 +18,21 @@ InvalidationPT::InvalidationPT(unsigned _numEntries, unsigned _tagBits, unsigned
         fatal("IPT entries is not a power of 2!");
     }
     
-    ipt.resize(numEntries);
-    
-    for (unsigned i = 0; i < numEntries; ++i) {
-        ipt[i].valid = false;
-    }
-
     idxMask = numEntries - 1;
 
     tagMask = (1 << tagBits) - 1;
 
     tagShiftAmt = instShiftAmt + floorLog2(numEntries);
+}
+
+void
+InvalidationPT::init()
+{
+    ipt.resize(numEntries);
+    
+    for (unsigned i = 0; i < numEntries; ++i) {
+        ipt[i].valid = false;
+    }
 }
 
 void

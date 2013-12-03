@@ -36,6 +36,7 @@ class InvalidationPT
      */
     InvalidationPT(unsigned numEntries, unsigned tagBits, unsigned instShiftAmt);
 
+    void init();
     void reset();
 
     /**

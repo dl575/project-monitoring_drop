@@ -84,6 +84,10 @@ parser.add_option("--emulate_filtering", action="store_true")
 parser.add_option("--invalidation_cache_size", type="string", default="2kB")
 # backtracking
 parser.add_option("--backtrack", action="store_true")
+# instruction priority table size
+parser.add_option("--ipt_size", type="int", default=0x100000)
+# memory producer tracking table size
+parser.add_option("--mpt_size", type="int", default=0x100000)
 parser.add_option("--backtrack_read_table", action="store_true")
 parser.add_option("--backtrack_write_table", action="store_true")
 # backtracking table directory
@@ -211,6 +215,8 @@ DropCPUClass.backtrack = options.backtrack
 DropCPUClass.backtrack_read_table = options.backtrack_read_table
 DropCPUClass.backtrack_write_table = options.backtrack_write_table
 DropCPUClass.backtrack_table_dir = options.backtrack_table_dir
+DropCPUClass.ipt_size = options.ipt_size
+DropCPUClass.mpt_size = options.mpt_size
 # Coverage options
 DropCPUClass.target_coverage = options.coverage
 DropCPUClass.check_frequency = options.coverage_adjust

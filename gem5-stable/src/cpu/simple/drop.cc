@@ -129,6 +129,11 @@ DropSimpleCPU::init()
         delete timerpkt;
     }
 
+    // initialize structures to supporting backtracking
+    rptb.init();
+    mptb.init();
+    ipt.init();
+
     if (_backtrack && backtrack_read_table) {
         ifstream is;
         // read invalidation priority table
@@ -148,7 +153,10 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
       monitorPort(name() + "-iport", this),
       fastmem(p->fastmem), forward_fifo_enabled(p->forward_fifo_enabled),
       forwardFifoPort(name() + "-iport", this),
-      full_ticks(p->full_clock)
+      full_ticks(p->full_clock),
+      rptb(),
+      mptb(p->mpt_size, 32-floorLog2(p->mpt_size), 2),
+      ipt(p->ipt_size, 32-floorLog2(p->ipt_size), 2)
 {
     _status = Idle;    
 
@@ -955,15 +963,6 @@ DropSimpleCPU::backtrack_umc()
         Addr addr = mpkt.memAddr;
         mptb.update(addr, mpkt.instAddr);
 
-    } else if (mpkt.intalu) {
-        if (important) {
-            backtrack_inst_intalu(mpkt);
-        }
-
-        // update producer table
-        Addr addr = mpkt.rd;
-        rptb.update(addr, mpkt.instAddr, 0);
-
     }
 
     return important;
@@ -1021,6 +1020,17 @@ void DropSimpleCPU::backtrack_inst_indctrl(monitoringPacket &mpkt)
 {
     // indirect control transfer instruction with incvalidated data initiates backtracking
     Addr addr = mpkt.rs1;
+
+#ifdef DEBUG
+    uint8_t flag;
+    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&addr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+    readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+    if (flag) {
+        // invalidated
+        DPRINTF(Backtrack, "indirect control transfer instruction invalidated\n");
+    }
+#endif
+
     if (!TheISA::isISAReg(addr))
         return;
     // find out the producer of rs1
@@ -1038,6 +1048,17 @@ void DropSimpleCPU::backtrack_inst_indctrl(monitoringPacket &mpkt)
 void DropSimpleCPU::backtrack_inst_load(monitoringPacket &mpkt)
 {
     Addr addr = mpkt.rs1;
+
+#ifdef DEBUG
+    uint8_t flag;
+    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&addr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
+    readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+    if (flag) {
+        // invalidated
+        DPRINTF(Backtrack, "load instruction invalidated\n");
+    }
+#endif
+
     // find out the producer of rs1
     if (!TheISA::isISAReg(addr))
         return;

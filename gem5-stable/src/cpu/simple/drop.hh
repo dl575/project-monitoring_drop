@@ -45,6 +45,9 @@
 
 #include "cpu/simple/base.hh"
 #include "params/DropSimpleCPU.hh"
+#include "mem/drop/mptb.hh"
+#include "mem/drop/rptb.hh"
+#include "mem/drop/ipt.hh"
 
 #define DROP_CLEAR_ARRAY 0
 #define DROP_CLEAR_CACHE 1
@@ -226,6 +229,17 @@ class DropSimpleCPU : public BaseSimpleCPU
     Tick full_ticks;
 
   protected:
+    /**
+     * structures to supporting backtracking
+     */
+    
+    // Register Producer Tracking Table
+    RegisterPTB rptb;
+    // Memory Producer Tracking Table
+    MemoryPTB mptb;
+    // Invalidation Priority Table
+    InvalidationPT ipt;
+
     virtual bool backtrack();
     bool backtrack_hb();
     bool backtrack_dift();

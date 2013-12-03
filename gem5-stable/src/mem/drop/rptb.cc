@@ -12,6 +12,11 @@
 RegisterPTB::RegisterPTB()
     : numEntries(TheISA::NUM_INTREGS)
 {
+}
+
+void
+RegisterPTB::init()
+{
     for (unsigned i = 0; i < numEntries; ++i) {
         ptb[i].valid = false;
     }

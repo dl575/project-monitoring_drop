@@ -110,7 +110,6 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     check_frequency(p->check_frequency),
     total_checks(0), full_packets(1), all_packets(1),
     perf_mon(true),
-    rptb(), mptb(0x100000, 10, 2), ipt(0x100000, 10, 2),
     _backtrack(p->backtrack)
 {
 
@@ -908,11 +907,6 @@ void BaseSimpleCPU::init() {
   mp.init();
   fed.clear();
   ReExecFault = new ReExec();
-  
-  // initialize structures to supporting backtracking
-  rptb.reset();
-  mptb.reset();
-  ipt.reset();
 }
 
 BaseSimpleCPU::instType

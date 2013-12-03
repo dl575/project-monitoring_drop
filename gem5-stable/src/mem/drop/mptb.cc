@@ -17,17 +17,21 @@ MemoryPTB::MemoryPTB(unsigned _numEntries, unsigned _tagBits, unsigned _instShif
         fatal("PTB entries is not a power of 2!");
     }
     
-    ptb.resize(numEntries);
-    
-    for (unsigned i = 0; i < numEntries; ++i) {
-        ptb[i].valid = false;
-    }
-
     idxMask = numEntries - 1;
 
     tagMask = (1 << tagBits) - 1;
 
     tagShiftAmt = instShiftAmt + floorLog2(numEntries);
+}
+
+void
+MemoryPTB::init()
+{
+    ptb.resize(numEntries);
+    
+    for (unsigned i = 0; i < numEntries; ++i) {
+        ptb[i].valid = false;
+    }
 }
 
 void
