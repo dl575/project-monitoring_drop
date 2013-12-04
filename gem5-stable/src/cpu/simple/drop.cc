@@ -1074,8 +1074,6 @@ void DropSimpleCPU::backtrack_inst_load(monitoringPacket &mpkt)
     }
 
     addr = mpkt.memAddr;
-    if (!TheISA::isISAReg(addr))
-        return;
     // find out producer of memory address
     if (mptb.valid(addr)) {
         Addr producer = mptb.lookup(addr);
