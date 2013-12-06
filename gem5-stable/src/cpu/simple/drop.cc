@@ -1047,33 +1047,7 @@ void DropSimpleCPU::backtrack_inst_indctrl(monitoringPacket &mpkt)
 
 void DropSimpleCPU::backtrack_inst_load(monitoringPacket &mpkt)
 {
-    Addr addr = mpkt.rs1;
-
-#ifdef DEBUG
-    uint8_t flag;
-    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&addr, sizeof(Addr), ArmISA::TLB::AllowUnaligned);
-    readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
-    if (flag) {
-        // invalidated
-        DPRINTF(Backtrack, "load instruction invalidated\n");
-    }
-#endif
-
-    // find out the producer of rs1
-    if (!TheISA::isISAReg(addr))
-        return;
-    if (rptb.valid(addr)) {
-        Addr producer1 = rptb.lookup1(addr);
-        if (producer1 != 0) {
-            // mark producer as important
-            ipt.update(producer1, true);
-            DPRINTF(Backtrack, "mark producer(r%d)=0x%x as important, instAddr=0x%x\n", addr, producer1, mpkt.instAddr);
-        }
-    } else {
-        DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", addr, mpkt.instAddr);
-    }
-
-    addr = mpkt.memAddr;
+    Addr addr = mpkt.memAddr;
     // find out producer of memory address
     if (mptb.valid(addr)) {
         Addr producer = mptb.lookup(addr);
@@ -1089,7 +1063,6 @@ void DropSimpleCPU::backtrack_inst_load(monitoringPacket &mpkt)
 void DropSimpleCPU::backtrack_inst_store(monitoringPacket &mpkt)
 {
     Addr src = mpkt.rs1;
-    Addr ptr = mpkt.rs2;
 
     if (!TheISA::isISAReg(src))
         return;
@@ -1103,20 +1076,6 @@ void DropSimpleCPU::backtrack_inst_store(monitoringPacket &mpkt)
         }
     } else {
         DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", src, mpkt.instAddr);
-    }
-
-    if (!TheISA::isISAReg(ptr))
-        return;
-    // find out the producer of rs1
-    if (rptb.valid(ptr)) {
-        Addr producer1 = rptb.lookup1(ptr);
-        if (producer1 != 0) {
-            // mark producer as important
-            ipt.update(producer1, true);
-            DPRINTF(Backtrack, "mark producer(r%d)=0x%x as important, instAddr=0x%x\n", ptr, producer1, mpkt.instAddr);
-        }
-    } else {
-        DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", ptr, mpkt.instAddr);
     }
 }
 
