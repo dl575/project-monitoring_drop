@@ -323,7 +323,12 @@ fifo_dc_to_mon.fifo_size = 3
 system.fifo_dc_to_mon = fifo_dc_to_mon
 # Create timer
 timer = PerformanceTimer(range=AddrRange(start=0x30010000, size="64kB"))
-timer.percent_overhead = options.overhead
+if options.important_policy == "percent":
+  timer.percent_overhead = options.overhead - options.important_percent
+  if (timer.percent_overhead < 0):
+    raise Exception("overhead for important instructions should not exceed total overhead!")
+else:
+  timer.percent_overhead = options.overhead
 # For spec benchmarks, we set init slack here
 timer.start_cycles = options.headstart_slack
 timer.start_cycles_clock = MainCPUClass.clock
