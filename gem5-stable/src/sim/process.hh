@@ -141,7 +141,7 @@ class Process : public SimObject
         uint64_t fileOffset;
 
         FdMap()
-            : fd(-1), filename("NULL"), mode(0), flags(0),
+            : fd(-1), filename("NULL"), mode(0664), flags(0),
               isPipe(false), readPipeSource(0), fileOffset(0)
         { }
 
