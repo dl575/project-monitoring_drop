@@ -155,8 +155,8 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
       forwardFifoPort(name() + "-iport", this),
       full_ticks(p->full_clock),
       rptb(),
-      mptb(p->mpt_size, 32-floorLog2(p->mpt_size), 2),
-      ipt(p->ipt_size, 32-floorLog2(p->ipt_size), 2)
+      mptb(p->mpt_size, 30-floorLog2(p->mpt_size), 2),
+      ipt(p->ipt_size/p->ipt_entry_size, p->ipt_entry_size, 30-floorLog2(p->ipt_size), 2)
 {
     _status = Idle;    
 

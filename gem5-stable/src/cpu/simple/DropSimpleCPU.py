@@ -58,3 +58,4 @@ class DropSimpleCPU(BaseSimpleCPU):
 
     mpt_size = Param.Int(0x100000, "Size of memory producer tracking table")
     ipt_size = Param.Int(0x100000, "Size of instruction priority table")
+    ipt_entry_size = Param.Int(16, "Size of instruction priority table entry")
