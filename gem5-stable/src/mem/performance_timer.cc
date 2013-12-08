@@ -311,7 +311,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                   DPRINTF(SlackTimer, "Written to timer: decrement end, slack = %d\n", effectiveSlack());
 
                   if (important_policy == 2) {
-                    delay_time = (curTick() - stored_tp.decrementStart)*(1 + important_percent);
+                    delay_time = (curTick() - stored_tp.decrementStart)*(1 + povr + important_percent);
                     slack = stored_tp.important_slack - delay_time;
                     if (slack > stored_tp.important_slack) {
                       panic("Timer Underflow.");
@@ -381,6 +381,8 @@ PerformanceTimer::resume()
   // Reset slack on resume (after fast-forward)
   if (use_start_ticks) {
     stored_tp.slack = start_ticks;
+    if (important_policy == 2)
+      stored_tp.important_slack = start_ticks;
     // Mark this as task start time so slack is calculated correctly. Slack is
     // calculated based on the curTick and the task start time.
     stored_tp.taskStart = curTick();
