@@ -140,6 +140,7 @@ AtomicSimpleMonitor::AtomicSimpleMonitor(AtomicSimpleMonitorParams *p)
         case MONITOR_SEC: monitorExt = MONITOR_SEC; break;
         case MONITOR_HB: monitorExt = MONITOR_HB; break;
         case MONITOR_MULTIDIFT: monitorExt = MONITOR_MULTIDIFT; break;
+        case MONITOR_LRC: monitorExt = MONITOR_LRC; break;
         default: panic("Invalid monitor type\n");
     }
     
@@ -1070,6 +1071,23 @@ AtomicSimpleMonitor::revalidateMemTag(Addr addr)
     delete p;
 }
 
+// Set current address in flag cache without setting/clearing flags
+void
+AtomicSimpleMonitor::setFlagCacheAddr(Addr addr)
+{
+    // create request
+    Request *req = &monitor_req;
+    Addr word_addr = addr >> 2;
+    req->setPhys(DROP_FC_SET_ADDR, sizeof(word_addr), ArmISA::TLB::AllowUnaligned, dataMasterId());
+    // create packet
+    PacketPtr p = new Packet(req, MemCmd::WriteReq);
+    p->dataStatic(&word_addr);
+    // send packet
+    monitorPort.sendFunctional(p);
+    // clean up
+    delete p;
+}
+
 /*
  * Pre-execute
  *  Try to read a monitoring packet from FIFO.
@@ -1557,6 +1575,44 @@ AtomicSimpleMonitor::HBExecute()
 }
 
 /**
+ * Link-Register Check (Return Address Check)
+ */
+void
+AtomicSimpleMonitor::LRCExecute()
+{
+  static int lr_ptr = 0;
+
+  // On call,
+  if (mp.call) {
+    // Save link register address
+    writeWordTag(lr_ptr << 2, mp.lr);
+    DPRINTF(Monitor, "LRC: push lr[%d]: %x\n", lr_ptr, mp.lr);
+    // Update LR stack pointer
+    lr_ptr++;
+    // Clear invalidation flag (also updates address in dropping hardware)
+    revalidateMemTag(lr_ptr << 2);
+  // On return,
+  } else if (mp.ret) {
+    // Read saved link register address
+    int savedpc = readWordTag((lr_ptr - 1) << 2);
+    // Next PC the program is going to
+    int nextpc = (int)mp.nextpc;
+    // If next PC and saved LR don't match, raise error
+    if (savedpc != nextpc) {
+      DPRINTF(Monitor, "LRC: ERROR lr (%x) != nextpc (%x)\n", savedpc, nextpc);
+    } else {
+      DPRINTF(Monitor, "LRC: popped lr (%x) == nextpc (%x)\n", savedpc, nextpc);
+    }
+    // Update LR stack pointer
+    lr_ptr--;
+    // Update LR stack pointer in dropping hardware
+    setFlagCacheAddr(lr_ptr << 2);
+  }
+}
+
+
+
+/**
  * Compact tag memory
  */
 template <typename T>
@@ -1627,6 +1683,10 @@ AtomicSimpleMonitor::processMonitoringPacket()
         SECExecute();
     else if (monitorExt == MONITOR_HB)
         HBExecute();
+    else if (monitorExt == MONITOR_LRC)
+        LRCExecute();
+    else
+        panic("Unknown monitoring extension specified\n");
 
     // clear monitoring packet after processing
     mp.init();

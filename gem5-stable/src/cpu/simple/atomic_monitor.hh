@@ -83,6 +83,8 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
       MONITOR_HB,
       // dift with 32-bit tags
       MONITOR_MULTIDIFT,
+      // link-register (return address) check
+      MONITOR_LRC,
       // number of monitoring extensions
       NUM_MONITORING_EXTENSIONS
     };
@@ -235,6 +237,7 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     void writeDWordTagFunctional(Addr addr, uint64_t tag);
     void handlePageTableFault(Addr addr);
 
+    // Functions for performing monitoring operations
     void processMonitoringPacket();
     void UMCExecute();
     void DIFTExecute();
@@ -242,6 +245,8 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     void BCExecute();
     void SECExecute();
     void HBExecute();
+    void LRCExecute();
+
     void preExecute();
     void postExecute();
     void finishMonitoring();
@@ -249,6 +254,7 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     void showDIFTStats();
     void revalidateRegTag(int idx);
     void revalidateMemTag(Addr addr);
+    void setFlagCacheAddr(Addr addr);
 
     template <typename T>
     bool isMemoryCompactable(Addr addr, int blocksize, T tag);

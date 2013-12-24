@@ -37,6 +37,7 @@
 
 #define DROP_CLEAR_ARRAY 0
 #define DROP_CLEAR_CACHE 1
+#define DROP_FC_SET_ADDR 2
 
 class DropTimingSimpleCPU : public BaseSimpleCPU
 {

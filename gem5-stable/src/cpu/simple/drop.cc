@@ -168,6 +168,9 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
         case MONITOR_BC: monitorExt = MONITOR_BC; break;
         case MONITOR_SEC: monitorExt = MONITOR_SEC; break;
         case MONITOR_HB: monitorExt = MONITOR_HB; break;
+        // Multi-bit DIFT has same flow behavior as DIFT
+        case MONITOR_MULTIDIFT: monitorExt = MONITOR_DIFT; break;
+        case MONITOR_LRC: monitorExt = MONITOR_LRC; break;
         default: panic("Invalid monitor type\n");
     }
 
@@ -1250,11 +1253,14 @@ DropSimpleCPU::MonitorPort::recvFunctional(PacketPtr pkt)
             switch (pkt->getAddr()){
                 case DROP_CLEAR_ARRAY: type = 0; break;
                 case DROP_CLEAR_CACHE: type = 1; break;
+                case DROP_FC_SET_ADDR: type = 2; break;
                 default: panic ("Unimplemented port request");
             }
             if (cpu->flagcache_enabled){
                 cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
-                cpu->writeToFlagCache(FC_CLEAR_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                if (type == 0 || type == 1) {
+                  cpu->writeToFlagCache(FC_CLEAR_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                }
             }
         } else {
             panic ("Unimplemented port request");
