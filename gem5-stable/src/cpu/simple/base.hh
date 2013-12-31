@@ -532,7 +532,7 @@ class BaseSimpleCPU : public BaseCPU
     Addr selectValue(std::string &select, Addr c);
     // Set the flagcache address based on invalidation table entry
     template <unsigned size>
-    Fault setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx);
+    Fault setFlagCacheAddrFromTable(InvalidationTable <size> & it, unsigned idx);
     // Perform invalidation in the flag cache
     Fault performInvalidation(unsigned idx);
     // emulate filtering but don't perform
