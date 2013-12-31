@@ -290,6 +290,8 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     Stats::Scalar numLoadInsts;
     Stats::Scalar numStoreInsts;
     Stats::Scalar numIndirectCtrlInsts;
+    Stats::Scalar numCallInsts;
+    Stats::Scalar numReturnInsts;
     // UMC statistics
     Stats::Scalar numUMCErrors;
     // DIFT statistics
