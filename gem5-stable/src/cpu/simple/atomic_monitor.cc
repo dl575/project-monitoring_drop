@@ -89,7 +89,7 @@ AtomicSimpleMonitor::TickEvent::description() const
 void
 AtomicSimpleMonitor::init()
 {
-    BaseCPU::init();
+    BaseSimpleCPU::init();
 
     // Initialise the ThreadContext's memory proxies
     tcBase()->initMemProxies(tcBase());
