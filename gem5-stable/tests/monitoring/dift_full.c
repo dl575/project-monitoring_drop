@@ -69,14 +69,14 @@ int main(int argc, char *argv[]) {
       rd = READ_FIFO_RD;
       // Propagate from memory addresses
       register unsigned int memend = (READ_FIFO_MEMEND >> 2);
+      register bool tresult = false;
       for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
         // Pull out correct bit in memory to store int tag register file
         if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
-          tagrf[rd] = true;
-        } else {
-          tagrf[rd] = false;
-        }
+          tresult = true;
+        } 
       }
+      tagrf[rd] = tresult;
     // Indirect control
     } else if (READ_FIFO_INDCTRL) {
       rs = READ_FIFO_RS1;

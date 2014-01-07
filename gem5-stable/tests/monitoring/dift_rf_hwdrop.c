@@ -80,26 +80,35 @@ int main(int argc, char *argv[]) {
           // on load, propagate tag from memory to RF
           // Get destination register
           rd = READ_FIFO_RD;
+          register bool tresult = false;
+          register bool tinv = false;
           // Propagate from memory addresses
           register unsigned int memend = (READ_FIFO_MEMEND >> 2);
           for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
             // Check if the memory metadata is invalid
             FC_SET_ADDR(temp);
-            register invalid = FC_CACHE_GET;
-            // Set array address
-            FC_SET_ADDR(rd);
-            // Invalid metadata, clear taint
+            register bool invalid = FC_CACHE_GET;
+
             if (invalid) {
-                FC_ARRAY_CLEAR;
-            // Valid metadata, handle normally
+              // If any tag is invalid, then result is invalid
+              tinv = true;
             } else {
-                // Pull out correct bit in memory to store int tag register file
-                if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
-                  FC_ARRAY_SET;
-                } else {
-                  FC_ARRAY_CLEAR;
-                }
+              // Pull out correct bit in memory to store int tag register file
+              if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
+                // If any taint is set, then resulting tag is tainted
+                tresult = true;
+              }
             }
+          }
+
+          // Set array address
+          FC_SET_ADDR(rd);
+          // Invalid or untainted source metadata, clear taint
+          if (tinv || !tresult) {
+            FC_ARRAY_CLEAR;
+          // Valid tainted metadata
+          } else {
+            FC_ARRAY_SET;
           }
         // Indirect control
         } else if (READ_FIFO_INDCTRL) {

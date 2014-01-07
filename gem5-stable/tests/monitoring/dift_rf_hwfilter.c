@@ -57,10 +57,11 @@ int main(int argc, char *argv[]) {
         if (READ_FIFO_STORE) {
             // bool settag = READ_FIFO_SETTAG;
             // register bool settag = false; // FIXME: Allow setting tag from software
-            // Get tag
             // Get source register
             rs = READ_FIFO_RS1;
-            register bool tag = tagrf[rs];
+            // Get tag
+            FC_SET_ADDR(rs);
+            register bool tag = FC_ARRAY_GET;
             // Propagate to destination memory addresses
             register unsigned int memend = (READ_FIFO_MEMEND >> 2);
             for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
@@ -78,24 +79,34 @@ int main(int argc, char *argv[]) {
         // Load
         } else if (READ_FIFO_LOAD) {
           // on load, propagate tag from memory to RF
-          // Get destination register
-          rd = READ_FIFO_RD;
-          // Set array address
-          FC_SET_ADDR(rd);
+
+          // Resulting tag
+          register bool tresult = false;
           // Propagate from memory addresses
           register unsigned int memend = (READ_FIFO_MEMEND >> 2);
           for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
             // Pull out correct bit in memory to store int tag register file
             if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
-              // Mem tag is set, set in flag array
-              FC_ARRAY_SET;
-            } else {
-              // Mem tag is not set, clear in flag array
-              FC_ARRAY_CLEAR;
+              // If any memory bit is tainted, then resulting tag is tainted
+              tresult = true;
             }
           }
-        // Indirect control - valid indirect control flow is filtered out
-        //} else if (READ_FIFO_INDCTRL) {
+
+          // Get destination register
+          rd = READ_FIFO_RD;
+          // Set array address
+          FC_SET_ADDR(rd);
+          // Set taint
+          if (tresult) {
+            FC_ARRAY_SET;
+          } else {
+            FC_ARRAY_CLEAR;
+          }
+        // Indirect control
+        } else if (READ_FIFO_INDCTRL) {
+          // Untainted indirect control flow is all filtered out, must be tainted
+          printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
+          return -1;
         // integer ALU - handled completely using filter table + invalidation hardware
         // } else { 
         } // inst type

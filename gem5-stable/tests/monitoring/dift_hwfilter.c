@@ -80,14 +80,20 @@ int main(int argc, char *argv[]) {
           rd = READ_FIFO_RD;
           // Propagate from memory addresses
           register unsigned int memend = (READ_FIFO_MEMEND >> 2);
+          register bool tresult = false;
           for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
-            // Set array address
-            FC_SET_ADDR(rd);
-            // Set register as valid
-            FC_ARRAY_CLEAR;
-            // Pull out correct bit in memory to store int tag register file
-            tagrf[rd] = ((tagmem[temp >> 3]) & (1 >> (temp&0x7)));
+            // Pull out correct bit in memory to store in tag register file
+            if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
+              tresult = true;
+            }
           }
+          // Set array address
+          FC_SET_ADDR(rd);
+          // Set register as valid
+          FC_ARRAY_CLEAR;
+          // Set taint
+          tagrf[rd] = tresult;
+
         // Indirect control
         } else if (READ_FIFO_INDCTRL) {
           if (tagrf[rs]){
