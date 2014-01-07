@@ -85,14 +85,15 @@ options.cpu_type = 'atomic'
 
 # "enum" for monitors
 available_monitors = {
-  "none" : 0,
-  "umc"  : 1,
-  "dift" : 2,
-  "bc"   : 3,
-  "sec"  : 4,
-  "hb"   : 5,
+  "none"      : 0,
+  "umc"       : 1,
+  "dift"      : 2,
+  "bc"        : 3,
+  "sec"       : 4,
+  "hb"        : 5,
   "multidift" : 6,
-  "lrc"  : 7
+  "lrc"       : 7,
+  "diftrf"    : 8
 }
 
 # Create new CPU type for main core
@@ -107,9 +108,7 @@ MainCPUClass.flagcache_enabled = False
 # Simulate cache stalls
 MainCPUClass.simulate_inst_stalls = True
 MainCPUClass.simulate_data_stalls = True
-# FIXME
-MainCPUClass.hard_wcet = False
-#MainCPUClass.hard_wcet = True
+MainCPUClass.hard_wcet = True
 
 # Create new CPU type for monitoring core
 #(MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
@@ -158,6 +157,21 @@ elif options.monitor == "lrc":
   # Load the filter tables
   invalidation_cpu.filter_file_1 = "tables/lrc_filter.txt"
   invalidation_cpu.filter_ptr_file = "tables/lrc_filter_ptrs.txt"
+elif options.monitor == "diftrf":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_indctrl = True
+  # Load the invalidation file
+  invalidation_cpu.invalidation_file = "tables/dift_rf_invalidation.txt"
+  # Load the filter tables
+  invalidation_cpu.filter_file_1 = "tables/dift_rf_filter1.txt"
+  invalidation_cpu.filter_file_2 = "tables/dift_rf_filter2.txt"
+  invalidation_cpu.filter_ptr_file = "tables/dift_rf_filter_ptrs.txt"
+else:
+  print "Unsupported monitor %s" % (options.monitor)
+  sys.exit()
 
 # Set clocks
 MainCPUClass.clock = "500MHz"

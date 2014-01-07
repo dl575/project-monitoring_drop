@@ -141,6 +141,7 @@ AtomicSimpleMonitor::AtomicSimpleMonitor(AtomicSimpleMonitorParams *p)
         case MONITOR_HB: monitorExt = MONITOR_HB; break;
         case MONITOR_MULTIDIFT: monitorExt = MONITOR_MULTIDIFT; break;
         case MONITOR_LRC: monitorExt = MONITOR_LRC; break;
+        case MONITOR_DIFTRF: monitorExt = MONITOR_DIFTRF; break;
         default: panic("Invalid monitor type\n");
     }
     
@@ -1076,6 +1077,36 @@ AtomicSimpleMonitor::revalidateRegTag(int idx)
     }
 }
 
+
+/*
+ * Set the invalidation for the passed register number.
+ */
+void
+AtomicSimpleMonitor::invalidateRegTag(int idx)
+{
+    // If invalidation is performed on this core
+    if (invtab.initialized) {
+      // Set register number in flag cache
+      setFlagCacheAddr(idx);
+      // Clear register invalidation flag
+      unsigned type = FC_REGFILE;
+      writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type),
+          ArmISA::TLB::AllowUnaligned);
+    // Invalidation is done on another core, send message
+    } else {
+      // create request
+      Request *req = &monitor_req;
+      req->setPhys(DROP_SET_ARRAY, sizeof(idx), ArmISA::TLB::AllowUnaligned, dataMasterId());
+      // create packet
+      PacketPtr p = new Packet(req, MemCmd::WriteReq);
+      p->dataStatic(&idx);
+      // send packet
+      monitorPort.sendFunctional(p);
+      // clean up
+      delete p;
+    }
+}
+
 void
 AtomicSimpleMonitor::revalidateMemTag(Addr addr)
 {
@@ -1232,7 +1263,7 @@ AtomicSimpleMonitor::DIFTExecute()
         if (TheISA::isISAReg(mp.rs1))
             tresult |= (DIFTTag)thread->readIntReg(mp.rs1);
         if (TheISA::isISAReg(mp.rs2))
-            tresult |= (DIFTTag)thread->readIntReg(mp.rs1);
+            tresult |= (DIFTTag)thread->readIntReg(mp.rs2);
         thread->setIntReg((int)mp.rd, (uint64_t)tresult);
         revalidateRegTag((int)mp.rd);
 
@@ -1290,6 +1321,80 @@ AtomicSimpleMonitor::DIFTExecute()
                 mp.instAddr);
             numTaintedIndirectCtrlInsts++;
         }
+        numIndirectCtrlInsts++;
+        numMonitorInsts++;
+    } else {
+        warn("Unknown instruction PC = %x\n", mp.instAddr);
+        numMonitorInsts++;
+    }
+}
+
+/**
+ * DIFT Execution with register taints stored in flag array
+ */
+void
+AtomicSimpleMonitor::DIFTRFExecute()
+{
+    DIFTTag tresult;
+    // ALU instruction
+    if (mp.intalu) {
+        // integer ALU operation - handled by filter
+        panic("ALU instruction reached monitor\n");
+    // Load instruction
+    } else if (mp.load) {
+        DPRINTF(Monitor, "DIFT: Load instruction, addr=0x%x\n", mp.memAddr);
+        // Resulting taint is OR of memory taints
+        tresult = false;
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
+            tresult |= (DIFTTag)readBitTag(pbyte);
+        }
+        // Set taint in flag array
+        if (tresult) {
+          // Invalidate sets the taint
+          invalidateRegTag((int)mp.rd);
+        } else {
+          // Revalidate clears the taint
+          revalidateRegTag((int)mp.rd);
+        }
+        
+        numLoadInsts++;
+        numMonitorInsts++;
+    // Store instruction
+    } else if (mp.store && !mp.settag) {
+        DPRINTF(Monitor, "DIFT: Store instruction, addr=0x%x\n", mp.memAddr);
+        // Get source taint
+        DIFTTag tsrc;
+        setFlagCacheAddr(mp.rs1);
+        readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&tsrc, sizeof(tsrc), ArmISA::TLB::AllowUnaligned);
+
+        // Destination taint is source taint
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
+            writeBitTag(pbyte, tsrc);
+        }
+        // Set all target taints as valid
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+            revalidateMemTag(pbyte);
+        }
+
+        numStoreInsts++;
+        numMonitorInsts++;
+    // Set taint instruction
+    } else if (mp.store && mp.settag) {
+      DPRINTF(Monitor, "DIFT: Set taint mem not implemented for DIFT-RF\n");
+      /*
+        DPRINTF(Monitor, "DIFT: Set taint mem[0x%x:0x%x]=%d\n", mp.memAddr, mp.memEnd, mp.data);
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
+            writeBitTag(pbyte, (bool)mp.data);
+        }
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+            revalidateMemTag(pbyte);
+        }
+        */
+    // Indirect control instruction
+    } else if (mp.indctrl) {
+        // Filter should handle any untainted indirect branches. Thus,
+        // this must be a tainted branch.
+        DPRINTF(Monitor, "DIFT: Fatal: indirect control transfer on tainted register, PC=0x%x\n", mp.instAddr);
         numIndirectCtrlInsts++;
         numMonitorInsts++;
     } else {
@@ -1738,22 +1843,24 @@ AtomicSimpleMonitor::processMonitoringPacket()
     assert(mp.valid);
 
     // execute monitoring operations
-    if (monitorExt == MONITOR_NONE)
+    if (monitorExt == MONITOR_NONE) {
         return;
-    else if (monitorExt == MONITOR_UMC)
+    } else if (monitorExt == MONITOR_UMC) {
         UMCExecute();
-    else if (monitorExt == MONITOR_DIFT)
+    } else if (monitorExt == MONITOR_DIFT) {
         DIFTExecute();
-    else if (monitorExt == MONITOR_MULTIDIFT)
+    } else if (monitorExt == MONITOR_MULTIDIFT) {
         MultiDIFTExecute();
-    else if (monitorExt == MONITOR_BC)
+    } else if (monitorExt == MONITOR_BC) {
         BCExecute();
-    else if (monitorExt == MONITOR_SEC)
+    } else if (monitorExt == MONITOR_SEC) {
         SECExecute();
-    else if (monitorExt == MONITOR_HB)
+    } else if (monitorExt == MONITOR_HB) {
         HBExecute();
-    else if (monitorExt == MONITOR_LRC) {
+    } else if (monitorExt == MONITOR_LRC) {
         LRCExecute();
+    } else if (monitorExt == MONITOR_DIFTRF) {
+        DIFTRFExecute();
     } else
         panic("Unknown monitoring extension specified\n");
 

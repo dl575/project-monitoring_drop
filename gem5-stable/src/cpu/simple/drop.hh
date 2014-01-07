@@ -52,6 +52,8 @@
 #define DROP_CLEAR_ARRAY 0
 #define DROP_CLEAR_CACHE 1
 #define DROP_FC_SET_ADDR 2
+#define DROP_SET_ARRAY   3
+#define DROP_SET_CACHE   4
 
 class DropSimpleCPU : public BaseSimpleCPU
 {
