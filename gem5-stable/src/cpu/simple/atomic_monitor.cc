@@ -1134,6 +1134,35 @@ AtomicSimpleMonitor::revalidateMemTag(Addr addr)
     }
 }
 
+void
+AtomicSimpleMonitor::invalidateMemTag(Addr addr)
+{
+    // If invalidation is performed on this core
+    if (invtab.initialized) {
+      // Set address to revalidate
+      setFlagCacheAddr(addr);
+      // Clear invaliation flag in cache
+      unsigned type = FC_CACHE; 
+      writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type),
+          ArmISA::TLB::AllowUnaligned);
+    // Invalidation is done on another core, send message
+    } else {
+      // create request
+      Request *req = &monitor_req;
+      Addr word_addr = addr >> 2;
+      req->setPhys(DROP_SET_CACHE, sizeof(word_addr), ArmISA::TLB::AllowUnaligned, dataMasterId());
+      // create packet
+      PacketPtr p = new Packet(req, MemCmd::WriteReq);
+      p->dataStatic(&word_addr);
+      // send packet
+      monitorPort.sendFunctional(p);
+      // clean up
+      delete p;
+    }
+}
+
+
+
 // Set current address in flag cache without setting/clearing flags
 void
 AtomicSimpleMonitor::setFlagCacheAddr(Addr addr)
@@ -1330,7 +1359,9 @@ AtomicSimpleMonitor::DIFTExecute()
 }
 
 /**
- * DIFT Execution with register taints stored in flag array
+ * DIFT Execution with register taints stored in flag array. Invalidation flags
+ * are stored in the thread register file in order to collect statistics on
+ * coverage.
  */
 void
 AtomicSimpleMonitor::DIFTRFExecute()
@@ -1356,6 +1387,8 @@ AtomicSimpleMonitor::DIFTRFExecute()
           // Revalidate clears the taint
           revalidateRegTag((int)mp.rd);
         }
+        // Full monitoring of load means resulting tag is valid, clear invalidation
+        thread->setIntReg((int)mp.rd, false);
         
         numLoadInsts++;
         numMonitorInsts++;
@@ -1366,14 +1399,25 @@ AtomicSimpleMonitor::DIFTRFExecute()
         DIFTTag tsrc;
         setFlagCacheAddr(mp.rs1);
         readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&tsrc, sizeof(tsrc), ArmISA::TLB::AllowUnaligned);
+        // Get source invalidation
+        DIFTTag tinv = (DIFTTag)thread->readIntReg(mp.rs1);
 
-        // Destination taint is source taint
-        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
-            writeBitTag(pbyte, tsrc);
-        }
-        // Set all target taints as valid
-        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
-            revalidateMemTag(pbyte);
+        // If source is invalid 
+        if (tinv) {
+          // Set all target taints as invalid
+          for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+              invalidateMemTag(pbyte);
+          }
+        // Source is valid
+        } else {
+          // Destination taint is source taint
+          for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
+              writeBitTag(pbyte, tsrc);
+          }
+          // Set all target taints as valid
+          for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+              revalidateMemTag(pbyte);
+          }
         }
 
         numStoreInsts++;
@@ -1394,7 +1438,7 @@ AtomicSimpleMonitor::DIFTRFExecute()
     } else if (mp.indctrl) {
         // Filter should handle any untainted indirect branches. Thus,
         // this must be a tainted branch.
-        DPRINTF(Monitor, "DIFT: Fatal: indirect control transfer on tainted register, PC=0x%x\n", mp.instAddr);
+        panic("Fatal: indirect control transfer on tainted register, PC=0x%x\n", mp.instAddr);
         numIndirectCtrlInsts++;
         numMonitorInsts++;
     } else {

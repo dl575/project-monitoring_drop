@@ -258,6 +258,7 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     void revalidateRegTag(int idx);
     void invalidateRegTag(int idx);
     void revalidateMemTag(Addr addr);
+    void invalidateMemTag(Addr addr);
     void setFlagCacheAddr(Addr addr);
 
     template <typename T>

@@ -1067,9 +1067,17 @@ BaseSimpleCPU::setFlagCacheAddrFromTable(InvalidationTable <size> & it, unsigned
 }
 
 Fault
-BaseSimpleCPU::performInvalidation(unsigned idx)
+BaseSimpleCPU::performInvalidation(unsigned idx, instType itp)
 {   
     Fault fault = NoFault;
+    // Get target address
+    Addr rd = -1;
+    readFromFlagCache(FC_GET_ADDR, (uint8_t *)&rd, sizeof(rd), ArmISA::TLB::AllowUnaligned);
+    // Get source registers
+    Addr rs1 = -1;
+    Addr rs2 = -1;
+    readFromFifo(FIFO_RS1, (uint8_t *)&rs1, sizeof(rs1), ArmISA::TLB::AllowUnaligned);
+    readFromFifo(FIFO_RS2, (uint8_t *)&rs2, sizeof(rs2), ArmISA::TLB::AllowUnaligned);
     
     if (invtab.action[idx] == "HW_set_cache"){
         DPRINTF(Invalidation, "Setting cache\n");
@@ -1087,6 +1095,84 @@ BaseSimpleCPU::performInvalidation(unsigned idx)
         DPRINTF(Invalidation, "Clearing array\n");
         unsigned type = 0;
         fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+    // These commands will also set/clear the thread register file. This is used for DIFT-RF
+    // to keep invalidaiton flags for coverage statistics.
+    } else if (invtab.action[idx] == "HW_clear_array_set_reg") {
+        // Clear array
+        DPRINTF(Invalidation, "Clearing array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Set invalidation flag in register file
+        thread->setIntReg((int)rd, (uint64_t)true);
+    } else if (invtab.action[idx] == "HW_clear_array_clear_reg") {
+        // Clear array
+        DPRINTF(Invalidation, "Clearing array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Clear invalidation flag in register file
+        thread->setIntReg((int)rd, (uint64_t)false);
+    } else if (invtab.action[idx] == "HW_set_array_set_reg") {
+        // Set array
+        DPRINTF(Invalidation, "Setting array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Set invalidation flag in register file
+        thread->setIntReg((int)rd, (uint64_t)true);
+    } else if (invtab.action[idx] == "HW_set_array_clear_reg") {
+        // Set array
+        DPRINTF(Invalidation, "Setting array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Clear invalidation flag in register file
+        thread->setIntReg((int)rd, (uint64_t)false);
+    } else if (invtab.action[idx] == "HW_set_array_propagate_reg") {
+        // Set array
+        DPRINTF(Invalidation, "Setting array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Propagate invalidation flag in register file
+        bool tinv = false;
+        if (TheISA::isISAReg(rs1) && thread->readIntReg(rs1)) {
+          tinv = true;
+        }
+        if (TheISA::isISAReg(rs2) && thread->readIntReg(rs2)) {
+          tinv = true;
+        }
+        thread->setIntReg((int)rd, (uint64_t)tinv);
+        // Adjust statistics if valid propagation
+        if (!tinv) {
+          filterstats[itp]--;
+          fullstats[itp]++;
+        }
+    } else if (invtab.action[idx] == "HW_clear_array_propagate_reg") {
+        // Clear array
+        DPRINTF(Invalidation, "Clearing array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Propagate invalidation flag in register file
+        bool tinv = false;
+        if (TheISA::isISAReg(rs1) && thread->readIntReg(rs1)) {
+          tinv = true;
+        }
+        if (TheISA::isISAReg(rs2) && thread->readIntReg(rs2)) {
+          tinv = true;
+        }
+        thread->setIntReg((int)rd, (uint64_t)tinv);
+        // Adjust statistics if valid propagation
+        if (!tinv) {
+          filterstats[itp]--;
+          fullstats[itp]++;
+        }
+    } else if (invtab.action[idx] == "HW_nop_check_invalid") {
+      // Invalid check
+      if (TheISA::isISAReg(rs1) && thread->readIntReg(rs1)) {
+        // Do nothing, filtered out
+      // Valid check
+      } else {
+        // Filter handles it, but should count as non-drop in statistics
+        filterstats[itp]--;
+        fullstats[itp]++;
+      }
     } else {
         DPRINTF(Invalidation, "No invalidation operation performed\n");
     }
@@ -1236,7 +1322,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                         return NoFault;
                     } else {
                         setFlagCacheAddrFromTable(invtab, itidx);
-                        result = performInvalidation(itidx);
+                        result = performInvalidation(itidx, itp);
                         DPRINTF(Invalidation, "Filtered in HW.\n");
                         return (result != NoFault)? result : ReExecFault; // Stay in HW
                     }
@@ -1354,7 +1440,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             // Check if LUT says to go back to software
             if (invtab.action[itp].size() && (invtab.action[itp] != "SW")){
                 setFlagCacheAddrFromTable(invtab, itp);
-                Fault result = performInvalidation(itp);
+                Fault result = performInvalidation(itp, itp);
                 DPRINTF(Invalidation, "Staying in HW.\n");
                 return (result != NoFault)? result : ReExecFault; // Stay in HW
             }

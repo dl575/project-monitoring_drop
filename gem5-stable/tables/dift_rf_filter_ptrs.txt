@@ -1,5 +1,5 @@
 //opcode    00  01  10  11
 
-  LOAD       0   0   1   1
+  LOAD       0   0   4   4
   INDCTRL    2   2   0   0
   INTALU     1   3   3   3

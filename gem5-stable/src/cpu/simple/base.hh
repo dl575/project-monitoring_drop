@@ -534,7 +534,7 @@ class BaseSimpleCPU : public BaseCPU
     template <unsigned size>
     Fault setFlagCacheAddrFromTable(InvalidationTable <size> & it, unsigned idx);
     // Perform invalidation in the flag cache
-    Fault performInvalidation(unsigned idx);
+    Fault performInvalidation(unsigned idx, instType itp);
     // emulate filtering but don't perform
     bool emulate_filtering;
 
