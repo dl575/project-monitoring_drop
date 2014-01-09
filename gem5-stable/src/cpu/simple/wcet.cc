@@ -82,7 +82,7 @@ WCETSimpleCPU::TickEvent::description() const
 void
 WCETSimpleCPU::init()
 {
-    BaseCPU::init();
+    BaseSimpleCPU::init();
 
     // Initialise the ThreadContext's memory proxies
     tcBase()->initMemProxies(tcBase());

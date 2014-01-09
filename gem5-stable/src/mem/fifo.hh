@@ -154,6 +154,34 @@ class monitoringPacket {
       opcode = 0;
       settag = false;
     }
+
+    // Print out full monitoring packet information
+    void print() {
+      printf("valid = %d\n", valid);
+      printf("instAddr = 0x%x\n", (int)instAddr);
+      printf("memAddr = 0x%x\n", (int)memAddr);
+      printf("memEnd = 0x%x\n", (int)memEnd);
+      printf("virtAddr = 0x%x\n", (int)virtAddr);
+      printf("physAddr = 0x%x\n", (int)physAddr);
+      printf("size = %d\n", (int)size);
+      printf("data = %d\n", (int)data);
+      printf("store = %d\n", store);
+      printf("load = %d\n", load);
+      printf("done = %d\n", done);
+      printf("rs1 = %d\n", rs1);
+      printf("rs2 = %d\n", rs2);
+      printf("rs3 = %d\n", rs3);
+      printf("rd = %d\n", rd);
+      printf("control = %d\n", control);
+      printf("call = %d\n", call);
+      printf("ret = %d\n", ret);
+      printf("intalu = %d\n", intalu);
+      printf("indctrl = %d\n", indctrl);
+      printf("lr = 0x%x\n", (int)lr);
+      printf("nextpc = 0x%x\n", (int)nextpc);
+      printf("opcode = %d\n", opcode);
+      printf("settag = %d\n", settag);
+    }
 };
 
 /**

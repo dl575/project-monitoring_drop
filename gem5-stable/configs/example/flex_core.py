@@ -82,6 +82,9 @@ parser.add_option("--overhead", type="float", default=0.0)
 parser.add_option("--emulate_filtering", action="store_true")
 # Invalidation cache size
 parser.add_option("--invalidation_cache_size", type="string", default="2kB")
+# Headstart (initial) slack
+parser.add_option("--headstart_slack", type="int", default=2000000)
+
 # backtracking
 parser.add_option("--backtrack", action="store_true")
 # instruction priority table size
@@ -100,12 +103,12 @@ parser.add_option("--important_policy", type="string", default="always")
 parser.add_option("--important_slack", type="int", default=2000000)
 # Additional slack for important instructions as percent of total cycles
 parser.add_option("--important_percent", type="float", default=0.0)
-# Headstart (initial) slack
-parser.add_option("--headstart_slack", type="int", default=2000000)
+
 # Number of instructions to fast-forward
 # During fast-forwarding, full monitoring is performed. Invalidation is enabled
 # after fast-forward period.
 parser.add_option("--fastforward_insts", type="int", default=0)
+
 # Enable coverage
 parser.add_option("--control_coverage", action="store_true")
 # Set desired coverage
@@ -115,6 +118,9 @@ parser.add_option("--coverage_adjust", type="int", default=0)
 # Enable probabilistic drop
 parser.add_option("--probabilistic_drop", action="store_true")
 
+# Configuration for WCET bound mode
+parser.add_option("--wcet", action="store_true")
+
 available_monitors = {
   "none" : 0,
   "umc"  : 1,
@@ -122,7 +128,8 @@ available_monitors = {
   "bc"   : 3,
   "sec"  : 4,
   "hb"   : 5,
-  "multidift" : 6
+  "multidift" : 6,
+  "lrc"  : 7
 }
 
 important_policy = {
@@ -148,13 +155,14 @@ numThreads = 1
 MainCPUClass.clock = options.clock
 MainCPUClass.numThreads = numThreads;
 MainCPUClass.fifo_enabled = True
+# Monitoring will be enabled by software after startup
 MainCPUClass.monitoring_enabled = False
 # Enable slack timer so it can write to it
 MainCPUClass.timer_enabled = True
 # Don't need flag cache for main core
 MainCPUClass.flagcache_enabled = False
-# Not hard real-time
-MainCPUClass.hard_wcet = False
+# Hard real-time
+MainCPUClass.hard_wcet = options.wcet
 if (options.simulatestalls and options.cpu_type == 'atomic'):
     # Simulate cache stalls in atomic
     MainCPUClass.simulate_inst_stalls = True
@@ -295,6 +303,17 @@ elif options.monitor == "hb":
   DropCPUClass.check_load = True
   DropCPUClass.check_store = True
   DropCPUClass.check_indctrl = False
+elif options.monitor == "lrc":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_call = True
+  MainCPUClass.monitoring_filter_ret = True
+  if options.invalidation:
+    # Load the invalidation file
+    DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/lrc_invalidation.txt"
+    DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/lrc_filter.txt"
+    DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/lrc_filter_ptrs.txt"
+  # Set coverage check flags
+  #DropCPUClass.check_ret = True
 elif options.monitor == "none":
   # Set up monitoring filter
   pass

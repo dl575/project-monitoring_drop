@@ -755,7 +755,6 @@ BaseSimpleCPU::performMonitoring() {
         bool isMicroOp = inst_dis.find("uop") != string::npos;
         bool isLoad = curStaticInst->isLoad();
         bool isStore = curStaticInst->isStore();
-
         if (isLoad && !isMicroOp && numSrc == 5) {
             mp.rs1 = curStaticInst->srcRegIdx(0);
             mp.rs2 = 33;
@@ -785,7 +784,9 @@ BaseSimpleCPU::performMonitoring() {
         mp.control = curStaticInst->isControl(); // control inst
         mp.call    = curStaticInst->isCall() && mf.call;    // call inst
         mp.ret     = curStaticInst->isReturn() && mf.ret;  // return inst
-        mp.intalu  = (curStaticInst->opClass() == IntAluOp && !curStaticInst->isIndirectCtrl()) && (mf.intalu || mf.intand || mf.intadd || mf.intsub || mf.intmul); // integer ALU inst
+        mp.intalu  = ((curStaticInst->opClass() == IntAluOp ||
+              curStaticInst->opClass() == IntMultOp ||
+              curStaticInst->opClass() == IntDivOp)&& !curStaticInst->isIndirectCtrl()) && (mf.intalu || mf.intand || mf.intadd || mf.intsub || mf.intmul); // integer ALU inst
         mp.indctrl = curStaticInst->isIndirectCtrl() && mf.indctrl; // indirect control
         mp.lr      = tc->readIntReg(14); // Link register
         mp.nextpc  = tc->nextInstAddr(); // Next program counter
@@ -1058,7 +1059,7 @@ BaseSimpleCPU::getInvalidationAddr(InvalidationTable <size> & it, unsigned idx)
 }
 
 template <unsigned size> Fault
-BaseSimpleCPU::setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx)
+BaseSimpleCPU::setFlagCacheAddrFromTable(InvalidationTable <size> & it, unsigned idx)
 {
     Addr fc_addr = getInvalidationAddr(it, idx);
     // Update address in flag cache
@@ -1066,9 +1067,17 @@ BaseSimpleCPU::setFlagCacheAddr(InvalidationTable <size> & it, unsigned idx)
 }
 
 Fault
-BaseSimpleCPU::performInvalidation(unsigned idx)
+BaseSimpleCPU::performInvalidation(unsigned idx, instType itp)
 {   
     Fault fault = NoFault;
+    // Get target address
+    Addr rd = -1;
+    readFromFlagCache(FC_GET_ADDR, (uint8_t *)&rd, sizeof(rd), ArmISA::TLB::AllowUnaligned);
+    // Get source registers
+    Addr rs1 = -1;
+    Addr rs2 = -1;
+    readFromFifo(FIFO_RS1, (uint8_t *)&rs1, sizeof(rs1), ArmISA::TLB::AllowUnaligned);
+    readFromFifo(FIFO_RS2, (uint8_t *)&rs2, sizeof(rs2), ArmISA::TLB::AllowUnaligned);
     
     if (invtab.action[idx] == "HW_set_cache"){
         DPRINTF(Invalidation, "Setting cache\n");
@@ -1086,6 +1095,84 @@ BaseSimpleCPU::performInvalidation(unsigned idx)
         DPRINTF(Invalidation, "Clearing array\n");
         unsigned type = 0;
         fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+    // These commands will also set/clear the thread register file. This is used for DIFT-RF
+    // to keep invalidaiton flags for coverage statistics.
+    } else if (invtab.action[idx] == "HW_clear_array_set_reg") {
+        // Clear array
+        DPRINTF(Invalidation, "Clearing array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Set invalidation flag in register file
+        thread->setIntReg((int)rd, (uint64_t)true);
+    } else if (invtab.action[idx] == "HW_clear_array_clear_reg") {
+        // Clear array
+        DPRINTF(Invalidation, "Clearing array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Clear invalidation flag in register file
+        thread->setIntReg((int)rd, (uint64_t)false);
+    } else if (invtab.action[idx] == "HW_set_array_set_reg") {
+        // Set array
+        DPRINTF(Invalidation, "Setting array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Set invalidation flag in register file
+        thread->setIntReg((int)rd, (uint64_t)true);
+    } else if (invtab.action[idx] == "HW_set_array_clear_reg") {
+        // Set array
+        DPRINTF(Invalidation, "Setting array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Clear invalidation flag in register file
+        thread->setIntReg((int)rd, (uint64_t)false);
+    } else if (invtab.action[idx] == "HW_set_array_propagate_reg") {
+        // Set array
+        DPRINTF(Invalidation, "Setting array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Propagate invalidation flag in register file
+        bool tinv = false;
+        if (TheISA::isISAReg(rs1) && thread->readIntReg(rs1)) {
+          tinv = true;
+        }
+        if (TheISA::isISAReg(rs2) && thread->readIntReg(rs2)) {
+          tinv = true;
+        }
+        thread->setIntReg((int)rd, (uint64_t)tinv);
+        // Adjust statistics if valid propagation
+        if (!tinv) {
+          filterstats[itp]--;
+          fullstats[itp]++;
+        }
+    } else if (invtab.action[idx] == "HW_clear_array_propagate_reg") {
+        // Clear array
+        DPRINTF(Invalidation, "Clearing array\n");
+        unsigned type = 0;
+        fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+        // Propagate invalidation flag in register file
+        bool tinv = false;
+        if (TheISA::isISAReg(rs1) && thread->readIntReg(rs1)) {
+          tinv = true;
+        }
+        if (TheISA::isISAReg(rs2) && thread->readIntReg(rs2)) {
+          tinv = true;
+        }
+        thread->setIntReg((int)rd, (uint64_t)tinv);
+        // Adjust statistics if valid propagation
+        if (!tinv) {
+          filterstats[itp]--;
+          fullstats[itp]++;
+        }
+    } else if (invtab.action[idx] == "HW_nop_check_invalid") {
+      // Invalid check
+      if (TheISA::isISAReg(rs1) && thread->readIntReg(rs1)) {
+        // Do nothing, filtered out
+      // Valid check
+      } else {
+        // Filter handles it, but should count as non-drop in statistics
+        filterstats[itp]--;
+        fullstats[itp]++;
+      }
     } else {
         DPRINTF(Invalidation, "No invalidation operation performed\n");
     }
@@ -1120,7 +1207,6 @@ Fault
 BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags)
 {
-    
     bool skip_drop = false;
     instType itp = inst_undef;
     bool entry_filtered = false;
@@ -1138,7 +1224,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         bool pop = true;
         Fault result = writeToFifo(FIFO_NEXT, (uint8_t *)&pop, sizeof(pop), ArmISA::TLB::AllowUnaligned);
         if (result != NoFault) { return result; }
-                
+               
         // Read instruction type from fifo
         itp = readFifoInstType();
         
@@ -1190,7 +1276,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             if (filtertab1.initialized){
                 bool flag = false;
                 if (filtertab1.action[itp].size()){
-                    setFlagCacheAddr(filtertab1, itp);
+                    setFlagCacheAddrFromTable(filtertab1, itp);
                     if (filtertab1.action[itp] == "cache"){
                         result = readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
                     } else if (filtertab1.action[itp] == "array"){
@@ -1206,7 +1292,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             if (filtertab2.initialized){
                 bool flag = false;
                 if (filtertab2.action[itp].size()){
-                    setFlagCacheAddr(filtertab2, itp);
+                    setFlagCacheAddrFromTable(filtertab2, itp);
                     if (filtertab2.action[itp] == "cache"){
                         result = readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
                     } else if (filtertab2.action[itp] == "array"){
@@ -1235,8 +1321,8 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                         memcpy(data, &return_code, size);
                         return NoFault;
                     } else {
-                        setFlagCacheAddr(invtab, itidx);
-                        result = performInvalidation(itidx);
+                        setFlagCacheAddrFromTable(invtab, itidx);
+                        result = performInvalidation(itidx, itp);
                         DPRINTF(Invalidation, "Filtered in HW.\n");
                         return (result != NoFault)? result : ReExecFault; // Stay in HW
                     }
@@ -1334,7 +1420,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                       // If past last bit vector
                       if (total_checks / 64 > checkid_base) {
                         // Print out last vector
-                        printf("%d,%lx\n", checkid_base, checkid_vec);
+                        printf("%d,%llx\n", checkid_base, checkid_vec);
                         // Update base
                         checkid_base = total_checks / 64;
                         // Reset bit vector
@@ -1353,8 +1439,8 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             DPRINTF(Invalidation, "Starting hardware invalidation.\n");
             // Check if LUT says to go back to software
             if (invtab.action[itp].size() && (invtab.action[itp] != "SW")){
-                setFlagCacheAddr(invtab, itp);
-                Fault result = performInvalidation(itp);
+                setFlagCacheAddrFromTable(invtab, itp);
+                Fault result = performInvalidation(itp, itp);
                 DPRINTF(Invalidation, "Staying in HW.\n");
                 return (result != NoFault)? result : ReExecFault; // Stay in HW
             }
@@ -1445,9 +1531,9 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
     mp.size = fed.data;
     mp.memEnd = mp.memAddr + mp.size - 1;
   } else if (addr == FIFO_NEXT){
-    
+
     bool wasEmpty = fifoEmpty;
-    
+
     // Pop fifo, since there is an entry
     if (!wasEmpty) {
         Request* req = &data_write_req;
@@ -1468,7 +1554,6 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
         delete pkt;
     }
     
-    
     fifoEmpty = isFifoEmpty();
 
 #ifdef DEBUG
@@ -1479,7 +1564,9 @@ BaseSimpleCPU::writeToFifo(Addr addr, uint8_t * data,
 #endif
 
     // Wait until fifo is no longer empty
-    if (fifoEmpty) { return ReExecFault; }
+    if (fifoEmpty) {
+      return ReExecFault; 
+    }
     
     /* Check if next FIFO packet has the done flag and
      * exit.

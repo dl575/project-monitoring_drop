@@ -73,6 +73,9 @@ extern "C" {
 #define FC_SET_ADDR            (FLAG_CACHE_ADDR + 0x00)
 #define FC_SET_FLAG            (FLAG_CACHE_ADDR + 0x04)
 #define FC_CLEAR_FLAG          (FLAG_CACHE_ADDR + 0x08)
+// type for specifying write to cache or register file
+#define FC_REGFILE 0
+#define FC_CACHE 1
 
 /**
  * The simple memory is a basic multi-ported memory with an infinite

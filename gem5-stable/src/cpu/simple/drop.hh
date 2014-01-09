@@ -51,6 +51,9 @@
 
 #define DROP_CLEAR_ARRAY 0
 #define DROP_CLEAR_CACHE 1
+#define DROP_FC_SET_ADDR 2
+#define DROP_SET_ARRAY   3
+#define DROP_SET_CACHE   4
 
 class DropSimpleCPU : public BaseSimpleCPU
 {
@@ -77,6 +80,10 @@ class DropSimpleCPU : public BaseSimpleCPU
       MONITOR_SEC,
       // hard bound
       MONITOR_HB,
+      // Multi-bit DIFT
+      MONITOR_MULTIDIFT,
+      // link-register (return address) check
+      MONITOR_LRC,
       // number of monitoring extensions
       NUM_MONITORING_EXTENSIONS
     };

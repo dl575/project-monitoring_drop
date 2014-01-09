@@ -89,7 +89,7 @@ AtomicSimpleMonitor::TickEvent::description() const
 void
 AtomicSimpleMonitor::init()
 {
-    BaseCPU::init();
+    BaseSimpleCPU::init();
 
     // Initialise the ThreadContext's memory proxies
     tcBase()->initMemProxies(tcBase());
@@ -140,6 +140,8 @@ AtomicSimpleMonitor::AtomicSimpleMonitor(AtomicSimpleMonitorParams *p)
         case MONITOR_SEC: monitorExt = MONITOR_SEC; break;
         case MONITOR_HB: monitorExt = MONITOR_HB; break;
         case MONITOR_MULTIDIFT: monitorExt = MONITOR_MULTIDIFT; break;
+        case MONITOR_LRC: monitorExt = MONITOR_LRC; break;
+        case MONITOR_DIFTRF: monitorExt = MONITOR_DIFTRF; break;
         default: panic("Invalid monitor type\n");
     }
     
@@ -300,6 +302,14 @@ AtomicSimpleMonitor::regStats()
         .name(name() + ".numIndirectCtrlInsts")
         .desc("Number of indirect control instructions processed by monitor")
         ;
+    numCallInsts
+        .name(name() + ".numCallInsts")
+        .desc("Number of call instructions processed by monitor")
+        ;
+    numReturnInsts
+        .name(name() + ".numReturnInsts")
+        .desc("Number of return instructions processed by monitor")
+        ;
     numTaintedInsts
         .name(name() + ".numTaintedInsts")
         .desc("Number of tainted instructions")
@@ -349,6 +359,8 @@ AtomicSimpleMonitor::resetStats()
     numLoadInsts = 0;
     numStoreInsts = 0;
     numIndirectCtrlInsts = 0;
+    numCallInsts = 0;
+    numReturnInsts = 0;
     numTaintedIntegerInsts = 0;
     numTaintedLoadInsts = 0;
     numTaintedStoreInsts = 0;
@@ -1042,25 +1054,130 @@ AtomicSimpleMonitor::setTagProxy(Addr addr, int nbytes, uint8_t tag)
 void
 AtomicSimpleMonitor::revalidateRegTag(int idx)
 {
-    // create request
-    Request *req = &monitor_req;
-    req->setPhys(DROP_CLEAR_ARRAY, sizeof(idx), ArmISA::TLB::AllowUnaligned, dataMasterId());
-    // create packet
-    PacketPtr p = new Packet(req, MemCmd::WriteReq);
-    p->dataStatic(&idx);
-    // send packet
-    monitorPort.sendFunctional(p);
-    // clean up
-    delete p;
+    // If invalidation is performed on this core
+    if (invtab.initialized) {
+      // Set register number in flag cache
+      setFlagCacheAddr(idx);
+      // Clear register invalidation flag
+      unsigned type = FC_REGFILE;
+      writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type),
+          ArmISA::TLB::AllowUnaligned);
+    // Invalidation is done on another core, send message
+    } else {
+      // create request
+      Request *req = &monitor_req;
+      req->setPhys(DROP_CLEAR_ARRAY, sizeof(idx), ArmISA::TLB::AllowUnaligned, dataMasterId());
+      // create packet
+      PacketPtr p = new Packet(req, MemCmd::WriteReq);
+      p->dataStatic(&idx);
+      // send packet
+      monitorPort.sendFunctional(p);
+      // clean up
+      delete p;
+    }
+}
+
+
+/*
+ * Set the invalidation for the passed register number.
+ */
+void
+AtomicSimpleMonitor::invalidateRegTag(int idx)
+{
+    // If invalidation is performed on this core
+    if (invtab.initialized) {
+      // Set register number in flag cache
+      setFlagCacheAddr(idx);
+      // Clear register invalidation flag
+      unsigned type = FC_REGFILE;
+      writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type),
+          ArmISA::TLB::AllowUnaligned);
+    // Invalidation is done on another core, send message
+    } else {
+      // create request
+      Request *req = &monitor_req;
+      req->setPhys(DROP_SET_ARRAY, sizeof(idx), ArmISA::TLB::AllowUnaligned, dataMasterId());
+      // create packet
+      PacketPtr p = new Packet(req, MemCmd::WriteReq);
+      p->dataStatic(&idx);
+      // send packet
+      monitorPort.sendFunctional(p);
+      // clean up
+      delete p;
+    }
 }
 
 void
 AtomicSimpleMonitor::revalidateMemTag(Addr addr)
 {
+    // If invalidation is performed on this core
+    if (invtab.initialized) {
+      // Set address to revalidate
+      setFlagCacheAddr(addr);
+      // Clear invaliation flag in cache
+      unsigned type = FC_CACHE; 
+      writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type),
+          ArmISA::TLB::AllowUnaligned);
+    // Invalidation is done on another core, send message
+    } else {
+      // create request
+      Request *req = &monitor_req;
+      Addr word_addr = addr >> 2;
+      req->setPhys(DROP_CLEAR_CACHE, sizeof(word_addr), ArmISA::TLB::AllowUnaligned, dataMasterId());
+      // create packet
+      PacketPtr p = new Packet(req, MemCmd::WriteReq);
+      p->dataStatic(&word_addr);
+      // send packet
+      monitorPort.sendFunctional(p);
+      // clean up
+      delete p;
+    }
+}
+
+void
+AtomicSimpleMonitor::invalidateMemTag(Addr addr)
+{
+    // If invalidation is performed on this core
+    if (invtab.initialized) {
+      // Set address to revalidate
+      setFlagCacheAddr(addr);
+      // Clear invaliation flag in cache
+      unsigned type = FC_CACHE; 
+      writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type),
+          ArmISA::TLB::AllowUnaligned);
+    // Invalidation is done on another core, send message
+    } else {
+      // create request
+      Request *req = &monitor_req;
+      Addr word_addr = addr >> 2;
+      req->setPhys(DROP_SET_CACHE, sizeof(word_addr), ArmISA::TLB::AllowUnaligned, dataMasterId());
+      // create packet
+      PacketPtr p = new Packet(req, MemCmd::WriteReq);
+      p->dataStatic(&word_addr);
+      // send packet
+      monitorPort.sendFunctional(p);
+      // clean up
+      delete p;
+    }
+}
+
+
+
+// Set current address in flag cache without setting/clearing flags
+void
+AtomicSimpleMonitor::setFlagCacheAddr(Addr addr)
+{
+  Addr word_addr = addr >> 2;
+
+  // If invalidation is performed on this core
+  if (invtab.initialized) {
+    writeToFlagCache(FC_SET_ADDR, (uint8_t *)&word_addr, sizeof(word_addr),
+        ArmISA::TLB::AllowUnaligned);
+  // Invalidation is done to another core, send message
+  } else {
     // create request
     Request *req = &monitor_req;
-    Addr word_addr = addr >> 2;
-    req->setPhys(DROP_CLEAR_CACHE, sizeof(word_addr), ArmISA::TLB::AllowUnaligned, dataMasterId());
+    req->setPhys(DROP_FC_SET_ADDR, sizeof(word_addr), ArmISA::TLB::AllowUnaligned, dataMasterId());
     // create packet
     PacketPtr p = new Packet(req, MemCmd::WriteReq);
     p->dataStatic(&word_addr);
@@ -1068,6 +1185,7 @@ AtomicSimpleMonitor::revalidateMemTag(Addr addr)
     monitorPort.sendFunctional(p);
     // clean up
     delete p;
+  }
 }
 
 /*
@@ -1079,9 +1197,27 @@ AtomicSimpleMonitor::preExecute()
 {
     // maintain r0=0 semantic
     thread->setIntReg(ZeroReg, 0);
-    // pop FIFO entry
-    uint32_t data = 1;
-    Fault fault = writeToFifo(FIFO_NEXT, (uint8_t*)&data, sizeof(uint32_t), ArmISA::TLB::AllowUnaligned);
+
+    // If finished processing last packet, then reset local stored packet
+    if (mp.valid) {
+      mp.init();
+    }
+
+    bool drop = false;
+    Fault fault = ReExecFault;
+    // Invalidation enabled
+    //if (timer_enabled && invtab.initialized) {
+    if (invtab.initialized) {
+      // Check whether to drop
+      fault = readFromTimer(TIMER_READ_DROP, (uint8_t *)&drop, sizeof(drop),
+          ArmISA::TLB::AllowUnaligned);
+    // Not invalidating, just advance FIFO
+    } else {
+      // pop FIFO entry
+      uint32_t data = 1;
+      fault = writeToFifo(FIFO_NEXT, (uint8_t*)&data, sizeof(uint32_t), ArmISA::TLB::AllowUnaligned);
+    }
+
     // read a packet from FIFO
     if (fault == NoFault) {
         readFromFifo(FIFO_PACKET, (uint8_t *)&mp, sizeof(mp), ArmISA::TLB::AllowUnaligned);
@@ -1135,7 +1271,7 @@ AtomicSimpleMonitor::UMCExecute()
             revalidateMemTag(pbyte);
         }
     } else {
-        DPRINTF(Monitor, "Unknown instruction\n");
+        warn("Unknown instruction PC = %x\n", mp.instAddr);
         numMonitorInsts++;
     }
 }
@@ -1156,7 +1292,7 @@ AtomicSimpleMonitor::DIFTExecute()
         if (TheISA::isISAReg(mp.rs1))
             tresult |= (DIFTTag)thread->readIntReg(mp.rs1);
         if (TheISA::isISAReg(mp.rs2))
-            tresult |= (DIFTTag)thread->readIntReg(mp.rs1);
+            tresult |= (DIFTTag)thread->readIntReg(mp.rs2);
         thread->setIntReg((int)mp.rd, (uint64_t)tresult);
         revalidateRegTag((int)mp.rd);
 
@@ -1217,7 +1353,96 @@ AtomicSimpleMonitor::DIFTExecute()
         numIndirectCtrlInsts++;
         numMonitorInsts++;
     } else {
-        DPRINTF(Monitor, "Unknown instruction\n");
+        warn("Unknown instruction PC = %x\n", mp.instAddr);
+        numMonitorInsts++;
+    }
+}
+
+/**
+ * DIFT Execution with register taints stored in flag array. Invalidation flags
+ * are stored in the thread register file in order to collect statistics on
+ * coverage.
+ */
+void
+AtomicSimpleMonitor::DIFTRFExecute()
+{
+    DIFTTag tresult;
+    // ALU instruction
+    if (mp.intalu) {
+        // integer ALU operation - handled by filter
+        panic("ALU instruction reached monitor\n");
+    // Load instruction
+    } else if (mp.load) {
+        DPRINTF(Monitor, "DIFT: Load instruction, addr=0x%x\n", mp.memAddr);
+        // Resulting taint is OR of memory taints
+        tresult = false;
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
+            tresult |= (DIFTTag)readBitTag(pbyte);
+        }
+        // Set taint in flag array
+        if (tresult) {
+          // Invalidate sets the taint
+          invalidateRegTag((int)mp.rd);
+        } else {
+          // Revalidate clears the taint
+          revalidateRegTag((int)mp.rd);
+        }
+        // Full monitoring of load means resulting tag is valid, clear invalidation
+        thread->setIntReg((int)mp.rd, false);
+        
+        numLoadInsts++;
+        numMonitorInsts++;
+    // Store instruction
+    } else if (mp.store && !mp.settag) {
+        DPRINTF(Monitor, "DIFT: Store instruction, addr=0x%x\n", mp.memAddr);
+        // Get source taint
+        DIFTTag tsrc;
+        setFlagCacheAddr(mp.rs1);
+        readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&tsrc, sizeof(tsrc), ArmISA::TLB::AllowUnaligned);
+        // Get source invalidation
+        DIFTTag tinv = (DIFTTag)thread->readIntReg(mp.rs1);
+
+        // If source is invalid 
+        if (tinv) {
+          // Set all target taints as invalid
+          for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+              invalidateMemTag(pbyte);
+          }
+        // Source is valid
+        } else {
+          // Destination taint is source taint
+          for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
+              writeBitTag(pbyte, tsrc);
+          }
+          // Set all target taints as valid
+          for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+              revalidateMemTag(pbyte);
+          }
+        }
+
+        numStoreInsts++;
+        numMonitorInsts++;
+    // Set taint instruction
+    } else if (mp.store && mp.settag) {
+      DPRINTF(Monitor, "DIFT: Set taint mem not implemented for DIFT-RF\n");
+      /*
+        DPRINTF(Monitor, "DIFT: Set taint mem[0x%x:0x%x]=%d\n", mp.memAddr, mp.memEnd, mp.data);
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
+            writeBitTag(pbyte, (bool)mp.data);
+        }
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+            revalidateMemTag(pbyte);
+        }
+        */
+    // Indirect control instruction
+    } else if (mp.indctrl) {
+        // Filter should handle any untainted indirect branches. Thus,
+        // this must be a tainted branch.
+        panic("Fatal: indirect control transfer on tainted register, PC=0x%x\n", mp.instAddr);
+        numIndirectCtrlInsts++;
+        numMonitorInsts++;
+    } else {
+        warn("Unknown instruction PC = %x\n", mp.instAddr);
         numMonitorInsts++;
     }
 }
@@ -1299,7 +1524,7 @@ AtomicSimpleMonitor::MultiDIFTExecute()
         numIndirectCtrlInsts++;
         numMonitorInsts++;
     } else {
-        DPRINTF(Monitor, "Unknown instruction\n");
+        warn("Unknown instruction PC = %x\n", mp.instAddr);
         numMonitorInsts++;
     }
 }
@@ -1417,7 +1642,7 @@ AtomicSimpleMonitor::BCExecute()
             revalidateMemTag(pbyte);
         }
     } else {
-        DPRINTF(Monitor, "Unknown instruction\n");
+        warn("Unknown instruction PC = %x\n", mp.instAddr);
         numMonitorInsts++;
     }
 }
@@ -1551,10 +1776,59 @@ AtomicSimpleMonitor::HBExecute()
             revalidateMemTag(mp.memAddr);
         }
     } else {
-        DPRINTF(Monitor, "Unknown instruction\n");
+        warn("Unknown instruction PC = %x\n", mp.instAddr);
         numMonitorInsts++;
     }
 }
+
+/**
+ * Link-Register Check (Return Address Check)
+ */
+void
+AtomicSimpleMonitor::LRCExecute()
+{
+  static int lr_ptr = 0;
+
+  // Monitoring stats
+  numMonitorInsts++;
+
+  // On call,
+  if (mp.call) {
+    // Save link register address
+    writeWordTag(lr_ptr << 2, mp.lr);
+    DPRINTF(Monitor, "LRC: push lr[%d]: %x\n", lr_ptr, mp.lr);
+    // Update LR stack pointer
+    lr_ptr++;
+    // Clear invalidation flag (also updates address in dropping hardware)
+    revalidateMemTag(lr_ptr << 2);
+
+    // Monitoring stats
+    numCallInsts++;
+  // On return,
+  } else if (mp.ret) {
+    // Read saved link register address
+    int savedpc = readWordTag((lr_ptr - 1) << 2) - 1;
+    // Next PC the program is going to
+    int nextpc = (int)mp.nextpc;
+    // If next PC and saved LR don't match, raise error
+    if (savedpc != nextpc) {
+      DPRINTF(Monitor, "LRC: ERROR lr (%x) != nextpc (%x)\n", savedpc, nextpc);
+    } else {
+      DPRINTF(Monitor, "LRC: popped lr (%x) == nextpc (%x)\n", savedpc, nextpc);
+    }
+    // Update LR stack pointer
+    lr_ptr--;
+    // Update LR stack pointer in dropping hardware
+    setFlagCacheAddr(lr_ptr << 2);
+
+    // Monitoring stats
+    numReturnInsts++;
+  } else {
+    warn("Unknown instruction PC = %x\n", mp.instAddr);
+  }
+}
+
+
 
 /**
  * Compact tag memory
@@ -1613,20 +1887,26 @@ AtomicSimpleMonitor::processMonitoringPacket()
     assert(mp.valid);
 
     // execute monitoring operations
-    if (monitorExt == MONITOR_NONE)
+    if (monitorExt == MONITOR_NONE) {
         return;
-    else if (monitorExt == MONITOR_UMC)
+    } else if (monitorExt == MONITOR_UMC) {
         UMCExecute();
-    else if (monitorExt == MONITOR_DIFT)
+    } else if (monitorExt == MONITOR_DIFT) {
         DIFTExecute();
-    else if (monitorExt == MONITOR_MULTIDIFT)
+    } else if (monitorExt == MONITOR_MULTIDIFT) {
         MultiDIFTExecute();
-    else if (monitorExt == MONITOR_BC)
+    } else if (monitorExt == MONITOR_BC) {
         BCExecute();
-    else if (monitorExt == MONITOR_SEC)
+    } else if (monitorExt == MONITOR_SEC) {
         SECExecute();
-    else if (monitorExt == MONITOR_HB)
+    } else if (monitorExt == MONITOR_HB) {
         HBExecute();
+    } else if (monitorExt == MONITOR_LRC) {
+        LRCExecute();
+    } else if (monitorExt == MONITOR_DIFTRF) {
+        DIFTRFExecute();
+    } else
+        panic("Unknown monitoring extension specified\n");
 
     // clear monitoring packet after processing
     mp.init();
@@ -1640,6 +1920,7 @@ AtomicSimpleMonitor::tick()
 
     Tick latency = 0;
     Tick stall_ticks = 0;
+
     if (!initialized) {
         // initialize monitor on first cycle
         thread->clearArchRegs();
@@ -1652,7 +1933,6 @@ AtomicSimpleMonitor::tick()
             // model latency of reading a packet
             // stall_ticks += ticks(1);
             // packet is valid, continue processing
-            DPRINTF(Monitor, "Read a packet from main core\n");
             if (!mp.done) {
                 processMonitoringPacket();
             } else {

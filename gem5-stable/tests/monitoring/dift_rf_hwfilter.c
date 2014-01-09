@@ -1,9 +1,11 @@
 #ifdef DIFT_HWFILTER
 /*
- * dift_hwdrop.c
+ * dift_rf_hwfilter.c
  *
  * Dynamic information flow tracking on monitoring core.
- *
+ * This version assumes that the dropping hardware is used and performs
+ * filtering in addition to invalidation. Also, the MISP/Flag array stores
+ * actual DIFT taints rather than invalidation flags.
  */
 
 #include <stdio.h>
@@ -29,7 +31,7 @@
 
 char tagmem[METADATA_ADDRESSES];
 // Flag cache used for register file tags
-bool tagrf[NUM_REGS];
+//bool tagrf[NUM_REGS];
 
 int main(int argc, char *argv[]) {
   register unsigned int temp;
@@ -55,10 +57,11 @@ int main(int argc, char *argv[]) {
         if (READ_FIFO_STORE) {
             // bool settag = READ_FIFO_SETTAG;
             // register bool settag = false; // FIXME: Allow setting tag from software
-            // Get tag
             // Get source register
             rs = READ_FIFO_RS1;
-            register bool tag = tagrf[rs];
+            // Get tag
+            FC_SET_ADDR(rs);
+            register bool tag = FC_ARRAY_GET;
             // Propagate to destination memory addresses
             register unsigned int memend = (READ_FIFO_MEMEND >> 2);
             for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
@@ -76,54 +79,36 @@ int main(int argc, char *argv[]) {
         // Load
         } else if (READ_FIFO_LOAD) {
           // on load, propagate tag from memory to RF
-          // Get destination register
-          rd = READ_FIFO_RD;
+
+          // Resulting tag
+          register bool tresult = false;
           // Propagate from memory addresses
           register unsigned int memend = (READ_FIFO_MEMEND >> 2);
-          register bool tresult = false;
           for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
-            // Pull out correct bit in memory to store in tag register file
+            // Pull out correct bit in memory to store int tag register file
             if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
+              // If any memory bit is tainted, then resulting tag is tainted
               tresult = true;
             }
           }
+
+          // Get destination register
+          rd = READ_FIFO_RD;
           // Set array address
           FC_SET_ADDR(rd);
-          // Set register as valid
-          FC_ARRAY_CLEAR;
           // Set taint
-          tagrf[rd] = tresult;
-
+          if (tresult) {
+            FC_ARRAY_SET;
+          } else {
+            FC_ARRAY_CLEAR;
+          }
         // Indirect control
         } else if (READ_FIFO_INDCTRL) {
-          if (tagrf[rs]){
-            printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
-            return -1;
-          }
-        // integer ALU
-        } else { 
-          // on ALU instructions, propagate tag between registers
-          // Read source tags and determine taint of destination
-          register bool tresult = false;
-          // Get tags from rs1
-          rs = READ_FIFO_RS1;
-          if (rs < NUM_REGS){
-            FC_SET_ADDR(rs);
-            tresult |= tagrf[rs];
-          }
-          // Get tags from rs2
-          rs = READ_FIFO_RS2;
-          if (rs < NUM_REGS){
-            FC_SET_ADDR(rs);
-            tresult |= tagrf[rs];
-          }
-          // Propagate tags
-          rd = READ_FIFO_RD;
-          if (rd < NUM_REGS){
-            FC_SET_ADDR(rd);
-            FC_ARRAY_CLEAR;
-            tagrf[rd] = tresult;
-          }
+          // Untainted indirect control flow is all filtered out, must be tainted
+          printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
+          return -1;
+        // integer ALU - handled completely using filter table + invalidation hardware
+        // } else { 
         } // inst type
     
     } // READ_SLACK_DROP
