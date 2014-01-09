@@ -86,6 +86,8 @@ parser.add_option("--invalidation_cache_size", type="string", default="2kB")
 parser.add_option("--backtrack", action="store_true")
 # instruction priority table size
 parser.add_option("--ipt_size", type="int", default=0x100000)
+# instruction priority table entry size
+parser.add_option("--ipt_entry_size", type="int", default=1)
 # memory producer tracking table size
 parser.add_option("--mpt_size", type="int", default=0x100000)
 parser.add_option("--backtrack_read_table", action="store_true")
@@ -216,6 +218,7 @@ DropCPUClass.backtrack_read_table = options.backtrack_read_table
 DropCPUClass.backtrack_write_table = options.backtrack_write_table
 DropCPUClass.backtrack_table_dir = options.backtrack_table_dir
 DropCPUClass.ipt_size = options.ipt_size
+DropCPUClass.ipt_entry_size = options.ipt_entry_size
 DropCPUClass.mpt_size = options.mpt_size
 # Coverage options
 DropCPUClass.target_coverage = options.coverage

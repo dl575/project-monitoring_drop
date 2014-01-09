@@ -47,6 +47,8 @@ class ClusterDispatcher:
     '''Run tasks in task queue'''
     # build task queues
     self.queues = []
+    if self.n_jobs == 0:
+      self.n_jobs = len(self.tasks)
     for j in range(self.n_jobs):
       self.queues.append([self.tasks[i] for i in range(j, len(self.tasks), self.n_jobs)])
     # build scripts
@@ -87,7 +89,7 @@ def run(config, n_jobs):
     config_args = ' --cpu-type=%s --clock=%s --monfreq=%s --monitor=%s' % (prod[0], prod[1], prod[2], prod[3])
     if config['max_insts']:
       config_args += ' --maxinsts=%d' % (config['max_insts'])
-    if config['ff_insts']:
+    if config.get('ff_insts'):
       config_args += ' --fastforward_insts=%d' % (config['ff_insts'])
     if config['cache_enabled']:
       config_args += ' --caches --simulatestalls'
@@ -103,6 +105,10 @@ def run(config, n_jobs):
       config_args += ' --headstart_slack=%d' % (config['headstart_slack'])
     if config.get('backtrack'):
       config_args += ' --backtrack'
+      if config.get('ipt_size'):
+        config_args += ' --ipt_size=%d' % config['ipt_size']
+      if config.get('mpt_size'):
+        config_args += ' --mpt_size=%d' % config['mpt_size']
       if config.get('important_policy'):
         config_args += ' --important_policy=%s' % config['important_policy']
       if config.get('important_slack'):
