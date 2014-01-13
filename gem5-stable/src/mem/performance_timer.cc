@@ -76,7 +76,13 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
         slack_lo = p->slack_hi * p->start_cycles_clock;
     }
     
-    important_policy = p->important_policy;
+    switch(p->important_policy) {
+        case ALWAYS: important_policy = ALWAYS; break;
+        case SLACK: important_policy = SLACK; break;
+        case PERCENT: important_policy = PERCENT; break;
+        case UNIFIED: important_policy = UNIFIED; break;
+        default: panic("Invalid important policy\n");
+    }
     important_slack = p->important_slack * p->start_cycles_clock;
 
     srand(p->seed);
@@ -160,13 +166,13 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             long long int impt_slack = 0;
             if (stored_tp.intask && !stored_tp.isDecrement){
                 slack = effectiveSlack();
-                if (important_policy == 2)
+                if (important_policy == PERCENT)
                     impt_slack = effectiveImportantSlack();
             } else if (stored_tp.isDecrement){
                 slack = effectiveSlack() - (curTick() - stored_tp.decrementStart);
                 if (slack > effectiveSlack()){ panic("Timer Underflow."); }
 
-                if (important_policy == 2) {
+                if (important_policy == PERCENT) {
                     impt_slack = effectiveImportantSlack() - (curTick() - stored_tp.decrementStart);
                     if (impt_slack > effectiveImportantSlack())
                         panic("Timer Underflow.");
@@ -175,7 +181,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                 slack = stored_tp.slack - (curTick() - stored_tp.decrementStart);
                 if (slack > stored_tp.slack){ panic("Timer Underflow."); }
 
-                if (important_policy == 2) {
+                if (important_policy == PERCENT) {
                     impt_slack = stored_tp.important_slack - (curTick() - stored_tp.decrementStart);
                     if (impt_slack > stored_tp.important_slack)
                         panic("Timer Underflow.");
@@ -192,6 +198,9 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                 send_data = slack;
             } else if (read_addr == TIMER_READ_DROP) {
                 long long int adjusted_slack = slack - drop_thres;
+                // if using unified important slack policy, drop unimportant instruction if slack is below threshold
+                if (important_policy == UNIFIED)
+                  adjusted_slack -= important_slack;
                 int drop_status;
                 if (adjusted_slack < slack_lo){
                     drop_status = 0; // Drop
@@ -216,12 +225,12 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                     else { drops++; }
                 }
             } else if (read_addr == TIMER_READ_DROP_IMPORTANT) {
-                if (important_policy == 0) {
+                if (important_policy == ALWAYS) {
                     // always forward
                     int drop_status = 1;
                     send_data = drop_status;
                     not_drops++;
-                } else if (important_policy == 1) {
+                } else if (important_policy == SLACK) {
                     // forward/drop based on slack
                     int drop_status = (slack + important_slack >= 0);
                     send_data = drop_status;
@@ -229,8 +238,16 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                         if (drop_status) { not_drops++; }
                         else { drops++; }
                     }
-                } else if (important_policy == 2) {
+                } else if (important_policy == PERCENT) {
                     long long int adjusted_slack = impt_slack - drop_thres;
+                    int drop_status = (adjusted_slack >= 0);
+                    send_data = drop_status;
+                    if (stored_tp.intask || curTick() < stored_tp.WCET_end) {
+                        if (drop_status) { not_drops++; }
+                        else { drops++; }
+                    }
+                } else if (important_policy == UNIFIED) {
+                    long long int adjusted_slack = slack - drop_thres;
                     int drop_status = (adjusted_slack >= 0);
                     send_data = drop_status;
                     if (stored_tp.intask || curTick() < stored_tp.WCET_end) {
@@ -268,12 +285,12 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
               if (use_start_ticks){
                 // Use param based initial slack
                 stored_tp.slack = start_ticks;
-                if (important_policy == 2)
+                if (important_policy == PERCENT)
                     stored_tp.important_slack = start_ticks;
               } else {
                 // Use optionally passed value as initial slack
                 stored_tp.slack = get_data;
-                if (important_policy == 2)
+                if (important_policy == PERCENT)
                     stored_tp.important_slack = get_data;
               }
               DPRINTF(SlackTimer, "Written to timer: task start, slack = %d\n", effectiveSlack());
@@ -282,7 +299,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
               stored_tp.decrementStart = curTick();
               long long int additional_time = get_data;
               stored_tp.slack = effectiveSlack();
-              if (important_policy == 2)
+              if (important_policy == PERCENT)
                   stored_tp.important_slack = effectiveImportantSlack();
               long long int wait_time = stored_tp.slack + additional_time;
               stored_tp.WCET_end = curTick() + wait_time; // Actual deadline
@@ -310,7 +327,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                   
                   DPRINTF(SlackTimer, "Written to timer: decrement end, slack = %d\n", effectiveSlack());
 
-                  if (important_policy == 2) {
+                  if (important_policy == PERCENT) {
                     delay_time = (curTick() - stored_tp.decrementStart)*(1 + povr + important_percent);
                     slack = stored_tp.important_slack - delay_time;
                     if (slack > stored_tp.important_slack) {
@@ -381,7 +398,7 @@ PerformanceTimer::resume()
   // Reset slack on resume (after fast-forward)
   if (use_start_ticks) {
     stored_tp.slack = start_ticks;
-    if (important_policy == 2)
+    if (important_policy == PERCENT)
       stored_tp.important_slack = start_ticks;
     // Mark this as task start time so slack is calculated correctly. Slack is
     // calculated based on the curTick and the task start time.

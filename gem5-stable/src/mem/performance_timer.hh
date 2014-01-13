@@ -129,8 +129,22 @@ class PerformanceTimer : public AbstractMemory
     double povr;
     // Probabilistic slack range
     long long int slack_lo, slack_hi;
+
     // Policy for forwarding important instructions
-    int important_policy;
+    enum ImportantPolicy {
+      // always forward important instructions
+      ALWAYS,
+      // initial slack as a fixed number of cycles
+      SLACK,
+      // slack as percent of total cycles
+      PERCENT,
+      // unified slack tracking for both types of instructions
+      UNIFIED,
+      // number of policies
+      NUM_POLICIES
+    };
+    enum ImportantPolicy important_policy;
+
     // Additional slack for important instructions
     long long int important_slack;
     // Additional slack for important instructions as percent of total cycles

@@ -135,7 +135,8 @@ available_monitors = {
 important_policy = {
   "always"  : 0,
   "slack"   : 1,
-  "percent" : 2
+  "percent" : 2,
+  "unified" : 3
 }
 
 if '--ruby' in sys.argv:
