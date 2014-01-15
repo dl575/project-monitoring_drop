@@ -132,14 +132,14 @@ DropSimpleCPU::init()
     // initialize structures to supporting backtracking
     rptb.init();
     mptb.init();
-    if (ipt_impl == TABLE)  // table-based
-        ipt.init();
-    else if (ipt_impl == BLOOM_FILTER) // Bloom filter-based
-        ipt_bloom.init();
-
-    if (_backtrack && backtrack_read_table) {
+    if (!(_backtrack && backtrack_read_table)) {
+        if (ipt_impl == TABLE)  // table-based
+            ipt.init();
+        else if (ipt_impl == BLOOM_FILTER) // Bloom filter-based
+            ipt_bloom.init();
+    } else {
         ifstream is;
-        // read invalidation priority table
+        // read instruction priority table
         is.open(backtrack_table_dir + "/ipt.table", std::ios::in | std::ios::binary);
         if (is.good()) {
             if (ipt_impl == TABLE)
@@ -147,7 +147,7 @@ DropSimpleCPU::init()
             else if (ipt_impl == BLOOM_FILTER)
                 ipt_bloom.unserialize(is);
         } else
-            warn("invalidation priority table could not be opened.\n");
+            warn("instruction priority table could not be opened.\n");
         is.close();
     }
 }
@@ -362,7 +362,7 @@ void
 DropSimpleCPU::writeBacktrackTable()
 {
     ofstream os;
-    // write out invalidation priority table
+    // write out instruction priority table
     os.open(backtrack_table_dir + "/ipt.table", std::ios::out | std::ios::binary);
     if (os.good()) {
         if (ipt_impl == TABLE)
@@ -370,7 +370,7 @@ DropSimpleCPU::writeBacktrackTable()
         else if (ipt_impl == BLOOM_FILTER)
             ipt_bloom.serialize(os);
     } else
-        warn("invalidation priority table could not be opened.\n");
+        warn("instruction priority table could not be opened.\n");
     os.close();
     
     // write out memory producer tracking table
@@ -378,7 +378,7 @@ DropSimpleCPU::writeBacktrackTable()
     if (os.good())
         mptb.serialize(os);
     else
-        warn("invalidation priority table could not be opened.\n");
+        warn("memory producer tracking table could not be opened.\n");
     os.close();
     
     // write out register producer tracking table
@@ -386,7 +386,7 @@ DropSimpleCPU::writeBacktrackTable()
     if (os.good())
         rptb.serialize(os);
     else
-        warn("invalidation priority table could not be opened.\n");
+        warn("register producer tracking table could not be opened.\n");
     os.close();
 }
 

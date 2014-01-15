@@ -618,7 +618,7 @@ protected:
       SERIALIZE(random_seed_)
       SERIALIZE(desired_false_positive_probability_)
       // serialize actual bit table
-      os.write((const char*)&(bit_table_), sizeof(cell_type)*raw_table_size_);
+      os.write((const char*)bit_table_, static_cast<std::size_t>(raw_table_size_));
       // serialize salt
       assert(salt_.size() == salt_count_);
       for (int i = 0; i < salt_count_; ++i) {
@@ -638,7 +638,7 @@ protected:
       UNSERIALIZE(desired_false_positive_probability_)
       // unserialize actual bit table
       bit_table_ = new cell_type[static_cast<std::size_t>(raw_table_size_)];
-      is.read((char*)&(bit_table_), sizeof(cell_type)*raw_table_size_);
+      is.read((char*)bit_table_, static_cast<std::size_t>(raw_table_size_));
       // unserialize salt
       salt_.resize(salt_count_);
       for (int i = 0; i < salt_count_; ++i) {
