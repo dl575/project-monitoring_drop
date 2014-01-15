@@ -87,6 +87,8 @@ parser.add_option("--headstart_slack", type="int", default=2000000)
 
 # backtracking
 parser.add_option("--backtrack", action="store_true")
+# instruction priority table implementation
+parser.add_option("--ipt_impl", type="string", default="table")
 # instruction priority table size
 parser.add_option("--ipt_size", type="int", default=0x100000)
 # instruction priority table entry size
@@ -137,6 +139,11 @@ important_policy = {
   "slack"   : 1,
   "percent" : 2,
   "unified" : 3
+}
+
+ipt_impl = {
+  "table" : 0,
+  "bloom" : 1
 }
 
 if '--ruby' in sys.argv:
@@ -226,6 +233,7 @@ DropCPUClass.backtrack = options.backtrack
 DropCPUClass.backtrack_read_table = options.backtrack_read_table
 DropCPUClass.backtrack_write_table = options.backtrack_write_table
 DropCPUClass.backtrack_table_dir = options.backtrack_table_dir
+DropCPUClass.ipt_impl = ipt_impl[options.ipt_impl]
 DropCPUClass.ipt_size = options.ipt_size
 DropCPUClass.ipt_entry_size = options.ipt_entry_size
 DropCPUClass.mpt_size = options.mpt_size
