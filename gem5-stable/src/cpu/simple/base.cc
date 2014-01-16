@@ -1420,7 +1420,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                       // If past last bit vector
                       if (total_checks / 64 > checkid_base) {
                         // Print out last vector
-                        printf("%d,%llx\n", checkid_base, checkid_vec);
+                        printf("%d,%llx\n", checkid_base, (long long unsigned int)checkid_vec);
                         // Update base
                         checkid_base = total_checks / 64;
                         // Reset bit vector
