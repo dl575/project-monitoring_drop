@@ -19,4 +19,4 @@
    If running on cluster, remember to copy over .bz2 files for monitors,
    malarden programs, and monitors.py
 10. Generate CSVs:
-    scripts/generate_csv.pl m5out/malarden/*/*
+    scripts/generate_csv.pl m5out/<date>/*/*
