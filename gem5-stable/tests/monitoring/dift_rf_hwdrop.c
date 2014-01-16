@@ -1,6 +1,6 @@
-#ifdef DIFT_HWDROP
+#ifdef DIFT_RF_HWDROP
 /*
- * dift_hwdrop.c
+ * dift_rf_hwdrop.c
  *
  * Dynamic information flow tracking on monitoring core.
  *
@@ -12,7 +12,7 @@
 #include <assert.h>
 
 #include "timer.h"
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 #include "flagcache.h"
 
 #define METADATA_ADDRESSES 1024*1024*128

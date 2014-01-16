@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 
 #define N 10
 

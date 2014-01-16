@@ -86,9 +86,9 @@ elif monitor == "LRC_FULL":
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
   if model == 'ATOMIC':
-    delay = 6
+    delay = 17
   if model == 'TIMING':
-    delay = 16
+    delay = 18
   if model == 'FLEX':
     MonCPUClass.clock = '1500MHz'
     delay = 29
@@ -99,9 +99,9 @@ elif monitor == "LRC_SWDROP":
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
   if model == 'ATOMIC':
-    delay = 9
+    delay = 22
   if model == 'TIMING':
-    delay = 10
+    delay = 33
   if model == 'FLEX':
     MonCPUClass.clock = '2250MHz'
     delay = 9
@@ -143,7 +143,7 @@ elif monitor == "DIFT_FULL":
   if model == 'ATOMIC':
     delay = 26
   if model == 'TIMING':
-    delay = 52
+    delay = 61
   if model == 'FLEX':
     MonCPUClass.clock = '6500MHz'
     delay = 124
@@ -195,6 +195,35 @@ elif monitor == "DIFT_HWFILTER":
   invalidation_cpu.filter_ptr_file = "tables/dift_filter_ptrs.txt"
   # Define monitoring executable
   monitor_bin = "dift_hwfilter"
+elif monitor == "DIFT_RF_HWDROP":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_indctrl = True
+  if model == 'FLEX':
+    MonCPUClass.clock = '10500MHz'
+  # Load the invalidation file
+  invalidation_cpu.invalidation_file = "tables/dift_rf_invalidation_sw.txt"
+  # Define monitoring executable
+  monitor_bin = "dift_rf_hwdrop"
+# Drop handled in hardware with filtering
+elif monitor == "DIFT_RF_HWFILTER":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_indctrl = True
+  if model == 'FLEX':
+    MonCPUClass.clock = '7500MHz'
+  # Load the invalidation file
+  invalidation_cpu.invalidation_file = "tables/dift_rf_invalidation_sw.txt"
+  # Load the filter tables
+  invalidation_cpu.filter_file_1 = "tables/dift_rf_filter1.txt"
+  invalidation_cpu.filter_file_2 = "tables/dift_rf_filter2.txt"
+  invalidation_cpu.filter_ptr_file = "tables/dift_rf_filter_ptrs.txt"
+  # Define monitoring executable
+  monitor_bin = "dift_rf_hwfilter"
 elif monitor == "DIFT_FLEX":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True

@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 
 int array[10];
 int sum;

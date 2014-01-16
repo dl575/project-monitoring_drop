@@ -4,7 +4,7 @@
 3. Remake monitor
 4. Verify that WCET is the same in monitor
 5. Estimate WCET for each subtask in program
-6. Run find_wcet.sh
+6. Run find_wcet_*.sh
 7. Update WCET and rerun find_wcet.sh
 8. Verify run_dual.sh runs
 9. Run sweep_wcet.py

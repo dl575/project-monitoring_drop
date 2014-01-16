@@ -68,16 +68,24 @@ my @data = ('WCET_IS_1',
 my $output_str = "";
 my $default_delay = 1000;
 
-my @monitors = ('UMC_FULL', 'UMC_SWDROP', 'LRC_FULL', 'LRC_SWDROP', 'LRC_HWDROP', 'DIFT_FULL', 'DIFT_SWDROP');
-my %defaliases = ( 'LRC_HWDROP' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER' );
+my %monitors = ('ATOMIC' => ['UMC_FULL', 'UMC_SWDROP', 'LRC_FULL', 'LRC_SWDROP', 'LRC_HWDROP', 'DIFT_FULL', 'DIFT_SWDROP'],
+                'TIMING' => ['UMC_FULL', 'UMC_SWDROP', 'LRC_FULL', 'LRC_SWDROP', 'LRC_HWDROP', 'DIFT_FULL', 'DIFT_SWDROP'],
+                'FLEX' => ['UMC_FULL', 'UMC_SWDROP', 'LRC_FULL', 'LRC_SWDROP', 'LRC_HWDROP', 'DIFT_FULL', 'DIFT_SWDROP'],
+                'FLEXHW' => ['UMC_HWFILTER']
+                );
+my %defaliases = ( 'ATOMIC' => {'LRC_HWDROP' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER || defined DIFT_RF_HWDROP || defined DIFT_RF_HWFILTER'},
+                   'TIMING' => {'LRC_HWDROP' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER || defined DIFT_RF_HWDROP || defined DIFT_RF_HWFILTER'},
+                   'FLEX' => {'LRC_HWDROP' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER'},
+                   'FLEXHW' => {'UMC_HWFILTER' => '#if defined UMC_HWFILTER || defined LRC_HWFILTER || defined DIFT_HWFILTER || defined DIFT_RF_HWFILTER'},
+                  );
 my %drop_delays = ('UMC_FULL'=>{'ATOMIC'=>19, 'TIMING'=>30, 'FLEX'=>10}, 
                    'UMC_SWDROP'=>{'ATOMIC'=>5, 'TIMING'=>15, 'FLEX'=>8},
-                   'LRC_FULL'=>{'ATOMIC'=>6, 'TIMING'=>16, 'FLEX'=>10},
-                   'LRC_SWDROP'=>{'ATOMIC'=>9, 'TIMING'=>10, 'FLEX'=>2},
-                   'DIFT_FULL'=>{'ATOMIC'=>26, 'TIMING'=>52, 'FLEX'=>10},
+                   'LRC_FULL'=>{'ATOMIC'=>17, 'TIMING'=>18, 'FLEX'=>10},
+                   'LRC_SWDROP'=>{'ATOMIC'=>22, 'TIMING'=>33, 'FLEX'=>2},
+                   'DIFT_FULL'=>{'ATOMIC'=>26, 'TIMING'=>61, 'FLEX'=>10},
                    'DIFT_SWDROP'=>{'ATOMIC'=>16, 'TIMING'=>35, 'FLEX'=>9},
                    );
-my @models = ('ATOMIC', 'TIMING', 'FLEX');
+my @models = ('ATOMIC', 'TIMING', 'FLEXHW'); #, 'TIMING', 'FLEX');
 
 foreach my $model (@models){
 
@@ -85,7 +93,7 @@ foreach my $model (@models){
     # system("cd $gem5/tests/monitoring; tar -xvjf monitoring.$model.bz2") && die "Could not unzip monitoring.$model.bz2\n";
     $output_str .= "#ifdef $model\n";
 
-    foreach my $monitor (@monitors){
+    foreach my $monitor (@{$monitors{$model}}){
     
         my $mon_drop_delays = (defined $drop_delays{$monitor})? $drop_delays{$monitor} : {};
         my $drop_delay = (defined $mon_drop_delays->{$model})? $mon_drop_delays->{$model} : 0;
@@ -102,10 +110,12 @@ foreach my $model (@models){
             $wcet_cmd = "gem5.debug --debug-flags=Task $gem5/configs/example/wcet.py -c $gem5/tests/malarden_monitor/malarden_wcet.arm --cpu-type=timing --caches | $gem5/scripts/calculate_wcet.pl -d $drop_delay";
         } elsif ($model eq 'FLEX'){
             $wcet_cmd = "gem5.debug --debug-flags=Task $gem5/configs/example/wcet.py -c $gem5/tests/malarden_monitor/malarden_wcet.arm --cpu-type=atomic --caches | $gem5/scripts/calculate_wcet.pl -d $drop_delay";
+        } elsif ($model eq 'FLEXHW'){
+            $wcet_cmd = "gem5.debug --debug-flags=Task $gem5/configs/example/wcet.py -c $gem5/tests/malarden_monitor/malarden_wcet.arm --cpu-type=atomic --caches | $gem5/scripts/calculate_wcet.pl -d $drop_delay";
         }
         print "$wcet_cmd\n";
 
-        $output_str .= (defined $defaliases{$monitor})? "$defaliases{$monitor}\n" : "#ifdef $monitor\n";
+        $output_str .= (defined $defaliases{$model} && defined $defaliases{$model}->{$monitor})? "$defaliases{$model}->{$monitor}\n" : "#ifdef $monitor\n";
         
         my $data_counter = 0;
         open my $ch, "-|", $wcet_cmd;
