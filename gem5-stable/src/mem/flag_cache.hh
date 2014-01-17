@@ -160,6 +160,11 @@ class FlagCache : public AbstractMemory
     Tick last_access;
     // Number of aliased events
     Stats::Scalar num_aliased;
+    // Number of load/stores to array/cache
+    Stats::Scalar numRegLoads;
+    Stats::Scalar numRegStores;
+    Stats::Scalar numCacheLoads;
+    Stats::Scalar numCacheStores;
     
     Addr cacheAddr (Addr fullAddr){
         return fullAddr % fc_size;

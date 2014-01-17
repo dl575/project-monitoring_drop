@@ -1805,7 +1805,6 @@ Core::Core(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_)
   }
   if (exu->exist)
   {
-    // FIXME: pipeline handled correctly?
 	  exu->area.set_area(exu->area.get_area() + pipeline_area_per_unit);
 	  area.set_area(area.get_area()+exu->area.get_area());
   }
@@ -3702,7 +3701,6 @@ void Core::computeEnergy(bool is_tdp)
 		}
     if (mim->exist)
     {
-      // FIXME: is num_pipelines handled correctly here?
 			set_pppm(pppm_t, coredynp.num_pipelines/num_units*coredynp.ALU_duty_cycle, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units);
 			mim->power = mim->power + corepipe->power*pppm_t;
 			power     = power + mim->power;
