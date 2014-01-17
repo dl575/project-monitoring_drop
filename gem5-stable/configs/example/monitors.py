@@ -204,7 +204,7 @@ elif monitor == "DIFT_RF_HWDROP":
   if model == 'FLEX':
     MonCPUClass.clock = '10500MHz'
   # Load the invalidation file
-  invalidation_cpu.invalidation_file = "tables/dift_rf_invalidation_sw.txt"
+  invalidation_cpu.invalidation_file = "tables/dift_rf_invalidation.txt"
   # Define monitoring executable
   monitor_bin = "dift_rf_hwdrop"
 # Drop handled in hardware with filtering
@@ -217,7 +217,7 @@ elif monitor == "DIFT_RF_HWFILTER":
   if model == 'FLEX':
     MonCPUClass.clock = '7500MHz'
   # Load the invalidation file
-  invalidation_cpu.invalidation_file = "tables/dift_rf_invalidation_sw.txt"
+  invalidation_cpu.invalidation_file = "tables/dift_rf_invalidation.txt"
   # Load the filter tables
   invalidation_cpu.filter_file_1 = "tables/dift_rf_filter1.txt"
   invalidation_cpu.filter_file_2 = "tables/dift_rf_filter2.txt"

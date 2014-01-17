@@ -16,9 +16,9 @@ monitors = {'ATOMIC': ['UMC_HWDROP', 'UMC_HWFILTER', 'LRC_HWDROP', 'LRC_HWFILTER
             'FLEXHW': ['UMC_HWFILTER', 'LRC_HWFILTER', 'DIFT_HWFILTER', 'DIFT_RF_HWFILTER'], }
 
 # WCET per task to try (in cycles)
-wcets = {'ATOMIC': {'UMC_HWDROP': range(100,301,25), 'UMC_HWFILTER': range(100,301,25), 'LRC_HWDROP': range(100,301,25), 'LRC_HWFILTER': range(100,301,25), 'DIFT_HWDROP': range(100,301,25), 'DIFT_HWFILTER': range(100,301,25), 'DIFT_RF_HWDROP': range(100,301,25), 'DIFT_RF_HWFILTER': range(100,301,25)}, \
-         'TIMING': {'UMC_HWDROP': range(100,301,25), 'UMC_HWFILTER': range(100,301,25), 'LRC_HWDROP': range(100,301,25), 'LRC_HWFILTER': range(100,301,25), 'DIFT_HWDROP': range(100,301,25), 'DIFT_HWFILTER': range(100,301,25), 'DIFT_RF_HWDROP': range(100,301,25), 'DIFT_RF_HWFILTER': range(100,301,25)}, \
-         'FLEXHW': {'UMC_HWFILTER': range(100,301,25), 'LRC_HWFILTER': range(100,301,25), 'DIFT_HWFILTER': range(100,301,25), 'DIFT_RF_HWFILTER': range(100,301,25)} \
+wcets = {'ATOMIC': {'UMC_HWDROP': [100] + range(300,701,25), 'UMC_HWFILTER': [100] + range(300,701,25), 'LRC_HWDROP': [100] + range(300,701,25), 'LRC_HWFILTER': [100] + range(300,701,25), 'DIFT_HWDROP': [100] + range(300,701,25), 'DIFT_HWFILTER': [100] + range(300,701,25), 'DIFT_RF_HWDROP': [100] + range(300,701,25), 'DIFT_RF_HWFILTER': [100] + range(300,701,25)}, \
+         'TIMING': {'UMC_HWDROP': [100] + range(300,701,25), 'UMC_HWFILTER': [100] + range(300,701,25), 'LRC_HWDROP': [100] + range(300,701,25), 'LRC_HWFILTER': [100] + range(300,701,25), 'DIFT_HWDROP': [100] + range(300,701,25), 'DIFT_HWFILTER': [100] + range(300,701,25), 'DIFT_RF_HWDROP': [100] + range(300,701,25), 'DIFT_RF_HWFILTER': [100] + range(300,701,25)}, \
+         'FLEXHW': {'UMC_HWFILTER': range(100,111,2), 'LRC_HWFILTER': range(100,111,2), 'DIFT_HWFILTER': range(100,111,2), 'DIFT_RF_HWFILTER': range(100,111,2)} \
         }
 # Directory where generated sources are
 compile_dir = os.environ["GEM5"] + "/tests/malarden_monitor/generated/"
