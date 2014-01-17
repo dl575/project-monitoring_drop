@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 #include "timer.h"
 
 #define ARRSIZE 200

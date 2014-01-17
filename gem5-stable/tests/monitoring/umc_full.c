@@ -13,7 +13,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 
 #define METADATA_ADDRESSES 1024*1024*128
 

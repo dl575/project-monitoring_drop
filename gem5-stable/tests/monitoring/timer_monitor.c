@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 #include "timer.h"
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 
 #define WCET_CYCLES 12
 #define WCET 408

@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 
 // Function attempts to overwrite link register
 void __attribute__((noinline)) hax() {

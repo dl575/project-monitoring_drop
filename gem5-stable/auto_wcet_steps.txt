@@ -1,9 +1,9 @@
 1. Make sure you compile wcet_program
 2. Build the monitors:
-    scripts/build_monitors.pl
+    scripts/build_monitors.pl (Edit configurations and models you want)
 3. Run WCET on monitors (update tick per cycle):
     scripts/auto_monitor_wcet.pl
-   Result is in tests/monitoring/monitor_timing.h.
+   Results are in tests/monitoring/monitor_timing.h and configs/example/monitor_timing.py
 4. Update configs/example/monitors.py with full monitoring numbers
 5. Update auto_program_wcet.pl with drop monitoring numbers (convert to main core cycles)
 6. Run WCET:
@@ -19,4 +19,4 @@
    If running on cluster, remember to copy over .bz2 files for monitors,
    malarden programs, and monitors.py
 10. Generate CSVs:
-    scripts/generate_csv.pl m5out/malarden/*/*
+    scripts/generate_csv.pl m5out/<date>/*/*

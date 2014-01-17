@@ -1,4 +1,4 @@
-#ifdef DIFT_HWFILTER
+#ifdef DIFT_RF_HWFILTER
 /*
  * dift_rf_hwfilter.c
  *
@@ -14,7 +14,7 @@
 #include <assert.h>
 
 #include "timer.h"
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 #include "flagcache.h"
 
 #define METADATA_ADDRESSES 1024*1024*128
@@ -31,7 +31,7 @@
 
 char tagmem[METADATA_ADDRESSES];
 // Flag cache used for register file tags
-//bool tagrf[NUM_REGS];
+// bool tagrf[NUM_REGS];
 
 int main(int argc, char *argv[]) {
   register unsigned int temp;

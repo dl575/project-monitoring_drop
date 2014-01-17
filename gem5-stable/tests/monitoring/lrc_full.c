@@ -12,7 +12,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 
 // Stack to store link registers
 int lr[256];
@@ -44,8 +44,8 @@ int main(int argc, char *argv[]) {
       lr_ptr++;
     // On return, check link register, then pop entry from stack
     } else if (temp = READ_FIFO_RET) {
-      if (lr[lr_ptr-1] - 1 != READ_FIFO_NEXTPC) {
-        printf("LRC Error\n");
+      if (lr[lr_ptr-1] != READ_FIFO_NEXTPC) {
+        printf("LRC Error: NextPC[%x] != ExpectedPC[%x]\n", lr[lr_ptr-1], READ_FIFO_NEXTPC);
         return 1;
       }
       lr_ptr--;

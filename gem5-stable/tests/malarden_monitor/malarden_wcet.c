@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "../monitoring/timer.h"
-#include "../monitoring/monitoring.h"
+#include "../monitoring/monitoring_wcet.h"
 #include "include/malarden.h"
 
 // Number of benchmarks

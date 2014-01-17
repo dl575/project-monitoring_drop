@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 
 // Recursive Fibonacci function
 int __attribute__((noinline)) fib(int n) {

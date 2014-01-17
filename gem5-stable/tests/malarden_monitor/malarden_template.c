@@ -1,7 +1,7 @@
 
 #include <stdio.h>
 
-#include "../../monitoring/monitoring.h"
+#include "../../monitoring/monitoring_wcet.h"
 #include "../../monitoring/timer.h"
 #include "../include/malarden.h"
 

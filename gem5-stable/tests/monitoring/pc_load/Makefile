@@ -3,7 +3,7 @@ OBJ=arm-linux-gnueabi-objdump
 CFLAGS=-c -Wall -O2 -I ../
 LDFLAGS=--static
 SOURCES=increment.c pc_load.c
-HEADERS=increment.h ../monitoring.h
+HEADERS=increment.h ../monitoring_wcet.h
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=run.arm
 DUMP=$(EXECUTABLE:.arm=.obj)

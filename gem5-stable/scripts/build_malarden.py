@@ -10,16 +10,21 @@ import os
 import re
 import subprocess
 
-models = ['FLEX', 'TIMING'] #, 'ATOMIC']
-monitors = ['UMC_HWDROP', 'UMC_HWFILTER', 'LRC_HWDROP', 'LRC_HWFILTER', 'DIFT_HWDROP', 'DIFT_HWFILTER']
+models = ['ATOMIC', 'TIMING', 'FLEXHW'] #, 'ATOMIC']
+monitors = {'ATOMIC': ['UMC_HWDROP', 'UMC_HWFILTER', 'LRC_HWDROP', 'LRC_HWFILTER', 'DIFT_HWDROP', 'DIFT_HWFILTER', 'DIFT_RF_HWDROP', 'DIFT_RF_HWFILTER'], \
+            'TIMING': ['UMC_HWDROP', 'UMC_HWFILTER', 'LRC_HWDROP', 'LRC_HWFILTER', 'DIFT_HWDROP', 'DIFT_HWFILTER', 'DIFT_RF_HWDROP', 'DIFT_RF_HWFILTER'], \
+            'FLEXHW': ['UMC_HWFILTER', 'LRC_HWFILTER', 'DIFT_HWFILTER', 'DIFT_RF_HWFILTER'], }
 
 # WCET per task to try (in cycles)
-wcets = [range(100,301,25), range(100,301,25), range(100,301,25), range(100,301,25), range(100,301,25), range(100,301,25)]
+wcets = {'ATOMIC': {'UMC_HWDROP': range(100,301,25), 'UMC_HWFILTER': range(100,301,25), 'LRC_HWDROP': range(100,301,25), 'LRC_HWFILTER': range(100,301,25), 'DIFT_HWDROP': range(100,301,25), 'DIFT_HWFILTER': range(100,301,25), 'DIFT_RF_HWDROP': range(100,301,25), 'DIFT_RF_HWFILTER': range(100,301,25)}, \
+         'TIMING': {'UMC_HWDROP': range(100,301,25), 'UMC_HWFILTER': range(100,301,25), 'LRC_HWDROP': range(100,301,25), 'LRC_HWFILTER': range(100,301,25), 'DIFT_HWDROP': range(100,301,25), 'DIFT_HWFILTER': range(100,301,25), 'DIFT_RF_HWDROP': range(100,301,25), 'DIFT_RF_HWFILTER': range(100,301,25)}, \
+         'FLEXHW': {'UMC_HWFILTER': range(100,301,25), 'LRC_HWFILTER': range(100,301,25), 'DIFT_HWFILTER': range(100,301,25), 'DIFT_RF_HWFILTER': range(100,301,25)} \
+        }
 # Directory where generated sources are
 compile_dir = os.environ["GEM5"] + "/tests/malarden_monitor/generated/"
 
-for i, monitor in enumerate(monitors):
-  for model in models:
+for model in models:
+  for monitor in monitors[model]:
     # Clear out old executables
     p = subprocess.Popen("rm -v %s/malarden*.arm" % compile_dir, shell=True)
     p.wait()
@@ -30,7 +35,7 @@ for i, monitor in enumerate(monitors):
       find_benchmarks = re.search("malarden_([\w_]*)\.c", filename)
       benchmarks = find_benchmarks.group(1)
       # For each WCET to try
-      for wcet in wcets[i]:
+      for wcet in wcets[model][monitor]:
         # Compile the main program 
         compile_cmd = "arm-linux-gnueabi-gcc -D%s -D%s -DUNIX -O2 -DWCET_SCALE=%f \
             %s malarden_%s.c -o malarden_%s_%d.arm --static;" % ( monitor, model, \

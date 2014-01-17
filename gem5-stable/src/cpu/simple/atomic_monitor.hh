@@ -156,6 +156,10 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
 
     bool dcache_access;
     Tick dcache_latency;
+    // Number of cycles for full monitoring
+    unsigned full_wcet;
+    // Number of additional cycles for full monitoring
+    unsigned full_delay;
 
   protected:
 

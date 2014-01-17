@@ -22,7 +22,7 @@
 #include <stdbool.h>
 
 #include "timer.h"
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 #include "flagcache.h"
 
 // Stack to store link registers
@@ -56,8 +56,8 @@ int main(int argc, char *argv[]) {
       // On return, check link register, then pop entry from stack
       } else if (temp = READ_FIFO_RET) {
         // if stored lr == 0, then it is invalid and skip check
-        if ((lr[lr_ptr-1] - 1 != READ_FIFO_NEXTPC)) {
-          printf("LRC Error\n");
+        if ((lr[lr_ptr-1] != READ_FIFO_NEXTPC)) {
+          printf("LRC Error: NextPC[%x] != ExpectedPC[%x]\n", lr[lr_ptr-1], READ_FIFO_NEXTPC);
           return 1;
         }
         lr_ptr--;

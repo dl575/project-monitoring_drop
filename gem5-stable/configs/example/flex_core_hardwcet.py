@@ -65,8 +65,8 @@ parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
 
-# Monitor
-parser.add_option("--monitor", type="string", default="umc")
+monitor = os.environ["MONITOR"]
+model = os.environ["MODEL"]
 
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
@@ -85,15 +85,15 @@ options.cpu_type = 'atomic'
 
 # "enum" for monitors
 available_monitors = {
-  "none"      : 0,
-  "umc"       : 1,
-  "dift"      : 2,
-  "bc"        : 3,
-  "sec"       : 4,
-  "hb"        : 5,
-  "multidift" : 6,
-  "lrc"       : 7,
-  "diftrf"    : 8
+  "NONE"               : 0,
+  "UMC_HWFILTER"       : 1,
+  "DIFT_HWFILTER"      : 2,
+  "BC_HWFILTER"        : 3,
+  "SEC_HWFILTER"       : 4,
+  "HB_HWFILTER"        : 5,
+  "MULTIDIFT_HWFILTER" : 6,
+  "LRC_HWFILTER"       : 7,
+  "DIFT_RF_HWFILTER"    : 8
 }
 
 # Create new CPU type for main core
@@ -125,9 +125,9 @@ MonCPUClass.flagcache_enabled = True
 MonCPUClass.simulate_data_stalls = True
 
 # Set monitoring extension
-MonCPUClass.monitor_type = available_monitors[options.monitor]
+MonCPUClass.monitor_type = available_monitors[monitor]
 invalidation_cpu = MonCPUClass
-if options.monitor == "umc":
+if monitor == "UMC_HWFILTER":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
@@ -136,7 +136,7 @@ if options.monitor == "umc":
   # Load the filter tables
   invalidation_cpu.filter_file_1 = "tables/umc_filter.txt"
   invalidation_cpu.filter_ptr_file = "tables/umc_filter_ptrs.txt"
-elif options.monitor == "dift":
+elif monitor == "DIFT_HWFILTER":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
@@ -148,7 +148,7 @@ elif options.monitor == "dift":
   invalidation_cpu.filter_file_1 = "tables/dift_filter1.txt"
   invalidation_cpu.filter_file_2 = "tables/dift_filter2.txt"
   invalidation_cpu.filter_ptr_file = "tables/dift_filter_ptrs.txt"
-elif options.monitor == "lrc":
+elif monitor == "LRC_HWFILTER":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_call = True
   MainCPUClass.monitoring_filter_ret = True
@@ -157,7 +157,7 @@ elif options.monitor == "lrc":
   # Load the filter tables
   invalidation_cpu.filter_file_1 = "tables/lrc_filter.txt"
   invalidation_cpu.filter_ptr_file = "tables/lrc_filter_ptrs.txt"
-elif options.monitor == "diftrf":
+elif monitor == "DIFT_RF_HWFILTER":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
@@ -175,7 +175,9 @@ else:
 
 # Set clocks
 MainCPUClass.clock = "500MHz"
-MonCPUClass.clock = "250MHz"
+MonCPUClass.clock = "500MHz"
+# Full delay takes an additional cycle
+MonCPUClass.full_delay = 1
 
 # Configure cache size
 # Kindle-like configuration
@@ -185,8 +187,10 @@ options.l1i_latency = '1ps'
 options.l1d_latency = '1ps'
 mem_latency = '15ns'
 
-# Set up monitoring filter
-#execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitors.py" )
+# Get full wcet for invalidation
+full_wcet = 1
+execfile( os.path.dirname(os.path.realpath(__file__)) + "/monitor_timing.py" )
+invalidation_cpu.full_wcet = full_wcet
 
 # Create system, CPUs, bus, and memory
 system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1)],
