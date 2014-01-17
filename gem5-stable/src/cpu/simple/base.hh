@@ -709,6 +709,10 @@ class BaseSimpleCPU : public BaseCPU
 
     Stats::Scalar numImportantInsts;
 
+    // backup valid flags for DIFT_RF
+#define NUM_REGS 16
+    bool invalid_flags[NUM_REGS];
+
 };
 
 #endif // __CPU_SIMPLE_BASE_HH__

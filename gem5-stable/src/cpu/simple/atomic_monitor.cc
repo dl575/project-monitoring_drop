@@ -1409,7 +1409,11 @@ AtomicSimpleMonitor::DIFTRFExecute()
           revalidateRegTag((int)mp.rd);
         }
         // Full monitoring of load means resulting tag is valid, clear invalidation
-        thread->setIntReg((int)mp.rd, false);
+        //thread->setIntReg((int)mp.rd, false);
+        int rd = (int)mp.rd;
+        if (rd >= 0 && rd < NUM_REGS) {
+          invalid_flags[rd] = false;
+        }
         
         numLoadInsts++;
         numMonitorInsts++;
@@ -1421,7 +1425,12 @@ AtomicSimpleMonitor::DIFTRFExecute()
         setFlagCacheAddr(mp.rs1);
         readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&tsrc, sizeof(tsrc), ArmISA::TLB::AllowUnaligned);
         // Get source invalidation
-        DIFTTag tinv = (DIFTTag)thread->readIntReg(mp.rs1);
+        //DIFTTag tinv = (DIFTTag)thread->readIntReg(mp.rs1);
+        DIFTTag tinv = false;
+        int rs1 = (int)mp.rs1;
+        if (rs1 >= 0 && rs1 < NUM_REGS && invalid_flags[rs1]) {
+          tinv = true;
+        }
 
         // If source is invalid 
         if (tinv) {
