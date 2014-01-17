@@ -851,7 +851,7 @@ int statemate(void);
 #endif
 #endif
 #ifdef FLEXHW
-#if defined UMC_HWFILTER || defined LRC_HWFILTER || defined DIFT_HWFILTER || defined DIFT_RF_HWFILTER
+#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER || defined DIFT_RF_HWDROP || defined DIFT_RF_HWFILTER
 	#define WCET_IS_1 9
 	#define WCET_IS_2 124
 	#define WCET_IS 687*(WCET_SCALE-1)

@@ -86,14 +86,18 @@ options.cpu_type = 'atomic'
 # "enum" for monitors
 available_monitors = {
   "NONE"               : 0,
+  "UMC_HWDROP"         : 1,
   "UMC_HWFILTER"       : 1,
+  "DIFT_HWDROP"        : 2,
   "DIFT_HWFILTER"      : 2,
   "BC_HWFILTER"        : 3,
   "SEC_HWFILTER"       : 4,
   "HB_HWFILTER"        : 5,
   "MULTIDIFT_HWFILTER" : 6,
+  "LRC_HWDROP"         : 7,
   "LRC_HWFILTER"       : 7,
-  "DIFT_RF_HWFILTER"    : 8
+  "DIFT_RF_HWDROP"     : 8,
+  "DIFT_RF_HWFILTER"   : 8
 }
 
 # Create new CPU type for main core
@@ -127,7 +131,7 @@ MonCPUClass.simulate_data_stalls = True
 # Set monitoring extension
 MonCPUClass.monitor_type = available_monitors[monitor]
 invalidation_cpu = MonCPUClass
-if monitor == "UMC_HWFILTER":
+if monitor == "UMC_HWDROP":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
@@ -136,6 +140,31 @@ if monitor == "UMC_HWFILTER":
   # Load the filter tables
   invalidation_cpu.filter_file_1 = "tables/umc_filter.txt"
   invalidation_cpu.filter_ptr_file = "tables/umc_filter_ptrs.txt"
+  # Don't actually filter
+  invalidation_cpu.emulate_filtering = True
+elif monitor == "UMC_HWFILTER":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  # Load the invalidation file
+  invalidation_cpu.invalidation_file = "tables/umc_invalidation.txt"
+  # Load the filter tables
+  invalidation_cpu.filter_file_1 = "tables/umc_filter.txt"
+  invalidation_cpu.filter_ptr_file = "tables/umc_filter_ptrs.txt"
+elif monitor == "DIFT_HWDROP":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_indctrl = True
+  # Load the invalidation file
+  invalidation_cpu.invalidation_file = "tables/dift_invalidation.txt"
+  # Load the filter tables
+  invalidation_cpu.filter_file_1 = "tables/dift_filter1.txt"
+  invalidation_cpu.filter_file_2 = "tables/dift_filter2.txt"
+  invalidation_cpu.filter_ptr_file = "tables/dift_filter_ptrs.txt"
+  # Don't actually filter
+  invalidation_cpu.emulate_filtering = True
 elif monitor == "DIFT_HWFILTER":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
@@ -148,6 +177,17 @@ elif monitor == "DIFT_HWFILTER":
   invalidation_cpu.filter_file_1 = "tables/dift_filter1.txt"
   invalidation_cpu.filter_file_2 = "tables/dift_filter2.txt"
   invalidation_cpu.filter_ptr_file = "tables/dift_filter_ptrs.txt"
+elif monitor == "LRC_HWDROP":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_call = True
+  MainCPUClass.monitoring_filter_ret = True
+  # Load the invalidation file
+  invalidation_cpu.invalidation_file = "tables/lrc_invalidation.txt"
+  # Load the filter tables
+  invalidation_cpu.filter_file_1 = "tables/lrc_filter.txt"
+  invalidation_cpu.filter_ptr_file = "tables/lrc_filter_ptrs.txt"
+  # Don't actually filter
+  invalidation_cpu.emulate_filtering = True
 elif monitor == "LRC_HWFILTER":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_call = True
@@ -157,6 +197,20 @@ elif monitor == "LRC_HWFILTER":
   # Load the filter tables
   invalidation_cpu.filter_file_1 = "tables/lrc_filter.txt"
   invalidation_cpu.filter_ptr_file = "tables/lrc_filter_ptrs.txt"
+elif monitor == "DIFT_RF_HWDROP":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_indctrl = True
+  # Load the invalidation file
+  invalidation_cpu.invalidation_file = "tables/dift_rf_invalidation.txt"
+  # Load the filter tables
+  invalidation_cpu.filter_file_1 = "tables/dift_rf_filter1.txt"
+  invalidation_cpu.filter_file_2 = "tables/dift_rf_filter2.txt"
+  invalidation_cpu.filter_ptr_file = "tables/dift_rf_filter_ptrs.txt"
+  # Don't actually filter
+  invalidation_cpu.emulate_filtering = True
 elif monitor == "DIFT_RF_HWFILTER":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
