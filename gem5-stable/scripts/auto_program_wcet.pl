@@ -76,7 +76,7 @@ my %monitors = ('ATOMIC' => ['UMC_FULL', 'UMC_SWDROP', 'LRC_FULL', 'LRC_SWDROP',
 my %defaliases = ( 'ATOMIC' => {'LRC_HWDROP' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER || defined DIFT_RF_HWDROP || defined DIFT_RF_HWFILTER'},
                    'TIMING' => {'LRC_HWDROP' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER || defined DIFT_RF_HWDROP || defined DIFT_RF_HWFILTER'},
                    'FLEX' => {'LRC_HWDROP' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER'},
-                   'FLEXHW' => {'UMC_HWFILTER' => '#if defined UMC_HWFILTER || defined LRC_HWFILTER || defined DIFT_HWFILTER || defined DIFT_RF_HWFILTER'},
+                   'FLEXHW' => {'UMC_HWFILTER' => '#if defined UMC_HWDROP || defined UMC_HWFILTER || defined LRC_HWDROP || defined LRC_HWFILTER || defined DIFT_HWDROP || defined DIFT_HWFILTER || defined DIFT_RF_HWDROP || defined DIFT_RF_HWFILTER'},
                   );
 my %drop_delays = ('UMC_FULL'=>{'ATOMIC'=>19, 'TIMING'=>30, 'FLEX'=>10}, 
                    'UMC_SWDROP'=>{'ATOMIC'=>5, 'TIMING'=>15, 'FLEX'=>8},

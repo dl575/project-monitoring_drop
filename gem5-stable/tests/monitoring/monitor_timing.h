@@ -124,7 +124,15 @@
 #endif
 #endif
 #ifdef FLEXHW
+#ifdef UMC_HWDROP
+	#define MON_WCET 8
+	#define MON_DROP_WCET 1
+#endif
 #ifdef UMC_HWFILTER
+	#define MON_WCET 8
+	#define MON_DROP_WCET 1
+#endif
+#ifdef LRC_HWDROP
 	#define MON_WCET 8
 	#define MON_DROP_WCET 1
 #endif
@@ -132,7 +140,15 @@
 	#define MON_WCET 8
 	#define MON_DROP_WCET 1
 #endif
+#ifdef DIFT_HWDROP
+	#define MON_WCET 8
+	#define MON_DROP_WCET 1
+#endif
 #ifdef DIFT_HWFILTER
+	#define MON_WCET 8
+	#define MON_DROP_WCET 1
+#endif
+#ifdef DIFT_RF_HWDROP
 	#define MON_WCET 8
 	#define MON_DROP_WCET 1
 #endif

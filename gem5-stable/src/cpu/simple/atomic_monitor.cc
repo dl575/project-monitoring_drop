@@ -1391,7 +1391,7 @@ AtomicSimpleMonitor::DIFTRFExecute()
     // ALU instruction
     if (mp.intalu) {
         // integer ALU operation - handled by filter
-        panic("ALU instruction reached monitor\n");
+        warn("ALU instruction reached monitor\n");
     // Load instruction
     } else if (mp.load) {
         DPRINTF(Monitor, "DIFT: Load instruction, addr=0x%x\n", mp.memAddr);
@@ -1468,7 +1468,7 @@ AtomicSimpleMonitor::DIFTRFExecute()
     } else if (mp.indctrl) {
         // Filter should handle any untainted indirect branches. Thus,
         // this must be a tainted branch.
-        panic("Fatal: indirect control transfer on tainted register, PC=0x%x\n", mp.instAddr);
+        warn("Fatal: indirect control transfer on tainted register, PC=0x%x\n", mp.instAddr);
         numIndirectCtrlInsts++;
         numMonitorInsts++;
     } else {

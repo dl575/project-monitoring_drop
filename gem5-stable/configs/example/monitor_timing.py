@@ -93,13 +93,25 @@ if model == 'TIMING':
 		drop_wcet = 1
 
 if model == 'FLEXHW':
+	if monitor == 'UMC_HWDROP':
+		full_wcet = 8
+		drop_wcet = 1
 	if monitor == 'UMC_HWFILTER':
+		full_wcet = 8
+		drop_wcet = 1
+	if monitor == 'LRC_HWDROP':
 		full_wcet = 8
 		drop_wcet = 1
 	if monitor == 'LRC_HWFILTER':
 		full_wcet = 8
 		drop_wcet = 1
+	if monitor == 'DIFT_HWDROP':
+		full_wcet = 8
+		drop_wcet = 1
 	if monitor == 'DIFT_HWFILTER':
+		full_wcet = 8
+		drop_wcet = 1
+	if monitor == 'DIFT_RF_HWDROP':
 		full_wcet = 8
 		drop_wcet = 1
 	if monitor == 'DIFT_RF_HWFILTER':
