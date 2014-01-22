@@ -191,7 +191,7 @@ void InvalidationPT::unserialize(std::istream &is)
             bool tmp;
             UNSERIALIZE(tmp)
             entry.priority[j] = tmp;
-            if (entry.valid && entry.priority[i]) {
+            if (entry.valid && entry.priority[j]) {
                 numImportantInsts++;
             }
         }

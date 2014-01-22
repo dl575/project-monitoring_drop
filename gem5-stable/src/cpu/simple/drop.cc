@@ -913,7 +913,7 @@ void DropSimpleCPU::setInstructionPriority(Addr addr, const bool priority)
         ipt.update(addr, priority);
     } else if (ipt_impl == BLOOM_FILTER) {
         // skip update if already in bloom filter
-        if (!ipt_bloom.lookup(addr)))
+        if (!ipt_bloom.lookup(addr))
             ipt_bloom.update(addr, true);
     } else {
         panic("Invalid IPT implementation!\n");
