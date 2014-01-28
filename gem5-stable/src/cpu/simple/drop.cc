@@ -388,6 +388,29 @@ DropSimpleCPU::writeBacktrackTable()
     else
         warn("register producer tracking table could not be opened.\n");
     os.close();
+
+    // write out slack multiplier
+    os.open(backtrack_table_dir + "/slack_multiplier", std::ios::out);
+    if (os.good()) {
+        double slack_multiplier;
+        // Create request
+        Request *timer_read_request = &data_read_req;
+        // set physical address
+        timer_read_request->setPhys(TIMER_ADJUSTED_SLACK_MULTIPLIER, sizeof(slack_multiplier), ArmISA::TLB::AllowUnaligned, dataMasterId());
+        // Create read packet
+        MemCmd cmd = MemCmd::ReadReq;
+        PacketPtr timerpkt = new Packet(timer_read_request, cmd);
+        // Set data
+        timerpkt->dataStatic(&slack_multiplier);
+        // Send read request packet on timer port
+        timerPort.sendFunctional(timerpkt);
+        // Clean up
+        delete timerpkt;
+
+        os << slack_multiplier << std::endl;
+    } else
+        warn("slack multiplier file could not be opened.\n");
+    os.close();
 }
 
 Fault

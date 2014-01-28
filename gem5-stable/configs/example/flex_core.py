@@ -107,7 +107,10 @@ parser.add_option("--important_policy", type="string", default="always")
 parser.add_option("--important_slack", type="int", default=2000000)
 # Additional slack for important instructions as percent of total cycles
 parser.add_option("--important_percent", type="float", default=0.0)
-
+# Increment slack on important instructions only
+parser.add_option("--increment_important_only", action="store_true")
+# Read slack multiplier from file
+parser.add_option("--read_slack_multiplier", action="store_true")
 # Number of instructions to fast-forward
 # During fast-forwarding, full monitoring is performed. Invalidation is enabled
 # after fast-forward period.
@@ -371,6 +374,9 @@ timer.use_start_ticks = True
 timer.important_policy = important_policy[options.important_policy]
 timer.important_slack = options.important_slack
 timer.important_percent = options.important_percent
+timer.increment_important_only = options.increment_important_only
+timer.read_slack_multiplier = options.read_slack_multiplier
+timer.persistence_dir = options.backtrack_table_dir
 # We can also set a probabilistic range
 if options.probabilistic_drop:
   timer.seed = random.randint(-2**30,2**30)
