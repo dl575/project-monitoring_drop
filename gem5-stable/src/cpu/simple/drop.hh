@@ -214,6 +214,7 @@ class DropSimpleCPU : public BaseSimpleCPU
     bool backtrack_read_table;
     std::string backtrack_table_dir;
     void writeBacktrackTable();
+    void writeCheckedPC();
 
   private:
 

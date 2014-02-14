@@ -111,7 +111,8 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     total_checks(0), full_packets(1), all_packets(1),
     perf_mon(true),
     _backtrack(p->backtrack),
-    print_checkid(p->print_checkid)
+    print_checkid(p->print_checkid),
+    print_static_coverage(p->print_static_coverage)
 {
 
     // Monitoring filter parameters
@@ -1272,6 +1273,20 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         ischeck = (check_load && (itp == inst_load))
                   ||(check_store && (itp == inst_store))
                   ||(check_indctrl && (itp == inst_indctrl));
+
+        // Mark static instruction as having an event (if unchecked previously)
+        if (print_static_coverage && ischeck) {
+          // Read PC from FIFO
+          Addr pc = -1;
+          readFromFifo(FIFO_INSTADDR, (uint8_t *)&pc, sizeof(pc), ArmISA::TLB::AllowUnaligned);
+          // Look for PC in list of all PCs that raise events
+          std::list<int>::iterator findIter = std::find(pc_checked.begin(), pc_checked.end(), (int)pc);
+          // If not found, add to list
+          if (findIter == pc_checked.end()) {
+            pc_checked.push_back((int)pc);
+          }
+        }
+
         
         // Reevaluate packet drop rate
         if (check_frequency && total_checks && ischeck && intask
@@ -1468,6 +1483,18 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                       } 
                       // Set corresponding bit
                       checkid_vec |= (((uint64_t)1) << (total_checks % 64));
+                    }
+                    
+                    if (print_static_coverage) {
+                      // Mark static instruction as checked
+                      Addr pc = -1;
+                      readFromFifo(FIFO_INSTADDR, (uint8_t *)&pc, sizeof(pc), ArmISA::TLB::AllowUnaligned);
+                      // Look for PC in list of full monitored PCs
+                      std::list<int>::iterator findIter = std::find(pc_checked_full.begin(), pc_checked_full.end(), (int)pc);
+                      // If not found, add to list
+                      if (findIter == pc_checked_full.end()) {
+                        pc_checked_full.push_back((int)pc);
+                      }
                     }
                 }
             }

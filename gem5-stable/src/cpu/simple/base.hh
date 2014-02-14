@@ -703,6 +703,8 @@ class BaseSimpleCPU : public BaseCPU
 
     // Flag for whether to print out ID #s of checks that are monitored in full
     bool print_checkid;
+    // Keep track of and print out coverage of static instructions
+    bool print_static_coverage;
     // Save IDs of checks that are monitored in full by using bit vectors
     int checkid_base;
     uint64_t checkid_vec;
@@ -712,6 +714,9 @@ class BaseSimpleCPU : public BaseCPU
     // backup valid flags for DIFT_RF
 #define NUM_REGS 16
     bool invalid_flags[NUM_REGS];
+
+    std::list<int> pc_checked; // List of all static instructions that raised monitoring events
+    std::list<int> pc_checked_full; // List of static instructions that were checked in full
 
 };
 
