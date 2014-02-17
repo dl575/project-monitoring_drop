@@ -722,7 +722,7 @@ BaseSimpleCPU::performMonitoring() {
         (((inst_opclass == IntAluOp) || (inst_opclass == IntMultOp) || (inst_opclass == IntDivOp)) && curStaticInst->isInteger() &&
          // and not including control instructions
          !(curStaticInst->isControl()) && mf.intalu) || 
-        ((inst_dis.find("mov") != string::npos) && mf.intmov) ||
+        ((inst_dis.find("mov") != string::npos) && mf.intmov && !curStaticInst->isControl()) ||
         ((inst_dis.find("add") != string::npos) && mf.intadd) ||
         ((inst_dis.find("sub") != string::npos) && mf.intsub) ||
         ((inst_dis.find("and") != string::npos) && mf.intand) ||
