@@ -162,7 +162,8 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
       full_ticks(p->full_clock),
       rptb(),
       mptb(p->mpt_size, 30-floorLog2(p->mpt_size), 2),
-      ipt(p->ipt_size/p->ipt_entry_size, p->ipt_entry_size, 30-floorLog2(p->ipt_size), 2),
+      ipt_tagged(p->ipt_tagged),
+      ipt(p->ipt_tagged, p->ipt_size/p->ipt_entry_size, p->ipt_entry_size, 30-floorLog2(p->ipt_size), 2),
       ipt_bloom(p->ipt_size, p->ipt_false_positive_rate)
 {
     _status = Idle;    
@@ -919,10 +920,14 @@ DropSimpleCPU::forwardFifoPacket() {
 bool DropSimpleCPU::getInstructionPriority(Addr addr)
 {
     if (ipt_impl == TABLE) {
-        if (ipt.valid(addr))
+        if (ipt_tagged) {
+            if (ipt.valid(addr))
+                return ipt.lookup(addr);
+            else
+                return false;
+        } else {
             return ipt.lookup(addr);
-        else
-            return false;
+        }
     } else if (ipt_impl == BLOOM_FILTER) {
         return ipt_bloom.lookup(addr);
     } else {

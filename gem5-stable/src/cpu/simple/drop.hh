@@ -238,7 +238,7 @@ class DropSimpleCPU : public BaseSimpleCPU
 
   protected:
     /**
-     * structures to supporting backtracking
+     * structures to support backtracking
      */
     
     // Register Producer Tracking Table
@@ -251,6 +251,7 @@ class DropSimpleCPU : public BaseSimpleCPU
       BLOOM_FILTER
     };
     enum InvalidationPTImpl ipt_impl;
+    bool ipt_tagged;
     InvalidationPT ipt;
     InvalidationPTBloom ipt_bloom;
 

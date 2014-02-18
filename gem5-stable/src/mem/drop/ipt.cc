@@ -11,7 +11,7 @@
 #define SERIALIZE(x) os.write((const char*)&(x), sizeof(x));
 #define UNSERIALIZE(x) is.read((char*)&(x), sizeof(x));
 
-InvalidationPT::InvalidationPT(unsigned _numEntries, unsigned _entrySize, unsigned _tagBits, unsigned _instShiftAmt)
+InvalidationPT::InvalidationPT(bool _tagged, unsigned _numEntries, unsigned _entrySize, unsigned _tagBits, unsigned _instShiftAmt)
 	: numEntries(_numEntries), entrySize(_entrySize), tagBits(_tagBits), instShiftAmt(_instShiftAmt)
 {
     if (!isPowerOf2(numEntries)) {
@@ -21,6 +21,8 @@ InvalidationPT::InvalidationPT(unsigned _numEntries, unsigned _entrySize, unsign
         fatal("IPT entry size is not a power of 2!");
     }
     
+    tagged = _tagged;
+
     offsetMask = entrySize - 1;
 
     idxMask = numEntries - 1;
@@ -82,6 +84,8 @@ InvalidationPT::getTag(Addr addr)
 bool
 InvalidationPT::valid(Addr addr)
 {
+    assert(tagged);
+
     unsigned ipt_idx = getIndex(addr);
 
     Addr tag = getTag(addr);
@@ -102,15 +106,19 @@ InvalidationPT::lookup(Addr addr)
     unsigned offset = getOffset(addr);
     unsigned ipt_idx = getIndex(addr);
 
-    Addr tag = getTag(addr);
+    if (tagged) {
+        Addr tag = getTag(addr);
 
-    assert(ipt_idx < numEntries);
+        assert(ipt_idx < numEntries);
 
-    if (ipt[ipt_idx].valid
-        && tag == ipt[ipt_idx].tag) {
-        return ipt[ipt_idx].priority[offset];
+        if (ipt[ipt_idx].valid
+            && tag == ipt[ipt_idx].tag) {
+            return ipt[ipt_idx].priority[offset];
+        } else {
+            return 0;
+        }
     } else {
-        return 0;
+        return ipt[ipt_idx].priority[offset];
     }
 }
 
@@ -122,11 +130,20 @@ void InvalidationPT::update(Addr addr, const bool priority)
 
 	assert(ipt_idx < numEntries);
 
-    if (ipt[ipt_idx].valid) {
-        if (tag == ipt[ipt_idx].tag) {
-            ipt[ipt_idx].priority[offset] = priority;
+    if (tagged) {
+        if (ipt[ipt_idx].valid) {
+            if (tag == ipt[ipt_idx].tag) {
+                ipt[ipt_idx].priority[offset] = priority;
+            } else {
+                // replace entry
+                ipt[ipt_idx].tag = getTag(addr);
+                for (unsigned i = 0; i < entrySize; ++i) {
+                    ipt[ipt_idx].priority[i] = false;
+                }
+                ipt[ipt_idx].priority[offset] = priority;
+            }
         } else {
-            // replace entry
+            ipt[ipt_idx].valid = true;
             ipt[ipt_idx].tag = getTag(addr);
             for (unsigned i = 0; i < entrySize; ++i) {
                 ipt[ipt_idx].priority[i] = false;
@@ -134,11 +151,6 @@ void InvalidationPT::update(Addr addr, const bool priority)
             ipt[ipt_idx].priority[offset] = priority;
         }
     } else {
-        ipt[ipt_idx].valid = true;
-        ipt[ipt_idx].tag = getTag(addr);
-        for (unsigned i = 0; i < entrySize; ++i) {
-            ipt[ipt_idx].priority[i] = false;
-        }
         ipt[ipt_idx].priority[offset] = priority;
     }
 }

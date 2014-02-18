@@ -89,6 +89,8 @@ parser.add_option("--headstart_slack", type="int", default=2000000)
 parser.add_option("--backtrack", action="store_true")
 # instruction priority table implementation
 parser.add_option("--ipt_impl", type="string", default="table")
+# Whether IPT is tagged
+parser.add_option("--ipt_tagless", action="store_true")
 # instruction priority table false positive rate (bloom filter implementation)
 parser.add_option("--ipt_fpr", type="float", default=0.0)
 # instruction priority table size
@@ -239,6 +241,7 @@ DropCPUClass.backtrack_read_table = options.backtrack_read_table
 DropCPUClass.backtrack_write_table = options.backtrack_write_table
 DropCPUClass.backtrack_table_dir = options.backtrack_table_dir
 DropCPUClass.ipt_impl = ipt_impl[options.ipt_impl]
+DropCPUClass.ipt_tagged = not options.ipt_tagless
 DropCPUClass.ipt_false_positive_rate = options.ipt_fpr
 DropCPUClass.ipt_size = options.ipt_size
 DropCPUClass.ipt_entry_size = options.ipt_entry_size

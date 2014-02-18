@@ -35,7 +35,7 @@ class InvalidationPT
      * @param tagBits Number of bits in each tag
      * @param instShiftAmt Amount to shift instructions
      */
-    InvalidationPT(unsigned numEntries, unsigned entrySize, unsigned tagBits, unsigned instShiftAmt);
+    InvalidationPT(bool tagged, unsigned numEntries, unsigned entrySize, unsigned tagBits, unsigned instShiftAmt);
 
     void init();
     void reset();
@@ -83,6 +83,9 @@ class InvalidationPT
 
     /** The actual table */
     std::vector<PTEntry> ipt;
+
+    /** Whether the table has tags */
+    bool tagged;
 
     /** The number of entries in the table. */
     unsigned numEntries;
