@@ -1324,6 +1324,8 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                         setFlagCacheAddrFromTable(invtab, itidx);
                         result = performInvalidation(itidx, itp);
                         DPRINTF(Invalidation, "Filtered in HW.\n");
+                        if (_backtrack)
+                            notifyTimerInvalidation(_important);
                         return (result != NoFault)? result : ReExecFault; // Stay in HW
                     }
                 // Emulating filtering to determine what system without
@@ -1456,6 +1458,37 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     memcpy(data, &read_timer, size);
     
     return NoFault;
+}
+
+/**
+ * Notify the timer that an instruction is invalidated
+ */
+void
+BaseSimpleCPU::notifyTimerInvalidation(bool important)
+{
+    // use the CPU's statically allocated read request and packet objects
+    Request *req = &data_read_req;
+    // read data
+    long long int read_timer = 1;
+
+    // If the packet is droppable, read whether there is enough slack to
+    // perform full monitoring into read_timer.
+    // read_timer = 1 indicates enough slack, = 0 indicates drop.
+    Addr addr = important ? TIMER_READ_DROP_IMPORTANT : TIMER_READ_DROP;
+    // Create request at timer location
+    req->setPhys(addr, sizeof(read_timer), ArmISA::TLB::AllowUnaligned, dataMasterId());
+    // Read command
+    MemCmd cmd = MemCmd::ReadReq;
+    // Create packet
+    PacketPtr pkt = new Packet(req, cmd);
+    // Point packet to data pointer
+    pkt->dataStatic(&read_timer);
+
+    // Send read request
+    timerPort.sendFunctional(pkt);
+
+    // Clean up
+    delete pkt;
 }
 
 Fault
