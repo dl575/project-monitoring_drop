@@ -7,12 +7,15 @@ export PATH=`pwd`/build/ARM/:$PATH
 export GEM5=`pwd`/
 export MONITOR=<MONITOR>
 export MODEL=<MODEL>
+export DATE=<DATE>
 if [ $1 ]; then
     if [ $MODEL = ATOMIC ]; then
-        gem5.debug --remote-gdb-port=0 --stats-file=$GEM5/m5out/malarden/$MONITOR/$MODEL/$(basename ${1%arm})txt $GEM5/configs/example/dual_core.py -c $1 --cpu-type=atomic
+        gem5.debug --remote-gdb-port=0 --stats-file=$GEM5/m5out/$DATE/$MONITOR/$MODEL/$(basename ${1%arm})txt $GEM5/configs/example/dual_core.py -c $1 --cpu-type=atomic
     elif [ $MODEL = TIMING ]; then
-        gem5.debug --remote-gdb-port=0 --stats-file=$GEM5/m5out/malarden/$MONITOR/$MODEL/$(basename ${1%arm})txt $GEM5/configs/example/dual_core.py -c $1 --cpu-type=timing --caches
+        gem5.debug --remote-gdb-port=0 --stats-file=$GEM5/m5out/$DATE/$MONITOR/$MODEL/$(basename ${1%arm})txt $GEM5/configs/example/dual_core.py -c $1 --cpu-type=timing --caches
     elif [ $MODEL = FLEX ]; then
-        gem5.debug --remote-gdb-port=0 --stats-file=$GEM5/m5out/malarden/$MONITOR/$MODEL/$(basename ${1%arm})txt $GEM5/configs/example/flex_core_emulate.py -c $1 --cpu-type=atomic --caches
+        gem5.debug --remote-gdb-port=0 --stats-file=$GEM5/m5out/$DATE/$MONITOR/$MODEL/$(basename ${1%arm})txt $GEM5/configs/example/flex_core_emulate.py -c $1 --cpu-type=atomic --caches
+    elif [ $MODEL = FLEXHW ]; then
+        gem5.debug --remote-gdb-port=0 --stats-file=$GEM5/m5out/$DATE/$MONITOR/$MODEL/$(basename ${1%arm})txt $GEM5/configs/example/flex_core_hardwcet.py -c $1 --cpu-type=atomic --caches
     fi
 fi

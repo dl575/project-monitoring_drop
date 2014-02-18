@@ -116,6 +116,27 @@ AtomicSimpleMonitor::init()
 
     // Initialize monitoring packet
     mp.init();
+    
+    // Write threshold to timer
+    if (timer_enabled){
+        // Convert wcet cycles to ticks
+        Tick full_ticks = full_wcet*ticks(1);
+        // Create request
+        Request *timer_write_req = &data_write_req;
+        // set physical address
+        timer_write_req->setPhys(TIMER_SET_THRES, sizeof(full_ticks), ArmISA::TLB::AllowUnaligned, dataMasterId());
+        // Create write packet
+        MemCmd cmd = MemCmd::WriteReq;
+        PacketPtr timerpkt = new Packet(timer_write_req, cmd);
+        // Set data
+        timerpkt->dataStatic(&full_ticks);
+
+        // Send read request packet on timer port
+        timerPort.sendFunctional(timerpkt);
+
+        // Clean up
+        delete timerpkt;
+    }
 
     // copy thread pointer
     monitor_thread = thread;
@@ -127,7 +148,7 @@ AtomicSimpleMonitor::AtomicSimpleMonitor(AtomicSimpleMonitorParams *p)
       simulate_inst_stalls(p->simulate_inst_stalls),
       icachePort(name() + "-iport", this), dcachePort(name() + "-iport", this),
       monitorPort(name() + "-iport", this),
-      fastmem(p->fastmem)
+      fastmem(p->fastmem), full_wcet(p->full_wcet), full_delay(p->full_delay)
 {
     _status = Idle;
     
@@ -1370,7 +1391,7 @@ AtomicSimpleMonitor::DIFTRFExecute()
     // ALU instruction
     if (mp.intalu) {
         // integer ALU operation - handled by filter
-        panic("ALU instruction reached monitor\n");
+        warn("ALU instruction reached monitor\n");
     // Load instruction
     } else if (mp.load) {
         DPRINTF(Monitor, "DIFT: Load instruction, addr=0x%x\n", mp.memAddr);
@@ -1388,7 +1409,11 @@ AtomicSimpleMonitor::DIFTRFExecute()
           revalidateRegTag((int)mp.rd);
         }
         // Full monitoring of load means resulting tag is valid, clear invalidation
-        thread->setIntReg((int)mp.rd, false);
+        //thread->setIntReg((int)mp.rd, false);
+        int rd = (int)mp.rd;
+        if (rd >= 0 && rd < NUM_REGS) {
+          invalid_flags[rd] = false;
+        }
         
         numLoadInsts++;
         numMonitorInsts++;
@@ -1400,7 +1425,12 @@ AtomicSimpleMonitor::DIFTRFExecute()
         setFlagCacheAddr(mp.rs1);
         readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&tsrc, sizeof(tsrc), ArmISA::TLB::AllowUnaligned);
         // Get source invalidation
-        DIFTTag tinv = (DIFTTag)thread->readIntReg(mp.rs1);
+        //DIFTTag tinv = (DIFTTag)thread->readIntReg(mp.rs1);
+        DIFTTag tinv = false;
+        int rs1 = (int)mp.rs1;
+        if (rs1 >= 0 && rs1 < NUM_REGS && invalid_flags[rs1]) {
+          tinv = true;
+        }
 
         // If source is invalid 
         if (tinv) {
@@ -1438,7 +1468,7 @@ AtomicSimpleMonitor::DIFTRFExecute()
     } else if (mp.indctrl) {
         // Filter should handle any untainted indirect branches. Thus,
         // this must be a tainted branch.
-        panic("Fatal: indirect control transfer on tainted register, PC=0x%x\n", mp.instAddr);
+        warn("Fatal: indirect control transfer on tainted register, PC=0x%x\n", mp.instAddr);
         numIndirectCtrlInsts++;
         numMonitorInsts++;
     } else {
@@ -1807,7 +1837,7 @@ AtomicSimpleMonitor::LRCExecute()
   // On return,
   } else if (mp.ret) {
     // Read saved link register address
-    int savedpc = readWordTag((lr_ptr - 1) << 2) - 1;
+    int savedpc = readWordTag((lr_ptr - 1) << 2);
     // Next PC the program is going to
     int nextpc = (int)mp.nextpc;
     // If next PC and saved LR don't match, raise error
@@ -1823,7 +1853,7 @@ AtomicSimpleMonitor::LRCExecute()
 
     // Monitoring stats
     numReturnInsts++;
-  } else {
+  } else if (!mp.settag) {
     warn("Unknown instruction PC = %x\n", mp.instAddr);
   }
 }
@@ -1920,6 +1950,8 @@ AtomicSimpleMonitor::tick()
 
     Tick latency = 0;
     Tick stall_ticks = 0;
+    dcache_access = false; // assume no dcache access
+    Tick single_tick = ticks(1);
 
     if (!initialized) {
         // initialize monitor on first cycle
@@ -1928,7 +1960,7 @@ AtomicSimpleMonitor::tick()
     } else if (enabled) {
         // fetch an entry from main core
         preExecute();
-
+        
         if (mp.valid) {
             // model latency of reading a packet
             // stall_ticks += ticks(1);
@@ -1938,6 +1970,8 @@ AtomicSimpleMonitor::tick()
             } else {
                 finishMonitoring();
             }
+            // since we are doing full monitoring, we need to add the full_delay cycles
+            single_tick = ticks(1+full_delay);
         }
 
     }
@@ -1946,18 +1980,18 @@ AtomicSimpleMonitor::tick()
         stall_ticks += dcache_latency;
 
     if (stall_ticks) {
-        Tick stall_cycles = stall_ticks / ticks(1);
-        Tick aligned_stall_ticks = ticks(stall_cycles);
+        Tick stall_cycles = stall_ticks / single_tick;
+        Tick aligned_stall_ticks = single_tick * stall_cycles;
 
         if (aligned_stall_ticks < stall_ticks)
-            aligned_stall_ticks += ticks(1);
+            aligned_stall_ticks += single_tick;
 
         latency += aligned_stall_ticks;
     }
     
     // instruction takes at least one cycle
-    if (latency < ticks(1))
-        latency = ticks(1);
+    if (latency < single_tick)
+        latency = single_tick;
 
     if (_status != Idle)
         schedule(tickEvent, roundDown(curTick() + latency + 2, 3) - 2);

@@ -7,4 +7,4 @@ results:
 	./parse_results.py results run_one_results
 
 clean:
-	rm -rf results run_one_results output.xml
+	rm -rf results run_one_results output.xml config.ini config.json stats.txt run_all_results.txt mcpat.txt

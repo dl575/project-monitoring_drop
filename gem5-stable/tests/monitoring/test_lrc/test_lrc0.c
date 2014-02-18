@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 
 int __attribute__((noinline)) add(int a, int b) {
   return a + b;

@@ -12,7 +12,7 @@
 #include <assert.h>
 
 #include "timer.h"
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 #include "flagcache.h"
 
 #define METADATA_ADDRESSES 1024*1024*128

@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 #include "increment.h"
 
 int main( void ) {

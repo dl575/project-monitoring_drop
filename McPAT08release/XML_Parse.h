@@ -171,6 +171,10 @@ typedef struct {
   // ConfigTable
   double CT_duty_cycle;
   int CT_reads;
+  //InvalidationTable
+  double IT_duty_cycle;
+  int IT_reads;
+  int IT_writes;
   // FunctionalUnit
   int alu_accesses;
 } MIM_systemcore;

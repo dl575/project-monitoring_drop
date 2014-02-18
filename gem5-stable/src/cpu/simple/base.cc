@@ -111,7 +111,8 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     total_checks(0), full_packets(1), all_packets(1),
     perf_mon(true),
     _backtrack(p->backtrack),
-    print_checkid(p->print_checkid)
+    print_checkid(p->print_checkid),
+    print_static_coverage(p->print_static_coverage)
 {
 
     // Monitoring filter parameters
@@ -721,7 +722,7 @@ BaseSimpleCPU::performMonitoring() {
         (((inst_opclass == IntAluOp) || (inst_opclass == IntMultOp) || (inst_opclass == IntDivOp)) && curStaticInst->isInteger() &&
          // and not including control instructions
          !(curStaticInst->isControl()) && mf.intalu) || 
-        ((inst_dis.find("mov") != string::npos) && mf.intmov) ||
+        ((inst_dis.find("mov") != string::npos) && mf.intmov && !curStaticInst->isControl()) ||
         ((inst_dis.find("add") != string::npos) && mf.intadd) ||
         ((inst_dis.find("sub") != string::npos) && mf.intsub) ||
         ((inst_dis.find("and") != string::npos) && mf.intand) ||
@@ -914,6 +915,11 @@ void BaseSimpleCPU::init() {
   fed.clear();
   ReExecFault = new ReExec();
 
+  int i;
+  for (i = 0; i < NUM_REGS; i++) {
+    invalid_flags[i] = false;
+  }
+
   // Initialize ranges for printing out what is checked in full
   checkid_base = 0;
   checkid_vec = 0;
@@ -1103,28 +1109,40 @@ BaseSimpleCPU::performInvalidation(unsigned idx, instType itp)
         unsigned type = 0;
         fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
         // Set invalidation flag in register file
-        thread->setIntReg((int)rd, (uint64_t)true);
+        //thread->setIntReg((int)rd, (uint64_t)true);
+        if (rd >= 0 && rd < NUM_REGS) {
+          invalid_flags[rd] = true;
+        }
     } else if (invtab.action[idx] == "HW_clear_array_clear_reg") {
         // Clear array
         DPRINTF(Invalidation, "Clearing array\n");
         unsigned type = 0;
         fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
         // Clear invalidation flag in register file
-        thread->setIntReg((int)rd, (uint64_t)false);
+        //thread->setIntReg((int)rd, (uint64_t)false);
+        if (rd >= 0 && rd < NUM_REGS) {
+          invalid_flags[rd] = false;
+        }
     } else if (invtab.action[idx] == "HW_set_array_set_reg") {
         // Set array
         DPRINTF(Invalidation, "Setting array\n");
         unsigned type = 0;
         fault = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
         // Set invalidation flag in register file
-        thread->setIntReg((int)rd, (uint64_t)true);
+        //thread->setIntReg((int)rd, (uint64_t)true);
+        if (rd >= 0 && rd < NUM_REGS) {
+          invalid_flags[rd] = true;
+        }
     } else if (invtab.action[idx] == "HW_set_array_clear_reg") {
         // Set array
         DPRINTF(Invalidation, "Setting array\n");
         unsigned type = 0;
         fault = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
         // Clear invalidation flag in register file
-        thread->setIntReg((int)rd, (uint64_t)false);
+        //thread->setIntReg((int)rd, (uint64_t)false);
+        if (rd >= 0 && rd < NUM_REGS) {
+          invalid_flags[rd] = false;
+        }
     } else if (invtab.action[idx] == "HW_set_array_propagate_reg") {
         // Set array
         DPRINTF(Invalidation, "Setting array\n");
@@ -1132,13 +1150,24 @@ BaseSimpleCPU::performInvalidation(unsigned idx, instType itp)
         fault = writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
         // Propagate invalidation flag in register file
         bool tinv = false;
+        /*
         if (TheISA::isISAReg(rs1) && thread->readIntReg(rs1)) {
           tinv = true;
         }
         if (TheISA::isISAReg(rs2) && thread->readIntReg(rs2)) {
           tinv = true;
         }
-        thread->setIntReg((int)rd, (uint64_t)tinv);
+        */
+        if (rs1 >= 0 && rs1 < NUM_REGS && invalid_flags[rs1]) {
+          tinv = true;
+        }
+        if (rs2 >= 0 && rs2 < NUM_REGS && invalid_flags[rs2]) {
+          tinv = true;
+        }
+        //thread->setIntReg((int)rd, (uint64_t)tinv);
+        if (rd >= 0 && rd < NUM_REGS) {
+          invalid_flags[rd] = tinv;
+        }
         // Adjust statistics if valid propagation
         if (!tinv) {
           filterstats[itp]--;
@@ -1151,13 +1180,24 @@ BaseSimpleCPU::performInvalidation(unsigned idx, instType itp)
         fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
         // Propagate invalidation flag in register file
         bool tinv = false;
+        /*
         if (TheISA::isISAReg(rs1) && thread->readIntReg(rs1)) {
           tinv = true;
         }
         if (TheISA::isISAReg(rs2) && thread->readIntReg(rs2)) {
           tinv = true;
         }
-        thread->setIntReg((int)rd, (uint64_t)tinv);
+        */
+        if (rs1 >= 0 && rs1 < NUM_REGS && invalid_flags[rs1]) {
+          tinv = true;
+        }
+        if (rs2 >= 0 && rs2 < NUM_REGS && invalid_flags[rs2]) {
+          tinv = true;
+        }
+        //thread->setIntReg((int)rd, (uint64_t)tinv);
+        if (rd >= 0 && rd < NUM_REGS) {
+          invalid_flags[rd] = tinv;
+        }
         // Adjust statistics if valid propagation
         if (!tinv) {
           filterstats[itp]--;
@@ -1165,7 +1205,8 @@ BaseSimpleCPU::performInvalidation(unsigned idx, instType itp)
         }
     } else if (invtab.action[idx] == "HW_nop_check_invalid") {
       // Invalid check
-      if (TheISA::isISAReg(rs1) && thread->readIntReg(rs1)) {
+      //if (TheISA::isISAReg(rs1) && thread->readIntReg(rs1)) {
+      if (rs1 >= 0 && rs1 < NUM_REGS && invalid_flags[rs1]) {
         // Do nothing, filtered out
       // Valid check
       } else {
@@ -1232,6 +1273,20 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         ischeck = (check_load && (itp == inst_load))
                   ||(check_store && (itp == inst_store))
                   ||(check_indctrl && (itp == inst_indctrl));
+
+        // Mark static instruction as having an event (if unchecked previously)
+        if (print_static_coverage && ischeck) {
+          // Read PC from FIFO
+          Addr pc = -1;
+          readFromFifo(FIFO_INSTADDR, (uint8_t *)&pc, sizeof(pc), ArmISA::TLB::AllowUnaligned);
+          // Look for PC in list of all PCs that raise events
+          std::list<int>::iterator findIter = std::find(pc_checked.begin(), pc_checked.end(), (int)pc);
+          // If not found, add to list
+          if (findIter == pc_checked.end()) {
+            pc_checked.push_back((int)pc);
+          }
+        }
+
         
         // Reevaluate packet drop rate
         if (check_frequency && total_checks && ischeck && intask
@@ -1422,7 +1477,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                       // If past last bit vector
                       if (total_checks / 64 > checkid_base) {
                         // Print out last vector
-                        printf("%d,%llx\n", checkid_base, checkid_vec);
+                        printf("%d,%llx\n", checkid_base, (long long unsigned int)checkid_vec);
                         // Update base
                         checkid_base = total_checks / 64;
                         // Reset bit vector
@@ -1430,6 +1485,18 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                       } 
                       // Set corresponding bit
                       checkid_vec |= (((uint64_t)1) << (total_checks % 64));
+                    }
+                    
+                    if (print_static_coverage) {
+                      // Mark static instruction as checked
+                      Addr pc = -1;
+                      readFromFifo(FIFO_INSTADDR, (uint8_t *)&pc, sizeof(pc), ArmISA::TLB::AllowUnaligned);
+                      // Look for PC in list of full monitored PCs
+                      std::list<int>::iterator findIter = std::find(pc_checked_full.begin(), pc_checked_full.end(), (int)pc);
+                      // If not found, add to list
+                      if (findIter == pc_checked_full.end()) {
+                        pc_checked_full.push_back((int)pc);
+                      }
                     }
                 }
             }

@@ -131,6 +131,26 @@ FlagCache::regStats()
         .name(name()+".num_aliased")
         .desc("Number of flag cache accesses which aliased")
         ;
+
+    numRegLoads
+        .name(name() + ".flagRegLoads")
+        .desc("Number of loads from flag register/array")
+        ;
+
+    numRegStores
+        .name(name() + ".flagRegStores")
+        .desc("Number of stores to flag register/array")
+        ;
+
+    numCacheLoads
+        .name(name() + ".flagCacheLoads")
+        .desc("Number of loads from flag cache")
+        ;
+
+    numCacheStores
+        .name(name() + ".flagCacheStores")
+        .desc("Number of stores to flag cache")
+        ;
 }
 
 Tick
@@ -174,12 +194,15 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
             if (read_addr == FC_GET_ADDR) { 
                 send_data = addr;
                 DPRINTF(FlagCache, "Get flag cache address = %x\n", addr);
+            // Read from flag array
             } else if (read_addr == FC_GET_FLAG_A){
                 if (addr >= 0 && addr < fa_size){
                     // Lookup flag
                     send_data = (flag_array[addr])? 1 : 0;
                     DPRINTF(FlagCache, "Flag array lookup @ %x: value? %d\n", addr, send_data);
+                    numRegLoads++;
                 }
+            // Read from flag cache
             } else if (read_addr == FC_GET_FLAG_C) { 
                 // Check bloom filter with address
                 //bool found = counting_bloom_check(bloom, (const char *)&addr, sizeof(addr));
@@ -201,6 +224,7 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                     last_access = curTick();
                 }
                 DPRINTF(FlagCache, "Flag cache lookup @ %x -> %x: found? %d, aliased? %d, num_aliased = %d\n", addr, cA, found, cL->aliased, num_aliased.value());
+                numCacheLoads++;
             } else if (read_addr == FC_ALIASED) {
                 send_data = num_aliased.value();
             } else {
@@ -224,13 +248,16 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                 DPRINTF(FlagCache, "Set flag cache address = %x\n", addr);
             // Set flag
             } else if (write_addr == FC_SET_FLAG) {
+                // Set in flag array
                 if (get_data == 0) {
                     if(addr >= 0 && addr < fa_size){
                         flag_array[addr] = true;
                         DPRINTF(FlagCache, "Flag array set @ %x\n", addr);
+                        numRegStores++;
                     } else {
                         DPRINTF(FlagCache, "Flag array not set @ %x\n", addr);
                     }
+                // Set in flag cache
                 } else if (get_data == 1) {
                     // Set bloom filter with address
                     // counting_bloom_add(bloom, (const char *)&addr, sizeof(addr));
@@ -264,16 +291,20 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                     } else {
                         DPRINTF(FlagCache, "Flag set @ %x -> %x: cache is already aliased\n", addr, cA);
                     }
+                    numCacheStores++;
                 }
             // Clear flag
             } else if (write_addr == FC_CLEAR_FLAG) {
+                // Clear in flag array
                 if (get_data == 0) {
                     if(addr >= 0 && addr < fa_size){
                         flag_array[addr] = false;
                         DPRINTF(FlagCache, "Flag array clear @ %x\n", addr);
+                        numRegStores++;
                     } else {
                         DPRINTF(FlagCache, "Flag array not cleared @ %x\n", addr);
                     }
+                // Clear in flag cache
                 } else if (get_data == 1) {
                     // Clear bloom filter with address
                     // counting_bloom_remove(bloom, (const char *)&addr, sizeof(addr));
@@ -305,6 +336,7 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                     } else {
                         DPRINTF(FlagCache, "Flag cache clear @ %x -> %x: cache is aliased\n", addr, cA);
                     }
+                    numCacheStores++;
                 }
             } else {
               warn("Unknown address written to flag cache.");

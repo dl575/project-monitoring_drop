@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-#include "monitoring.h"
+#include "monitoring_wcet.h"
 
 int main(int argc, char *argv[]) {
   INIT_MONITOR

@@ -199,6 +199,12 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
         registerExitCallback(cb);
     }
 
+    if (print_static_coverage) {
+      // Callback to print out checked static instructions
+      Callback *cb = new MakeCallback<DropSimpleCPU, &DropSimpleCPU::writeCheckedPC>(this);
+      registerExitCallback(cb);
+    }
+
 }
 
 
@@ -412,6 +418,28 @@ DropSimpleCPU::writeBacktrackTable()
     } else
         warn("slack multiplier file could not be opened.\n");
     os.close();
+}
+
+void
+DropSimpleCPU::writeCheckedPC()
+{
+  printf("All PCs:\n");
+  std::list<int>::iterator it;
+  for (it = pc_checked.begin(); it != pc_checked.end(); ++it) {
+    printf("%x, ", *it);
+  }
+  printf("\n");
+  printf("size = %d\n", (int)pc_checked.size());
+
+  printf("Full monitored PCs:\n");
+  for (it = pc_checked_full.begin(); it != pc_checked_full.end(); ++it) {
+    printf("%x, ", *it);
+  }
+  printf("\n");
+  printf("size = %d\n", (int)pc_checked_full.size());
+
+  float coverage = (float)pc_checked_full.size()/(int)pc_checked.size();
+  printf("Static Coverage = %f\n", coverage);
 }
 
 Fault

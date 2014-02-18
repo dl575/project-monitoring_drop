@@ -49,3 +49,5 @@ class AtomicSimpleMonitor(BaseSimpleCPU):
     fastmem = Param.Bool(False, "Access memory directly")
     monitor_port = MasterPort("Monitor Port")
     monitor_type = Param.Int(0, "Type of monitor")
+    full_wcet = Param.Unsigned(0, "Number of cycles for full monitoring")
+    full_delay = Param.Unsigned(0, "Number of additional cycles for full monitoring")

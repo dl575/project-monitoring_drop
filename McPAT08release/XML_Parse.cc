@@ -645,6 +645,9 @@ void ParseXML::parse(char* filepath)
                 if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"stores")==0) {sys.core[i].MIM.stores=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
                 if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"CT_duty_cycle")==0) {sys.core[i].MIM.CT_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
                 if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"CT_reads")==0) {sys.core[i].MIM.CT_reads=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"IT_duty_cycle")==0) {sys.core[i].MIM.IT_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"IT_reads")==0) {sys.core[i].MIM.IT_reads=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"IT_writes")==0) {sys.core[i].MIM.IT_writes=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
                 if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"alu_accesses")==0) {sys.core[i].MIM.alu_accesses=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;}
               } // MIM stat
 
