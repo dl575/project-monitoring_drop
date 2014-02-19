@@ -52,15 +52,11 @@
 #include "mem/abstract_mem.hh"
 #include "mem/tport.hh"
 #include "params/FlagCache.hh"
+#include "mem/peripheral_addr.hh"
 
 extern "C" {
 #include "mem/bloom_filter/dablooms.h"
 }
-
-// Flag Cache device address
-#define FLAG_CACHE_ADDR 0x30020000
-#define FLAG_CACHE_ADDR_START FLAG_CACHE_ADDR
-#define FLAG_CACHE_ADDR_END   FLAG_CACHE_ADDR + 0x0000ffff
 
 // read values
 #define FC_GET_ADDR            (FLAG_CACHE_ADDR + 0x00)

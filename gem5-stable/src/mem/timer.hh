@@ -52,10 +52,7 @@
 #include "mem/abstract_mem.hh"
 #include "mem/tport.hh"
 #include "params/Timer.hh"
-
-#define TIMER_ADDR 0x30010000
-#define TIMER_ADDR_START TIMER_ADDR
-#define TIMER_ADDR_END   TIMER_ADDR + 0x0000ffff
+#include "mem/peripheral_addr.hh"
 
 // read registers
 #define TIMER_READ_SLACK       (TIMER_ADDR + 0x00)

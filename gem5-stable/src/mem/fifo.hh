@@ -52,11 +52,7 @@
 #include "mem/abstract_mem.hh"
 #include "mem/tport.hh"
 #include "params/Fifo.hh"
-
-// FIFO device address
-#define FIFO_ADDR 0x30000000
-#define FIFO_ADDR_START FIFO_ADDR
-#define FIFO_ADDR_END   FIFO_ADDR + 0x0000ffff
+#include "mem/peripheral_addr.hh"
 
 // Addresses used for parts of monitoring packet
 #define FIFO_VALID         FIFO_ADDR                // valid packet

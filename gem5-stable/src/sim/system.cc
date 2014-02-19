@@ -71,10 +71,12 @@ vector<System *> System::systemList;
 
 int System::numSystemsRunning = 0;
 
+#define MON_PAGE_START 0x30000 // pages (4 KB each)
+
 System::System(Params *p)
     : MemObject(p), _systemPort("system_port", this),
       _numContexts(0),
-      pagePtr(0), monPtr(131072),
+      pagePtr(0), monPtr(MON_PAGE_START),
       init_param(p->init_param),
       physProxy(_systemPort),
       virtProxy(_systemPort),

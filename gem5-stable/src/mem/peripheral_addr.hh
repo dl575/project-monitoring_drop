@@ -1,0 +1,23 @@
+
+#ifndef __PERIPHERAL_ADDR_HH__
+#define __PERIPHERAL_ADDR_HH__
+
+#define PERIPHERAL_ADDR 0x50000000
+
+// FIFO device address
+#define FIFO_ADDR       (PERIPHERAL_ADDR)
+#define FIFO_ADDR_START FIFO_ADDR
+#define FIFO_ADDR_END   FIFO_ADDR + 0x0000ffff
+
+// Timer device addresses
+#define TIMER_ADDR       (PERIPHERAL_ADDR + 0x10000)
+#define TIMER_ADDR_START TIMER_ADDR
+#define TIMER_ADDR_END   TIMER_ADDR + 0x0000ffff
+
+// Flag Cache device address
+#define FLAG_CACHE_ADDR       (PERIPHERAL_ADDR + 0x20000)
+#define FLAG_CACHE_ADDR_START FLAG_CACHE_ADDR
+#define FLAG_CACHE_ADDR_END   FLAG_CACHE_ADDR + 0x0000ffff
+
+
+#endif // __PERIPHERAL_ADDR_HH__
