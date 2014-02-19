@@ -57,4 +57,8 @@ class DropSimpleCPU(BaseSimpleCPU):
       forward_fifo_port = MasterPort("Forward Fifo Port")
 
     mpt_size = Param.Int(0x100000, "Size of memory producer tracking table")
+    ipt_impl = Param.Int(0, "IPT implementation")
+    ipt_tagged = Param.Bool(True, "Whether IPT is tagged")
     ipt_size = Param.Int(0x100000, "Size of instruction priority table")
+    ipt_entry_size = Param.Int(16, "Size of instruction priority table entry")
+    ipt_false_positive_rate = Param.Float(0.01, "False positive rate of IPT bloom filter")

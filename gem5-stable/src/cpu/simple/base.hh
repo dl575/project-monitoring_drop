@@ -677,6 +677,8 @@ class BaseSimpleCPU : public BaseCPU
     Fault readFromFifo(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     // Read from slack timer into data
     Fault readFromTimer(Addr addr, uint8_t * data, unsigned size, unsigned flags);
+    // Notify the timer that an instruction is invalidated
+    void notifyTimerInvalidation(bool important);
     // Read from flag cache into data
     virtual Fault readFromFlagCache(Addr addr, uint8_t * data, unsigned size, unsigned flags);
     // Write to fifo

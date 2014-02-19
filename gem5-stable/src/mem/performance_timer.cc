@@ -46,6 +46,7 @@
  * Based on simple_mem.cc
  */
 
+#include <fstream>
 #include "base/random.hh"
 #include "mem/performance_timer.hh"
 
@@ -58,6 +59,8 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
     lat(p->latency), lat_var(p->latency_var),
     povr(p->percent_overhead),
     important_percent(p->important_percent),
+    increment_important_only(p->increment_important_only),
+    read_slack_multiplier(p->read_slack_multiplier),
     use_start_ticks(p->use_start_ticks)
 {
     for (size_t i = 0; i < p->port_port_connection_count; ++i) {
@@ -76,8 +79,16 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
         slack_lo = p->slack_hi * p->start_cycles_clock;
     }
     
-    important_policy = p->important_policy;
+    switch(p->important_policy) {
+        case ALWAYS: important_policy = ALWAYS; break;
+        case SLACK: important_policy = SLACK; break;
+        case PERCENT: important_policy = PERCENT; break;
+        case UNIFIED: important_policy = UNIFIED; break;
+        default: panic("Invalid important policy\n");
+    }
     important_slack = p->important_slack * p->start_cycles_clock;
+
+    persistence_dir = p->persistence_dir;
 
     srand(p->seed);
     
@@ -102,6 +113,58 @@ PerformanceTimer::init()
     drop_thres = 0;
     drops = 0;
     not_drops = 0;
+
+    last_important = false;
+    // initialize slack multiplier
+    if (read_slack_multiplier) {
+        ifstream is;
+        // read instruction priority table
+        is.open(persistence_dir + "/slack_multiplier", std::ios::in);
+        if (is.good()) {
+            is >> slack_multiplier;
+        } else
+            warn("slack multiplier file could not be opened.\n");
+        is.close();
+    } else
+        slack_multiplier = 1.0;
+    slack_subtrahend = 0;
+    _cumulative_delay_time = 0;
+}
+
+void
+PerformanceTimer::regStats()
+{
+    using namespace Stats;
+
+    AbstractMemory::regStats();
+
+    cumulative_delay_time
+        .name(name() + ".cumulative_delay_time")
+        .desc("Cumulative delay (stall) time")
+        ;
+    slack_allocated
+        .name(name() + ".slack_allocated")
+        .desc("Allocated slack for task")
+        ;
+    task_execution_time
+        .name(name() + ".task_execution_time")
+        .desc("Task execution time")
+        ;
+    non_stall_time
+        .name(name() + ".non_stall_time")
+        .desc("Time that is not stalled")
+        ;
+    actual_slowdown
+        .name(name() + ".actual_slowdown")
+        .desc("Actual slowdown")
+        ;
+    actual_overhead
+        .name(name() + ".actual_overhead")
+        .desc("Actual overhead measured by the actual slack allocated")
+        ;
+    non_stall_time = task_execution_time - cumulative_delay_time;
+    actual_slowdown = task_execution_time / non_stall_time;
+    actual_overhead = slack_allocated / non_stall_time;
 }
 
 Tick
@@ -124,14 +187,82 @@ PerformanceTimer::doAtomicAccess(PacketPtr pkt)
     return calculateLatency(pkt);
 }
 
-long long int
-PerformanceTimer::effectiveSlack(){
-    return stored_tp.slack + (curTick() - stored_tp.taskStart)*povr;
+/**
+ * Return the effective overhead, taking into account slack multiplier
+ */
+inline double PerformanceTimer::effectiveOverhead()
+{
+    return povr * slack_multiplier;
 }
 
-long long int
+inline long long int
+PerformanceTimer::effectiveSlack(){
+    return stored_tp.slack + slackAllocated();
+}
+
+inline long long int
 PerformanceTimer::effectiveImportantSlack(){
-    return stored_tp.important_slack + (curTick() - stored_tp.taskStart)*(povr+important_percent);
+    return stored_tp.important_slack + taskExecutionTime() * (povr+important_percent);
+}
+
+inline long long int
+PerformanceTimer::slackAllocated()
+{
+    long long int slack = taskExecutionTime() * effectiveOverhead() - slack_subtrahend;
+    slack_allocated = slack;
+    return slack;
+}
+
+inline Tick
+PerformanceTimer::taskExecutionTime()
+{
+    Tick ticks = curTick() - stored_tp.taskStart;
+    task_execution_time = ticks;
+    return ticks;
+}
+
+inline Tick
+PerformanceTimer::nonStallTime()
+{
+    Tick ticks = taskExecutionTime() - _cumulative_delay_time;
+    return ticks;
+}
+
+/**
+ * Return the actual slowdown
+ */
+double
+PerformanceTimer::actualSlowdown()
+{
+    return ((double) taskExecutionTime()) / nonStallTime();
+}
+
+/**
+ * Return the actual overhead measured by the actual slack allocated
+ */
+double
+PerformanceTimer::actualOverhead()
+{
+    return ((double) slackAllocated()) / nonStallTime();
+}
+
+double
+PerformanceTimer::getAdjustedSlackMultiplier()
+{
+    slack_multiplier = effectiveOverhead() / actualOverhead() * slack_multiplier;
+    // limit slack multiplier so that effectiveOverhead does not exceed 1.0
+    if (povr > 0.0 && slack_multiplier > 1 / povr)
+        slack_multiplier = 1 / povr;
+    return slack_multiplier;
+}
+
+void
+PerformanceTimer::updateSlackSubtrahend()
+{
+    if (stored_tp.isDecrement || !last_important) {
+        slack_subtrahend += (curTick() - slack_subtrahend_last_update) * effectiveOverhead();
+    }
+    slack_subtrahend_last_update = curTick();
 }
 
 void
@@ -159,14 +290,18 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             long long int slack;
             long long int impt_slack = 0;
             if (stored_tp.intask && !stored_tp.isDecrement){
+                if (increment_important_only)
+                    updateSlackSubtrahend();
                 slack = effectiveSlack();
-                if (important_policy == 2)
+                if (important_policy == PERCENT)
                     impt_slack = effectiveImportantSlack();
             } else if (stored_tp.isDecrement){
+                if (increment_important_only)
+                    updateSlackSubtrahend();
                 slack = effectiveSlack() - (curTick() - stored_tp.decrementStart);
                 if (slack > effectiveSlack()){ panic("Timer Underflow."); }
 
-                if (important_policy == 2) {
+                if (important_policy == PERCENT) {
                     impt_slack = effectiveImportantSlack() - (curTick() - stored_tp.decrementStart);
                     if (impt_slack > effectiveImportantSlack())
                         panic("Timer Underflow.");
@@ -175,7 +310,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                 slack = stored_tp.slack - (curTick() - stored_tp.decrementStart);
                 if (slack > stored_tp.slack){ panic("Timer Underflow."); }
 
-                if (important_policy == 2) {
+                if (important_policy == PERCENT) {
                     impt_slack = stored_tp.important_slack - (curTick() - stored_tp.decrementStart);
                     if (impt_slack > stored_tp.important_slack)
                         panic("Timer Underflow.");
@@ -187,11 +322,15 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             
             Addr read_addr = pkt->getAddr();
             uint64_t send_data = 0;
+            double send_data_double = 0.0;
             
             if (read_addr == TIMER_READ_SLACK){
                 send_data = slack;
             } else if (read_addr == TIMER_READ_DROP) {
                 long long int adjusted_slack = slack - drop_thres;
+                // if using unified important slack policy, drop unimportant instruction if slack is below threshold
+                if (important_policy == UNIFIED)
+                  adjusted_slack -= important_slack;
                 int drop_status;
                 if (adjusted_slack < slack_lo){
                     drop_status = 0; // Drop
@@ -215,13 +354,15 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                     if (drop_status) { not_drops++; }
                     else { drops++; }
                 }
+                // set last instruction importance
+                last_important = false;
             } else if (read_addr == TIMER_READ_DROP_IMPORTANT) {
-                if (important_policy == 0) {
+                if (important_policy == ALWAYS) {
                     // always forward
                     int drop_status = 1;
                     send_data = drop_status;
                     not_drops++;
-                } else if (important_policy == 1) {
+                } else if (important_policy == SLACK) {
                     // forward/drop based on slack
                     int drop_status = (slack + important_slack >= 0);
                     send_data = drop_status;
@@ -229,7 +370,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                         if (drop_status) { not_drops++; }
                         else { drops++; }
                     }
-                } else if (important_policy == 2) {
+                } else if (important_policy == PERCENT) {
                     long long int adjusted_slack = impt_slack - drop_thres;
                     int drop_status = (adjusted_slack >= 0);
                     send_data = drop_status;
@@ -237,16 +378,31 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                         if (drop_status) { not_drops++; }
                         else { drops++; }
                     }
+                } else if (important_policy == UNIFIED) {
+                    long long int adjusted_slack = slack - drop_thres;
+                    int drop_status = (adjusted_slack >= 0);
+                    send_data = drop_status;
+                    if (stored_tp.intask || curTick() < stored_tp.WCET_end) {
+                        if (drop_status) { not_drops++; }
+                        else { drops++; }
+                    }
                 }
+                // set last instruction importance
+                last_important = true;
             } else if (read_addr == TIMER_DROPS){
                 send_data = drops;
             } else if (read_addr == TIMER_NOT_DROPS){
                 send_data = not_drops;
             } else if (read_addr == TIMER_TASK_PACKET){
                 send_data = (stored_tp.intask || curTick() < stored_tp.WCET_end);
+            } else if (read_addr == TIMER_ADJUSTED_SLACK_MULTIPLIER) {
+                send_data_double = getAdjustedSlackMultiplier();
             }
             
-            pkt->setData((uint8_t *)&send_data);
+            if (read_addr == TIMER_ADJUSTED_SLACK_MULTIPLIER)
+                pkt->setData((uint8_t *)&send_data_double);
+            else
+                pkt->setData((uint8_t *)&send_data);
         }
         //TRACE_PACKET("Read");
         pkt->makeResponse();
@@ -268,12 +424,12 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
               if (use_start_ticks){
                 // Use param based initial slack
                 stored_tp.slack = start_ticks;
-                if (important_policy == 2)
+                if (important_policy == PERCENT)
                     stored_tp.important_slack = start_ticks;
               } else {
                 // Use optionally passed value as initial slack
                 stored_tp.slack = get_data;
-                if (important_policy == 2)
+                if (important_policy == PERCENT)
                     stored_tp.important_slack = get_data;
               }
               DPRINTF(SlackTimer, "Written to timer: task start, slack = %d\n", effectiveSlack());
@@ -282,7 +438,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
               stored_tp.decrementStart = curTick();
               long long int additional_time = get_data;
               stored_tp.slack = effectiveSlack();
-              if (important_policy == 2)
+              if (important_policy == PERCENT)
                   stored_tp.important_slack = effectiveImportantSlack();
               long long int wait_time = stored_tp.slack + additional_time;
               stored_tp.WCET_end = curTick() + wait_time; // Actual deadline
@@ -301,17 +457,23 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
               if (stored_tp.intask){
                   stored_tp.isDecrement = false;
                   //Include povr to offset increase in slack over the delay time
-                  Tick delay_time = (curTick() - stored_tp.decrementStart)*(1+povr);
+                  Tick delay_time;
+                  if (!increment_important_only)
+                    delay_time = (curTick() - stored_tp.decrementStart)*(1+effectiveOverhead());
+                  else
+                    delay_time = curTick() - stored_tp.decrementStart;
                   long long int slack = stored_tp.slack - delay_time;
                   if (slack > stored_tp.slack){
                     panic("Timer Underflow.");
                   }
                   stored_tp.slack = slack;
+                  _cumulative_delay_time += delay_time;
+                  cumulative_delay_time += delay_time;
                   
                   DPRINTF(SlackTimer, "Written to timer: decrement end, slack = %d\n", effectiveSlack());
 
-                  if (important_policy == 2) {
-                    delay_time = (curTick() - stored_tp.decrementStart)*(1 + important_percent);
+                  if (important_policy == PERCENT) {
+                    delay_time = (curTick() - stored_tp.decrementStart)*(1 + povr + important_percent);
                     slack = stored_tp.important_slack - delay_time;
                     if (slack > stored_tp.important_slack) {
                       panic("Timer Underflow.");
@@ -381,12 +543,17 @@ PerformanceTimer::resume()
   // Reset slack on resume (after fast-forward)
   if (use_start_ticks) {
     stored_tp.slack = start_ticks;
+    if (important_policy == PERCENT)
+      stored_tp.important_slack = start_ticks;
     // Mark this as task start time so slack is calculated correctly. Slack is
     // calculated based on the curTick and the task start time.
     stored_tp.taskStart = curTick();
   } else {
     panic("No headstart slack specified\n");
   }
+  // reset slack subtrahend last update timestamp
+  slack_subtrahend_last_update = curTick();
+
   DPRINTF(SlackTimer, "Resuming simulation, slack = %d\n", effectiveSlack());
 
 }

@@ -87,8 +87,16 @@ parser.add_option("--headstart_slack", type="int", default=2000000)
 
 # backtracking
 parser.add_option("--backtrack", action="store_true")
+# instruction priority table implementation
+parser.add_option("--ipt_impl", type="string", default="table")
+# Whether IPT is tagged
+parser.add_option("--ipt_tagless", action="store_true")
+# instruction priority table false positive rate (bloom filter implementation)
+parser.add_option("--ipt_fpr", type="float", default=0.0)
 # instruction priority table size
 parser.add_option("--ipt_size", type="int", default=0x100000)
+# instruction priority table entry size
+parser.add_option("--ipt_entry_size", type="int", default=1)
 # memory producer tracking table size
 parser.add_option("--mpt_size", type="int", default=0x100000)
 parser.add_option("--backtrack_read_table", action="store_true")
@@ -101,7 +109,10 @@ parser.add_option("--important_policy", type="string", default="always")
 parser.add_option("--important_slack", type="int", default=2000000)
 # Additional slack for important instructions as percent of total cycles
 parser.add_option("--important_percent", type="float", default=0.0)
-
+# Increment slack on important instructions only
+parser.add_option("--increment_important_only", action="store_true")
+# Read slack multiplier from file
+parser.add_option("--read_slack_multiplier", action="store_true")
 # Number of instructions to fast-forward
 # During fast-forwarding, full monitoring is performed. Invalidation is enabled
 # after fast-forward period.
@@ -135,7 +146,13 @@ available_monitors = {
 important_policy = {
   "always"  : 0,
   "slack"   : 1,
-  "percent" : 2
+  "percent" : 2,
+  "unified" : 3
+}
+
+ipt_impl = {
+  "table" : 0,
+  "bloom" : 1
 }
 
 if '--ruby' in sys.argv:
@@ -225,7 +242,11 @@ DropCPUClass.backtrack = options.backtrack
 DropCPUClass.backtrack_read_table = options.backtrack_read_table
 DropCPUClass.backtrack_write_table = options.backtrack_write_table
 DropCPUClass.backtrack_table_dir = options.backtrack_table_dir
+DropCPUClass.ipt_impl = ipt_impl[options.ipt_impl]
+DropCPUClass.ipt_tagged = not options.ipt_tagless
+DropCPUClass.ipt_false_positive_rate = options.ipt_fpr
 DropCPUClass.ipt_size = options.ipt_size
+DropCPUClass.ipt_entry_size = options.ipt_entry_size
 DropCPUClass.mpt_size = options.mpt_size
 # Coverage options
 DropCPUClass.target_coverage = options.coverage
@@ -351,7 +372,12 @@ fifo_dc_to_mon.fifo_size = 3
 system.fifo_dc_to_mon = fifo_dc_to_mon
 # Create timer
 timer = PerformanceTimer(range=AddrRange(start=PERIPHERAL_ADDR_BASE + TIMER_OFFSET, size="64kB"))
-timer.percent_overhead = options.overhead
+if options.important_policy == "percent":
+  timer.percent_overhead = options.overhead - options.important_percent
+  if (timer.percent_overhead < 0):
+    raise Exception("overhead for important instructions should not exceed total overhead!")
+else:
+  timer.percent_overhead = options.overhead
 # For spec benchmarks, we set init slack here
 timer.start_cycles = options.headstart_slack
 timer.start_cycles_clock = MainCPUClass.clock
@@ -360,6 +386,9 @@ timer.use_start_ticks = True
 timer.important_policy = important_policy[options.important_policy]
 timer.important_slack = options.important_slack
 timer.important_percent = options.important_percent
+timer.increment_important_only = options.increment_important_only
+timer.read_slack_multiplier = options.read_slack_multiplier
+timer.persistence_dir = options.backtrack_table_dir
 # We can also set a probabilistic range
 if options.probabilistic_drop:
   timer.seed = random.randint(-2**30,2**30)

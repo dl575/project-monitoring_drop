@@ -112,8 +112,17 @@ class PerformanceTimer : public AbstractMemory
 
     };
 
-    long long int effectiveSlack();
-    long long int effectiveImportantSlack();
+    virtual void regStats();
+    double effectiveOverhead();
+    inline long long int effectiveSlack();
+    inline long long int effectiveImportantSlack();
+    inline long long int slackAllocated();
+    inline Tick taskExecutionTime();
+    inline Tick nonStallTime();
+    void updateSlackSubtrahend();
+    double actualSlowdown();
+    double actualOverhead();
+    double getAdjustedSlackMultiplier();
     
     std::vector<MemoryPort*> ports;
 
@@ -129,12 +138,50 @@ class PerformanceTimer : public AbstractMemory
     double povr;
     // Probabilistic slack range
     long long int slack_lo, slack_hi;
+
     // Policy for forwarding important instructions
-    int important_policy;
+    enum ImportantPolicy {
+      // always forward important instructions
+      ALWAYS,
+      // initial slack as a fixed number of cycles
+      SLACK,
+      // slack as percent of total cycles
+      PERCENT,
+      // unified slack tracking for both types of instructions
+      UNIFIED,
+      // number of policies
+      NUM_POLICIES
+    };
+    enum ImportantPolicy important_policy;
+
     // Additional slack for important instructions
     long long int important_slack;
     // Additional slack for important instructions as percent of total cycles
     double important_percent;
+    // increment slack on important instructions only
+    bool increment_important_only;
+    // read slack multiplier from file
+    bool read_slack_multiplier;
+    // whether the last instruction that requested slack is important
+    bool last_important;
+    // slack multiplier
+    double slack_multiplier;
+    // slack subtrahend
+    long long int slack_subtrahend;
+    // last time slack subtrahend was updated
+    Tick slack_subtrahend_last_update;
+    // directory to store persistence data
+    std::string persistence_dir;
+
+    // statistics
+    // allocated slack
+    long long int _cumulative_delay_time;
+    Stats::Scalar cumulative_delay_time;
+    Stats::Scalar slack_allocated;
+    Stats::Scalar task_execution_time;
+    Stats::Formula non_stall_time;
+    Stats::Formula actual_slowdown;
+    Stats::Formula actual_overhead;
     
     // Start task ticks
     Tick start_ticks;

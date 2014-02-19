@@ -132,16 +132,22 @@ DropSimpleCPU::init()
     // initialize structures to supporting backtracking
     rptb.init();
     mptb.init();
-    ipt.init();
-
-    if (_backtrack && backtrack_read_table) {
+    if (!(_backtrack && backtrack_read_table)) {
+        if (ipt_impl == TABLE)  // table-based
+            ipt.init();
+        else if (ipt_impl == BLOOM_FILTER) // Bloom filter-based
+            ipt_bloom.init();
+    } else {
         ifstream is;
-        // read invalidation priority table
+        // read instruction priority table
         is.open(backtrack_table_dir + "/ipt.table", std::ios::in | std::ios::binary);
-        if (is.good())
-            ipt.unserialize(is);
-        else
-            warn("invalidation priority table could not be opened.\n");
+        if (is.good()) {
+            if (ipt_impl == TABLE)
+                ipt.unserialize(is);
+            else if (ipt_impl == BLOOM_FILTER)
+                ipt_bloom.unserialize(is);
+        } else
+            warn("instruction priority table could not be opened.\n");
         is.close();
     }
 }
@@ -155,8 +161,10 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
       forwardFifoPort(name() + "-iport", this),
       full_ticks(p->full_clock),
       rptb(),
-      mptb(p->mpt_size, 32-floorLog2(p->mpt_size), 2),
-      ipt(p->ipt_size, 32-floorLog2(p->ipt_size), 2)
+      mptb(p->mpt_size, 30-floorLog2(p->mpt_size), 2),
+      ipt_tagged(p->ipt_tagged),
+      ipt(p->ipt_tagged, p->ipt_size/p->ipt_entry_size, p->ipt_entry_size, 30-floorLog2(p->ipt_size), 2),
+      ipt_bloom(p->ipt_size, p->ipt_false_positive_rate)
 {
     _status = Idle;    
 
@@ -172,6 +180,13 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
         case MONITOR_MULTIDIFT: monitorExt = MONITOR_DIFT; break;
         case MONITOR_LRC: monitorExt = MONITOR_LRC; break;
         default: panic("Invalid monitor type\n");
+    }
+
+    // IPT implementation
+    switch(p->ipt_impl) {
+        case TABLE: ipt_impl = TABLE; break;
+        case BLOOM_FILTER: ipt_impl = BLOOM_FILTER; break;
+        default: panic("Invalid IPT implementation\n");
     }
 
     backtrack_write_table = p->backtrack_write_table;
@@ -354,12 +369,15 @@ void
 DropSimpleCPU::writeBacktrackTable()
 {
     ofstream os;
-    // write out invalidation priority table
+    // write out instruction priority table
     os.open(backtrack_table_dir + "/ipt.table", std::ios::out | std::ios::binary);
-    if (os.good())
-        ipt.serialize(os);
-    else
-        warn("invalidation priority table could not be opened.\n");
+    if (os.good()) {
+        if (ipt_impl == TABLE)
+            ipt.serialize(os);
+        else if (ipt_impl == BLOOM_FILTER)
+            ipt_bloom.serialize(os);
+    } else
+        warn("instruction priority table could not be opened.\n");
     os.close();
     
     // write out memory producer tracking table
@@ -367,7 +385,7 @@ DropSimpleCPU::writeBacktrackTable()
     if (os.good())
         mptb.serialize(os);
     else
-        warn("invalidation priority table could not be opened.\n");
+        warn("memory producer tracking table could not be opened.\n");
     os.close();
     
     // write out register producer tracking table
@@ -375,7 +393,30 @@ DropSimpleCPU::writeBacktrackTable()
     if (os.good())
         rptb.serialize(os);
     else
-        warn("invalidation priority table could not be opened.\n");
+        warn("register producer tracking table could not be opened.\n");
+    os.close();
+
+    // write out slack multiplier
+    os.open(backtrack_table_dir + "/slack_multiplier", std::ios::out);
+    if (os.good()) {
+        double slack_multiplier;
+        // Create request
+        Request *timer_read_request = &data_read_req;
+        // set physical address
+        timer_read_request->setPhys(TIMER_ADJUSTED_SLACK_MULTIPLIER, sizeof(slack_multiplier), ArmISA::TLB::AllowUnaligned, dataMasterId());
+        // Create read packet
+        MemCmd cmd = MemCmd::ReadReq;
+        PacketPtr timerpkt = new Packet(timer_read_request, cmd);
+        // Set data
+        timerpkt->dataStatic(&slack_multiplier);
+        // Send read request packet on timer port
+        timerPort.sendFunctional(timerpkt);
+        // Clean up
+        delete timerpkt;
+
+        os << slack_multiplier << std::endl;
+    } else
+        warn("slack multiplier file could not be opened.\n");
     os.close();
 }
 
@@ -904,6 +945,37 @@ DropSimpleCPU::forwardFifoPacket() {
   return success;
 }
 
+bool DropSimpleCPU::getInstructionPriority(Addr addr)
+{
+    if (ipt_impl == TABLE) {
+        if (ipt_tagged) {
+            if (ipt.valid(addr))
+                return ipt.lookup(addr);
+            else
+                return false;
+        } else {
+            return ipt.lookup(addr);
+        }
+    } else if (ipt_impl == BLOOM_FILTER) {
+        return ipt_bloom.lookup(addr);
+    } else {
+        panic("Invalid IPT implementation!\n");
+    }
+}
+
+void DropSimpleCPU::setInstructionPriority(Addr addr, const bool priority)
+{
+    if (ipt_impl == TABLE) {
+        ipt.update(addr, priority);
+    } else if (ipt_impl == BLOOM_FILTER) {
+        // skip update if already in bloom filter
+        if (!ipt_bloom.lookup(addr))
+            ipt_bloom.update(addr, true);
+    } else {
+        panic("Invalid IPT implementation!\n");
+    }
+}
+
 /**
  * Backtrack to identify important instructions
  * @return Whether the current instruction is important or not
@@ -928,8 +1000,8 @@ DropSimpleCPU::backtrack_hb()
     monitoringPacket mpkt;
     bool important = false;
     readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
-    if (ipt.valid(mpkt.instAddr))
-        important = ipt.lookup(mpkt.instAddr);
+    important = getInstructionPriority(mpkt.instAddr);
+
     // determine instruction type
     if (mpkt.load) {
         backtrack_inst_load(mpkt);
@@ -939,7 +1011,7 @@ DropSimpleCPU::backtrack_hb()
         rptb.update(rd, mpkt.instAddr, 0);
 
         // update instruction priority table
-        ipt.update(mpkt.instAddr, true);
+        setInstructionPriority(mpkt.instAddr, true);
 
     } else if (mpkt.store) {
         backtrack_inst_store(mpkt);
@@ -949,7 +1021,7 @@ DropSimpleCPU::backtrack_hb()
         mptb.update(addr, mpkt.instAddr);
 
         // update instruction priority table
-        ipt.update(mpkt.instAddr, true);
+        setInstructionPriority(mpkt.instAddr, true);
 
     } else if (mpkt.intalu) {
         if (important) {
@@ -971,8 +1043,7 @@ DropSimpleCPU::backtrack_umc()
     monitoringPacket mpkt;
     bool important = false;
     readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
-    if (ipt.valid(mpkt.instAddr))
-        important = ipt.lookup(mpkt.instAddr);
+    important = getInstructionPriority(mpkt.instAddr);
 
     // determine instruction type
     if (mpkt.load) {
@@ -983,7 +1054,7 @@ DropSimpleCPU::backtrack_umc()
         rptb.update(rd, mpkt.instAddr, 0);
 
         // update instruction priority table
-        ipt.update(mpkt.instAddr, true);
+        setInstructionPriority(mpkt.instAddr, true);
 
     } else if (mpkt.store) {
         if (important) {
@@ -1005,15 +1076,14 @@ DropSimpleCPU::backtrack_dift()
     monitoringPacket mpkt;
     bool important = false;
     readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
-    if (ipt.valid(mpkt.instAddr))
-        important = ipt.lookup(mpkt.instAddr);
+    important = getInstructionPriority(mpkt.instAddr);
 
     // determine instruction type
     if (mpkt.indctrl) {
         backtrack_inst_indctrl(mpkt);
 
         // update instruction priority table
-        ipt.update(mpkt.instAddr, true);
+        setInstructionPriority(mpkt.instAddr, true);
 
     } else if (mpkt.load) {
         if (important) {
@@ -1069,7 +1139,7 @@ void DropSimpleCPU::backtrack_inst_indctrl(monitoringPacket &mpkt)
         Addr producer1 = rptb.lookup1(addr);
         if (producer1 != 0) {
             // mark producer as important
-            ipt.update(producer1, true);
+            setInstructionPriority(producer1, true);
         }
     } else {
         DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", addr, mpkt.instAddr);
@@ -1083,7 +1153,7 @@ void DropSimpleCPU::backtrack_inst_load(monitoringPacket &mpkt)
     if (mptb.valid(addr)) {
         Addr producer = mptb.lookup(addr);
         if (producer != 0) {
-            ipt.update(producer, true);
+            setInstructionPriority(producer, true);
             DPRINTF(Backtrack, "mark producer(0x%x)=0x%x as important, instAddr=0x%x\n", addr, producer, mpkt.instAddr);
         }
     } else {
@@ -1102,7 +1172,7 @@ void DropSimpleCPU::backtrack_inst_store(monitoringPacket &mpkt)
         Addr producer1 = rptb.lookup1(src);
         if (producer1 != 0) {
             // mark producer as important
-            ipt.update(producer1, true);
+            setInstructionPriority(producer1, true);
             DPRINTF(Backtrack, "mark producer(r%d)=0x%x as important, instAddr=0x%x\n", src, producer1, mpkt.instAddr);
         }
     } else {
@@ -1123,7 +1193,7 @@ void DropSimpleCPU::backtrack_inst_intalu(monitoringPacket &mpkt)
         Addr producer1 = rptb.lookup1(rs1);
         if (producer1 != 0) {
             // mark producer as important
-            ipt.update(producer1, true);
+            setInstructionPriority(producer1, true);
             DPRINTF(Backtrack, "mark producer(r%d)=0x%x as important, instAddr=0x%x\n", rs1, producer1, mpkt.instAddr);
         }
     } else {
@@ -1137,7 +1207,7 @@ void DropSimpleCPU::backtrack_inst_intalu(monitoringPacket &mpkt)
         Addr producer1 = rptb.lookup1(rs2);
         if (producer1 != 0) {
             // mark producer as important
-            ipt.update(producer1, true);
+            setInstructionPriority(producer1, true);
             DPRINTF(Backtrack, "mark producer(r%d)=0x%x as important, instAddr=0x%x\n", rs2, producer1, mpkt.instAddr);
         }
     } else {

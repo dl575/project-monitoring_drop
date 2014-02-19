@@ -17,12 +17,12 @@ class InvalidationPT
   private:
     struct PTEntry
     {
-        PTEntry() : tag(0), priority(false), valid(false)
+        PTEntry() : tag(0), valid(false)
         {}
         // tag of entry
         Addr tag;
         // the entry's priority
-        bool priority;
+        std::vector<bool> priority;
         // whether the entry is valid
         bool valid;
     };
@@ -31,10 +31,11 @@ class InvalidationPT
     /**
      * Creates a invalidation priority table
      * @param numEntries Number of entries
+     * @param entrySize Size of entry
      * @param tagBits Number of bits in each tag
      * @param instShiftAmt Amount to shift instructions
      */
-    InvalidationPT(unsigned numEntries, unsigned tagBits, unsigned instShiftAmt);
+    InvalidationPT(bool tagged, unsigned numEntries, unsigned entrySize, unsigned tagBits, unsigned instShiftAmt);
 
     void init();
     void reset();
@@ -66,6 +67,11 @@ class InvalidationPT
 
   private:
     /**
+     * Return the offset within an entry
+     */
+    inline unsigned getOffset(Addr addr);
+
+    /**
      * Return the index into the PTB
      */
     inline unsigned getIndex(Addr addr);
@@ -78,8 +84,17 @@ class InvalidationPT
     /** The actual table */
     std::vector<PTEntry> ipt;
 
+    /** Whether the table has tags */
+    bool tagged;
+
     /** The number of entries in the table. */
     unsigned numEntries;
+
+    /** Intructions per entry **/
+    unsigned entrySize;
+
+    /** The offset mask. */
+    unsigned offsetMask;
 
     /** The index mask. */
     unsigned idxMask;
@@ -90,8 +105,11 @@ class InvalidationPT
     /** The tag mask. */
     unsigned tagMask;
 
-    /** Number of bits to shift PC when calculating index. */
+    /** Number of bits to shift PC for instruction. */
     unsigned instShiftAmt;
+
+    /** Number of bits to shift PC when calculating index. */
+    unsigned indexShiftAmt;
 
     /** Number of bits to shift PC when calculating tag. */
     unsigned tagShiftAmt;

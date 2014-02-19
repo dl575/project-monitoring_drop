@@ -62,6 +62,7 @@
 #define TIMER_DROPS            (TIMER_ADDR + 0x100)
 #define TIMER_NOT_DROPS        (TIMER_ADDR + 0x104)
 #define TIMER_TASK_PACKET      (TIMER_ADDR + 0x108)
+#define TIMER_ADJUSTED_SLACK_MULTIPLIER (TIMER_ADDR + 0x10C)
 
 // write registers
 #define TIMER_START_TASK       (TIMER_ADDR + 0x00)
@@ -73,7 +74,6 @@
 // hidden write registers (should not be used by the program)
 #define TIMER_START_DECREMENT  (TIMER_ADDR + 0x100)
 #define TIMER_END_DECREMENT    (TIMER_ADDR + 0x104)
-
 
 /**
  * The simple memory is a basic multi-ported memory with an infinite

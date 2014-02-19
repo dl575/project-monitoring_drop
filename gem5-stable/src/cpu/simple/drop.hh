@@ -48,6 +48,7 @@
 #include "mem/drop/mptb.hh"
 #include "mem/drop/rptb.hh"
 #include "mem/drop/ipt.hh"
+#include "mem/drop/ipt_bloom.hh"
 
 #define DROP_CLEAR_ARRAY 0
 #define DROP_CLEAR_CACHE 1
@@ -238,7 +239,7 @@ class DropSimpleCPU : public BaseSimpleCPU
 
   protected:
     /**
-     * structures to supporting backtracking
+     * structures to support backtracking
      */
     
     // Register Producer Tracking Table
@@ -246,8 +247,17 @@ class DropSimpleCPU : public BaseSimpleCPU
     // Memory Producer Tracking Table
     MemoryPTB mptb;
     // Invalidation Priority Table
+    enum InvalidationPTImpl {
+      TABLE,
+      BLOOM_FILTER
+    };
+    enum InvalidationPTImpl ipt_impl;
+    bool ipt_tagged;
     InvalidationPT ipt;
+    InvalidationPTBloom ipt_bloom;
 
+    bool getInstructionPriority(Addr addr);
+    void setInstructionPriority(Addr addr, const bool priority);
     virtual bool backtrack();
     bool backtrack_hb();
     bool backtrack_dift();

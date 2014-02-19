@@ -56,4 +56,7 @@ class PerformanceTimer(AbstractMemory):
     important_policy = Param.Int(0, "Policy for forwarding important instructions")
     important_slack = Param.Int(0, "Additional slack for important instructions")
     important_percent = Param.Float(0, "Additional slack for important instructions as percent of total cycles")
+    increment_important_only = Param.Bool(False, "Increment slack on important instructions only")
+    read_slack_multiplier = Param.Bool(False, "read slack multiplier from file")
+    persistence_dir = Param.String("", "directory to read/write persistence data")
     seed = Param.Int(0, "Seed for random values in probabilistic dropping")
