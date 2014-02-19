@@ -1307,15 +1307,20 @@ AtomicSimpleMonitor::DIFTExecute()
     if (mp.intalu) {
         // integer ALU operation
         DPRINTF(Monitor, "DIFT: Integer ALU instruction\n");
-        DIFTTag trd = thread->readIntReg(mp.rd);
+        DIFTTag trd = false;
+        if (TheISA::isISAReg(mp.rd)) {
+          trd = thread->readIntReg(mp.rd);
+        }
         tresult = false;
 
         if (TheISA::isISAReg(mp.rs1))
             tresult |= (DIFTTag)thread->readIntReg(mp.rs1);
         if (TheISA::isISAReg(mp.rs2))
             tresult |= (DIFTTag)thread->readIntReg(mp.rs2);
-        thread->setIntReg((int)mp.rd, (uint64_t)tresult);
-        revalidateRegTag((int)mp.rd);
+        if (TheISA::isISAReg(mp.rd)) {
+            thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+            revalidateRegTag((int)mp.rd);
+        }
 
         if (trd || tresult) {
             numTaintedIntegerInsts++;
@@ -1324,13 +1329,18 @@ AtomicSimpleMonitor::DIFTExecute()
         numMonitorInsts++;
     } else if (mp.load) {
         DPRINTF(Monitor, "DIFT: Load instruction, addr=0x%x\n", mp.memAddr);
-        uint64_t trd = thread->readIntReg(mp.rd);
+        DIFTTag trd = false;
+        if (TheISA::isISAReg(mp.rd)) {
+            trd = thread->readIntReg(mp.rd);
+        }
         tresult = false;
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
             tresult |= (DIFTTag)readBitTag(pbyte);
         }
-        thread->setIntReg((int)mp.rd, (uint64_t)tresult);
-        revalidateRegTag((int)mp.rd);
+        if (TheISA::isISAReg(mp.rd)) {
+            thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+            revalidateRegTag((int)mp.rd);
+        }
         
         if (trd || tresult) {
             numTaintedLoadInsts++;
@@ -1339,7 +1349,10 @@ AtomicSimpleMonitor::DIFTExecute()
         numMonitorInsts++;
     } else if (mp.store && !mp.settag) {
         DPRINTF(Monitor, "DIFT: Store instruction, addr=0x%x\n", mp.memAddr);
-        DIFTTag tsrc = (DIFTTag)thread->readIntReg(mp.rs1);
+        DIFTTag tsrc = false;
+        if (TheISA::isISAReg(mp.rs1)) {
+            tsrc = (DIFTTag)thread->readIntReg(mp.rs1);
+        }
         DIFTTag tdest = false;
 
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
@@ -1365,7 +1378,10 @@ AtomicSimpleMonitor::DIFTExecute()
         }
     } else if (mp.indctrl) {
         DPRINTF(Monitor, "DIFT: Indirect control transfer instruction\n");
-        DIFTTag trs1 = (bool)thread->readIntReg(mp.rs1);
+        DIFTTag trs1 = false;
+        if (TheISA::isISAReg(mp.rs1)) {
+            trs1 = (bool)thread->readIntReg(mp.rs1);
+        }
         if (trs1) {
             DPRINTF(Monitor, "DIFT: Fatal: indirect control transfer on tainted register, PC=0x%x\n", 
                 mp.instAddr);
@@ -1487,15 +1503,20 @@ AtomicSimpleMonitor::MultiDIFTExecute()
     if (mp.intalu) {
         // integer ALU operation
         DPRINTF(Monitor, "Multi DIFT: Integer ALU instruction\n");
-        DIFTTag trd = thread->readIntReg(mp.rd);
+        DIFTTag trd = false;
+        if (TheISA::isISAReg(mp.rd)) {
+            trd = thread->readIntReg(mp.rd);
+        }
         tresult = false;
 
         if (TheISA::isISAReg(mp.rs1))
             tresult |= (DIFTTag)thread->readIntReg(mp.rs1);
         if (TheISA::isISAReg(mp.rs2))
             tresult |= (DIFTTag)thread->readIntReg(mp.rs1);
-        thread->setIntReg((int)mp.rd, (uint64_t)tresult);
-        revalidateRegTag((int)mp.rd);
+        if (TheISA::isISAReg(mp.rd)) {
+            thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+            revalidateRegTag((int)mp.rd);
+        }
 
         if (trd || tresult) {
             numTaintedIntegerInsts++;
@@ -1504,13 +1525,18 @@ AtomicSimpleMonitor::MultiDIFTExecute()
         numMonitorInsts++;
     } else if (mp.load) {
         DPRINTF(Monitor, "Multi DIFT: Load instruction, addr=0x%x\n", mp.memAddr);
-        uint64_t trd = thread->readIntReg(mp.rd);
+        DIFTTag trd = false;
+        if (TheISA::isISAReg(mp.rd)) {
+            trd = thread->readIntReg(mp.rd);
+        }
         tresult = false;
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
             tresult |= (DIFTTag)readWordTag(pbyte);
         }
-        thread->setIntReg((int)mp.rd, (uint64_t)tresult);
-        revalidateRegTag((int)mp.rd);
+        if (TheISA::isISAReg(mp.rd)) {
+            thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+            revalidateRegTag((int)mp.rd);
+        }
         
         if (trd || tresult) {
             numTaintedLoadInsts++;
@@ -1519,7 +1545,10 @@ AtomicSimpleMonitor::MultiDIFTExecute()
         numMonitorInsts++;
     } else if (mp.store && !mp.settag) {
         DPRINTF(Monitor, "Multi DIFT: Store instruction, addr=0x%x\n", mp.memAddr);
-        DIFTTag tsrc = (DIFTTag)thread->readIntReg(mp.rs1);
+        DIFTTag tsrc = false;
+        if (TheISA::isISAReg(mp.rs1)) {
+            tsrc = (DIFTTag)thread->readIntReg(mp.rs1);
+        }
         DIFTTag tdest = false;
 
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
@@ -1545,7 +1574,10 @@ AtomicSimpleMonitor::MultiDIFTExecute()
         }
     } else if (mp.indctrl) {
         DPRINTF(Monitor, "Multi DIFT: Indirect control transfer instruction\n");
-        DIFTTag trs1 = (bool)thread->readIntReg(mp.rs1);
+        DIFTTag trs1 = false;
+        if (TheISA::isISAReg(mp.rs1)) {
+            trs1 = (bool)thread->readIntReg(mp.rs1);
+        }
         if (trs1) {
             DPRINTF(Monitor, "Multi DIFT: Fatal: indirect control transfer on tainted register, PC=0x%x\n", 
                 mp.instAddr);
@@ -1572,12 +1604,16 @@ AtomicSimpleMonitor::BCExecute()
         if (opcode == ALUMov) {
             if (TheISA::isISAReg(mp.rs1)) {
                 BCTag trs1 = (BCTag)thread->readIntReg(mp.rs1);
-                thread->setIntReg((int)mp.rd, (uint64_t)trs1);
-                revalidateRegTag((int)mp.rd);
+                if (TheISA::isISAReg(mp.rd)) {
+                    thread->setIntReg((int)mp.rd, (uint64_t)trs1);
+                    revalidateRegTag((int)mp.rd);
+                }
             } else {
-                // mov immediate
-                thread->setIntReg((int)mp.rd, 0);
-                revalidateRegTag((int)mp.rd);
+                if (TheISA::isISAReg(mp.rd)) {
+                    // mov immediate
+                    thread->setIntReg((int)mp.rd, 0);
+                    revalidateRegTag((int)mp.rd);
+                }
             }
         } else if ((opcode == ALUAdd) || (opcode == ALUSub)) {
             BCTag tresult = 0;
@@ -1591,21 +1627,27 @@ AtomicSimpleMonitor::BCExecute()
                     tresult = trs1 + trs2;
                 else if (opcode == ALUSub)
                     tresult = trs1 - trs2;
-                thread->setIntReg((int)mp.rd, (uint64_t)tresult);
-                revalidateRegTag((int)mp.rd);
+                if (TheISA::isISAReg(mp.rd)) {
+                    thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+                    revalidateRegTag((int)mp.rd);
+                }
             } else if (TheISA::isISAReg(mp.rs1)) {
                 // register + imm operands
                 BCTag trs1 = (BCTag)thread->readIntReg(mp.rs1);
-                thread->setIntReg((int)mp.rd, (uint64_t)trs1);
-                revalidateRegTag((int)mp.rd);
+                if (TheISA::isISAReg(mp.rd)) {
+                    thread->setIntReg((int)mp.rd, (uint64_t)trs1);
+                    revalidateRegTag((int)mp.rd);
+                }
             } else {
                 // we should never reach here
                 // panic("Incorrect number of ALU operands!\n");
             }
         } else {
-            // other ALU operations
-            thread->setIntReg((int)mp.rd, 0);
-            revalidateRegTag((int)mp.rd);
+            if (TheISA::isISAReg(mp.rd)) {
+                // other ALU operations
+                thread->setIntReg((int)mp.rd, 0);
+                revalidateRegTag((int)mp.rd);
+            }
         }
 
         numIntegerInsts++;
@@ -1623,16 +1665,20 @@ AtomicSimpleMonitor::BCExecute()
             }
 
             // update register tag
-            thread->setIntReg((int)mp.rd, toPtrTag(tmem));
-            revalidateRegTag((int)mp.rd);
+            if (TheISA::isISAReg(mp.rd)) {
+                thread->setIntReg((int)mp.rd, toPtrTag(tmem));
+                revalidateRegTag((int)mp.rd);
+            }
             if (toPtrTag(tmem) != 0) {
                 DPRINTF(Monitor, "BC: write pointer tag %d to r%d\n", toMemTag(tmem), (int)mp.rd);
             }
         } else {
             // should not reach here
             // if we reach here for some reason, conservatively clear dest reg tag
-            thread->setIntReg((int)mp.rd, 0);
-            revalidateRegTag((int)mp.rd);
+            if (TheISA::isISAReg(mp.rd)) {
+                thread->setIntReg((int)mp.rd, 0);
+                revalidateRegTag((int)mp.rd);
+            }
         }
 
         numLoadInsts++;
@@ -1699,12 +1745,16 @@ AtomicSimpleMonitor::HBExecute()
         if (opcode == ALUMov) {
             if (TheISA::isISAReg(mp.rs1)) {
                 HBTag trs1 = (HBTag)thread->readIntReg(mp.rs1);
-                thread->setIntReg((int)mp.rd, (uint64_t)trs1);
-                revalidateRegTag((int)mp.rd);
+                if (TheISA::isISAReg(mp.rd)) {
+                    thread->setIntReg((int)mp.rd, (uint64_t)trs1);
+                    revalidateRegTag((int)mp.rd);
+                }
             } else {
                 // mov immediate
-                thread->setIntReg((int)mp.rd, 0);
-                revalidateRegTag((int)mp.rd);
+                if (TheISA::isISAReg(mp.rd)) {
+                    thread->setIntReg((int)mp.rd, 0);
+                    revalidateRegTag((int)mp.rd);
+                }
             }
         } else if ((opcode == ALUAdd) || (opcode == ALUSub)) {
             HBTag tresult = 0;
@@ -1716,20 +1766,26 @@ AtomicSimpleMonitor::HBExecute()
                 } else {
                     tresult = trs2;
                 }
-                thread->setIntReg((int)mp.rd, (uint64_t)tresult);
-                revalidateRegTag((int)mp.rd);
+                if (TheISA::isISAReg(mp.rd)) {
+                    thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+                    revalidateRegTag((int)mp.rd);
+                }
             } else if (TheISA::isISAReg(mp.rs1)) {
                 HBTag trs1 = (HBTag)thread->readIntReg(mp.rs1);
-                thread->setIntReg((int)mp.rd, (uint64_t)trs1);
-                revalidateRegTag((int)mp.rd);
+                if (TheISA::isISAReg(mp.rd)) {
+                    thread->setIntReg((int)mp.rd, (uint64_t)trs1);
+                    revalidateRegTag((int)mp.rd);
+                }
             } else {
                 // we should never reach here
                 // panic("Incorrect number of ALU operands!\n");
             }
         } else {
             // other ALU operations
-            thread->setIntReg((int)mp.rd, 0);
-            revalidateRegTag((int)mp.rd);
+            if (TheISA::isISAReg(mp.rd)) {
+                thread->setIntReg((int)mp.rd, 0);
+                revalidateRegTag((int)mp.rd);
+            }
         }
 
         numIntegerInsts++;
@@ -1750,14 +1806,18 @@ AtomicSimpleMonitor::HBExecute()
             // update register tag, only when load word
             if (mp.size == 4) {
                 HBTag tmem = readDWordTag(mp.physAddr);
-                thread->setIntReg((int)mp.rd, tmem);
-                revalidateRegTag((int)mp.rd);
+                if (TheISA::isISAReg(mp.rd)) {
+                    thread->setIntReg((int)mp.rd, tmem);
+                    revalidateRegTag((int)mp.rd);
+                }
             }
         } else {
             // should not reach here
             // if we reach here for some reason, conservatively clear dest reg tag
-            thread->setIntReg((int)mp.rd, 0);
-            revalidateRegTag((int)mp.rd);
+            if (TheISA::isISAReg(mp.rd)) {
+                thread->setIntReg((int)mp.rd, 0);
+                revalidateRegTag((int)mp.rd);
+            }
         }
 
         numLoadInsts++;
