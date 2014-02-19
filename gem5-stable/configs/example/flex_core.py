@@ -340,7 +340,7 @@ else:
 
 # Create system, CPUs, bus, and memory
 system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1), DropCPUClass(cpu_id=2)],
-                physmem = SimpleMemory(range=AddrRange("768MB"), latency='15ns'),
+                physmem = SimpleMemory(range=AddrRange("1GB"), latency='15ns'),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
 # Save a list of the CPU classes. These will be used in fast-forwarding
@@ -353,16 +353,22 @@ system.cpu[1].monitor_port = system.cpu[2].monitor_port
 # Number of CPUs
 options.num_cpus = 3
 
+# Addresses for peripherals
+PERIPHERAL_ADDR_BASE = 0x50000000
+FIFO_MAIN_TO_DC_OFFSET = 0x0
+FIFO_DC_TO_MON_OFFSET = 0x30000
+TIMER_OFFSET = 0x10000
+FLAGCACHE_OFFSET = 0x20000
 # Create a "fifo" memory
-fifo_main_to_dc = Fifo(range=AddrRange(start=0x30000000, size="64kB")) 
+fifo_main_to_dc = Fifo(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FIFO_MAIN_TO_DC_OFFSET, size="64kB"))
 fifo_main_to_dc.fifo_size = options.fifo_size
 system.fifo_main_to_dc = fifo_main_to_dc
 # Create a second fifo
-fifo_dc_to_mon = Fifo(range=AddrRange(start=0x30030000, size="64kB")) 
+fifo_dc_to_mon = Fifo(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FIFO_DC_TO_MON_OFFSET, size="64kB"))
 fifo_dc_to_mon.fifo_size = 3
 system.fifo_dc_to_mon = fifo_dc_to_mon
 # Create timer
-timer = PerformanceTimer(range=AddrRange(start=0x30010000, size="64kB"))
+timer = PerformanceTimer(range=AddrRange(start=PERIPHERAL_ADDR_BASE + TIMER_OFFSET, size="64kB"))
 if options.important_policy == "percent":
   timer.percent_overhead = options.overhead - options.important_percent
   if (timer.percent_overhead < 0):
@@ -387,7 +393,7 @@ if options.probabilistic_drop:
   timer.slack_hi = 100
 system.timer = timer
 # Create flag cache
-flagcache = FlagCache(range=AddrRange(start=0x30020000, size="64kB"))
+flagcache = FlagCache(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FLAGCACHE_OFFSET, size="64kB"))
 system.flagcache = flagcache
 
 # Connect CPU to fifo
