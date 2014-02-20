@@ -71,7 +71,7 @@ vector<System *> System::systemList;
 
 int System::numSystemsRunning = 0;
 
-#define MON_PAGE_START 0x30000 // pages (4 KB each)
+#define MON_PAGE_START 0x20000 // pages (4 KB each)
 
 System::System(Params *p)
     : MemObject(p), _systemPort("system_port", this),
