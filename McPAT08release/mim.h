@@ -51,6 +51,24 @@ class MIM_LoadStoreU :public Component {
 	~MIM_LoadStoreU();
 };
 
+class MIM_InvalidationTable : public Component {
+  public:
+    ParseXML *XML;
+    int ithCore;
+    InputParameter interface_ip;
+    CoreDynParam coredynp;
+    double clockRate, executionTime;
+    ArrayST * InvalidationTable;
+    bool exist;
+
+	  MIM_InvalidationTable(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, bool exist_=true);
+    void computeEnergy(bool is_tdp=true);
+    void displayEnergy(uint32_t indent=0, int plevel=100, bool is_tdp=true);
+    ~MIM_InvalidationTable();
+};
+
+
+
 class MIM_ConfigTable : public Component {
   public:
     ParseXML *XML;
@@ -203,6 +221,7 @@ class MIM : public Component {
     MIM_FunctionalUnit * alu;
     MIM_RegFU * rfu;
     MIM_LoadStoreU * lsu;
+    MIM_InvalidationTable * mit;
     MIM_ConfigTable * ct;
     MFM_FunctionalUnit * mfm_alu;
     MFM_ConfigTable * mfm_ct;
@@ -218,7 +237,5 @@ class MIM : public Component {
     void displayEnergy(uint32_t indent = 0, int plevel = 100, bool is_tdp=true);
     ~MIM();
 };
-
-
 
 #endif

@@ -171,6 +171,10 @@ typedef struct {
   // ConfigTable
   double CT_duty_cycle;
   int CT_reads;
+  //InvalidationTable
+  double IT_duty_cycle;
+  int IT_reads;
+  int IT_writes;
   // FunctionalUnit
   int alu_accesses;
 } MIM_systemcore;
@@ -185,24 +189,24 @@ typedef struct {
   double FLT_duty_cycle;
   int FLT_reads;
 } MFM_systemcore;
-
-typedef	struct {
-	double IIT_duty_cycle;
-	int IIT_reads;
-	int IIT_writes;
-} IIT_systemcore;
-
-typedef	struct {
-	double MPT_duty_cycle;
-	int MPT_reads;
-	int MPT_writes;
-} MPT_systemcore;
-
-typedef	struct {
-	double RPT_duty_cycle;
-	int RPT_reads;
-	int RPT_writes;
-} RPT_systemcore;
+// Instruction Importance Table 
+typedef	struct { 
+	double IIT_duty_cycle; 
+	int IIT_reads; 
+	int IIT_writes; 
+} IIT_systemcore; 
+// Memory Producer Table 
+typedef	struct { 
+	double MPT_duty_cycle; 
+	int MPT_reads; 
+	int MPT_writes; 
+} MPT_systemcore; 
+// Register Producer Table 
+typedef	struct { 
+	double RPT_duty_cycle; 
+	int RPT_reads; 
+	int RPT_writes; 
+} RPT_systemcore; 
 
 typedef struct{
 	//all params at the level of system.core(0-n)
