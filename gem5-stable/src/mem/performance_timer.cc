@@ -250,9 +250,6 @@ double
 PerformanceTimer::getAdjustedSlackMultiplier()
 {
     slack_multiplier = effectiveOverhead() / actualOverhead() * slack_multiplier;
-    // limit slack multiplier so that effectiveOverhead does not exceed 1.0
-    if (povr > 0.0 && slack_multiplier > 1 / povr)
-        slack_multiplier = 1 / povr;
     return slack_multiplier;
 }
 

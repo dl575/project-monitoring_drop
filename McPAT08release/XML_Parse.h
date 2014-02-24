@@ -185,6 +185,25 @@ typedef struct {
   double FLT_duty_cycle;
   int FLT_reads;
 } MFM_systemcore;
+
+typedef	struct {
+	double IIT_duty_cycle;
+	int IIT_reads;
+	int IIT_writes;
+} IIT_systemcore;
+
+typedef	struct {
+	double MPT_duty_cycle;
+	int MPT_reads;
+	int MPT_writes;
+} MPT_systemcore;
+
+typedef	struct {
+	double RPT_duty_cycle;
+	int RPT_reads;
+	int RPT_writes;
+} RPT_systemcore;
+
 typedef struct{
 	//all params at the level of system.core(0-n)
 	int clock_rate;
@@ -322,6 +341,9 @@ typedef struct{
 	BTB_systemcore BTB;
   MIM_systemcore MIM;
   MFM_systemcore MFM;
+  IIT_systemcore IIT;
+  MPT_systemcore MPT;
+  RPT_systemcore RPT;
 
 } system_core;
 typedef struct{
