@@ -1,0 +1,11 @@
+# For monitoring soft_drop
+1. run_all.py <dir>
+2. plot_all.py run_all_results.txt
+# For monitoring soft_drop with fast-forward
+1. run_all_ff.py <dir>
+2. plot_all.py run_all_results.txt
+
+
+# For monitoring_hard_drop:
+1. run_all_wcet.py <dir>
+2. parse_run_all_wcet.py run_all_results.txt

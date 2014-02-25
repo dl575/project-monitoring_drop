@@ -211,6 +211,26 @@ class RegisterProducerTable : public Component {
     ~RegisterProducerTable();
 };
 
+class BacktrackHardware : public Component {
+  public:
+    ParseXML *XML;
+    int ithCore;
+    InputParameter interface_ip;
+    CoreDynParam coredynp;
+    double clockRate, executionTime;
+    ArrayST * ConfigTable;
+    IIT_BloomFilter *iit;
+    MemoryProducerTable *mpt;
+    RegisterProducerTable *rpt;
+
+    bool exist;
+
+    BacktrackHardware(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, bool exist_=true);
+    void computeEnergy(bool is_tdp=true);
+    void displayEnergy(uint32_t indent=0, int plevel=100, bool is_tdp=true);
+    ~BacktrackHardware();
+};
+
 class MIM : public Component {
   public:
     ParseXML *XML;
@@ -226,9 +246,7 @@ class MIM : public Component {
     MFM_FunctionalUnit * mfm_alu;
     MFM_ConfigTable * mfm_ct;
     MFM_FilterLookupTable * mfm_flt;
-    IIT_BloomFilter *iit;
-    MemoryProducerTable *mpt;
-    RegisterProducerTable *rpt;
+    BacktrackHardware * bthw;
 
     bool exist;
 

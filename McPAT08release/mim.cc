@@ -1511,6 +1511,121 @@ MFM_FilterLookupTable ::~MFM_FilterLookupTable() {
   if (ConfigTable) {delete ConfigTable; ConfigTable = 0;}
 }
 
+BacktrackHardware::BacktrackHardware(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, const CoreDynParam & dyn_p_, bool exist_) :
+  XML(XML_interface),
+  ithCore(ithCore_),
+  interface_ip(*interface_ip_),
+  coredynp(dyn_p_),
+  iit(0),
+  mpt(0),
+  rpt(0),
+  exist(exist_)
+{
+  if (!exist) return;
+
+  double fu_height = 0.0;
+  clockRate = coredynp.clockRate;
+  executionTime = coredynp.executionTime;
+
+  // Create components
+  // IIT Bloom filter
+  iit = new IIT_BloomFilter(XML, ithCore, &interface_ip, coredynp);
+  // Memory Producer Table
+  mpt = new MemoryProducerTable(XML, ithCore, &interface_ip, coredynp);
+  // Register Producer Table
+  rpt = new RegisterProducerTable(XML, ithCore, &interface_ip, coredynp);
+
+  // Add area of components
+  area.set_area(area.get_area()
+    + iit->area.get_area()
+    + mpt->area.get_area()
+    + rpt->area.get_area()
+    );
+}
+
+void BacktrackHardware::computeEnergy(bool is_tdp)
+{
+ if (!exist) return;
+  double pppm_t[4] = {1, 1, 1, 1};
+
+  iit->computeEnergy(is_tdp);
+  mpt->computeEnergy(is_tdp);
+  rpt->computeEnergy(is_tdp);
+
+  // FIXME: no idea what this is
+  // FIXME: Should be able to remove OOO for MIM_LS
+  double num_units = 4.0;
+  if (coredynp.core_ty == OOO)
+  {
+    num_units = 5.0;
+  }
+
+  if (is_tdp)
+  {
+    // 2 means two source operands need to be passed for each in instruction
+    set_pppm(pppm_t, 2*coredynp.ALU_cdb_duty_cycle, 2, 2, 2*coredynp.ALU_cdb_duty_cycle); 
+
+    power = power + iit->power + mpt->power + rpt->power;
+  }
+  else
+  {
+    double rtp_pipeline_coe;
+
+		if (coredynp.core_ty==OOO)
+		{
+			num_units = 5.0;
+        	set_pppm(pppm_t, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units);
+		}
+		else
+		{
+			if (XML->sys.homogeneous_cores==1)
+			{
+				rtp_pipeline_coe = coredynp.pipeline_duty_cycle * XML->sys.total_cycles * XML->sys.number_of_cores;
+			}
+			else
+			{
+				rtp_pipeline_coe = coredynp.pipeline_duty_cycle * coredynp.total_cycles;
+			}
+		set_pppm(pppm_t, coredynp.num_pipelines*rtp_pipeline_coe/num_units, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units);
+		}
+    // ALU
+    set_pppm(pppm_t, XML->sys.core[ithCore].cdb_alu_accesses, 2, 2, XML->sys.core[ithCore].cdb_alu_accesses);
+
+    rt_power = rt_power + iit->rt_power + mpt->rt_power + rpt->rt_power;
+  }
+
+}
+
+void BacktrackHardware::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
+{
+  if (!exist) return;
+  string indent_str(indent, ' ');
+  string indent_str_next(indent + 2, ' ');
+  bool long_channel = XML->sys.longer_channel_device;
+
+  if (is_tdp)
+  {
+    // IIT Bloom filter
+    iit->displayEnergy(indent, is_tdp);
+    // Memory Producer Table
+    mpt->displayEnergy(indent, is_tdp);
+    // Register Producer Table
+    rpt->displayEnergy(indent, is_tdp);
+  } 
+  else 
+  {
+    cout << "ERROR (MIM::displayEnergy): is_tdp false not implemented\n" << endl;
+    assert(false);
+  }
+}
+
+BacktrackHardware::~BacktrackHardware() {
+  if (!exist) return;
+  if (iit) { delete iit; iit = 0; }
+  if (rpt) { delete rpt; rpt = 0; }
+  if (mpt) { delete mpt; mpt = 0; }
+}
+
 MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, const CoreDynParam & dyn_p_, bool exist_) :
   XML(XML_interface),
   ithCore(ithCore_),
@@ -1524,9 +1639,7 @@ MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, c
   mfm_alu(0),
   mfm_ct(0),
   mfm_flt(0),
-  iit(0),
-  mpt(0),
-  rpt(0),
+  bthw(0),
   exist(exist_)
 {
   if (!exist) return;
@@ -1559,12 +1672,8 @@ MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, c
   // MFM Filter Lookup Table
   mfm_flt = new MFM_FilterLookupTable(XML, ithCore, &interface_ip, coredynp);
 
-  // IIT Bloom filter
-  iit = new IIT_BloomFilter(XML, ithCore, &interface_ip, coredynp);
-  // Memory Producer Table
-  mpt = new MemoryProducerTable(XML, ithCore, &interface_ip, coredynp);
-  // Register Producer Table
-  rpt = new RegisterProducerTable(XML, ithCore, &interface_ip, coredynp);
+  // Backtracking hardware
+  bthw = new BacktrackHardware(XML, ithCore, &interface_ip, coredynp);
 
   // Add in areas of new components
   area.set_area(area.get_area() 
@@ -1574,9 +1683,7 @@ MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, c
       + mfm_alu->area.get_area() 
       + mfm_ct->area.get_area() 
       + mfm_flt->area.get_area()
-      + iit->area.get_area()
-      + mpt->area.get_area()
-      + rpt->area.get_area()
+      + bthw->area.get_area()
       );
   // Either mit (table) is used or lsu (cache) is used.
   if (mit->exist) {
@@ -1611,9 +1718,7 @@ void MIM::computeEnergy(bool is_tdp)
   mfm_alu->computeEnergy(is_tdp);
   mfm_ct->computeEnergy(is_tdp);
   mfm_flt->computeEnergy(is_tdp);
-  iit->computeEnergy(is_tdp);
-  mpt->computeEnergy(is_tdp);
-  rpt->computeEnergy(is_tdp);
+  bthw->computeEnergy(is_tdp);
 
   // FIXME: no idea what this is
   // FIXME: Should be able to remove OOO for MIM_LS
@@ -1628,8 +1733,7 @@ void MIM::computeEnergy(bool is_tdp)
     // 2 means two source operands need to be passed for each in instruction
     set_pppm(pppm_t, 2*coredynp.ALU_cdb_duty_cycle, 2, 2, 2*coredynp.ALU_cdb_duty_cycle); 
 
-    power = power + alu->power + rfu->power + ct->power + mfm_alu->power + mfm_ct->power + mfm_flt->power
-      + iit->power + mpt->power + rpt->power;
+    power = power + alu->power + rfu->power + ct->power + mfm_alu->power + mfm_ct->power + mfm_flt->power + bthw->power;
     if (mit->exist) {
       power = power + mit->power;
     }
@@ -1678,8 +1782,7 @@ void MIM::computeEnergy(bool is_tdp)
     // ALU
     set_pppm(pppm_t, XML->sys.core[ithCore].cdb_alu_accesses, 2, 2, XML->sys.core[ithCore].cdb_alu_accesses);
 
-    rt_power = rt_power + rfu->rt_power + alu->rt_power + ct->rt_power + mfm_alu->rt_power + mfm_ct->rt_power + mfm_flt->rt_power
-      + iit->rt_power + mpt->rt_power + rpt->rt_power;
+    rt_power = rt_power + rfu->rt_power + alu->rt_power + ct->rt_power + mfm_alu->rt_power + mfm_ct->rt_power + mfm_flt->rt_power + bthw->rt_power;
     if (mit->exist) {
       rt_power = rt_power + mit->rt_power;
     }
@@ -1745,12 +1848,16 @@ void MIM::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
     // MFM Filter Lookup Table
     mfm_flt->displayEnergy(indent, is_tdp);
 
-    // IIT Bloom filter
-    iit->displayEnergy(indent, is_tdp);
-    // Memory Producer Table
-    mpt->displayEnergy(indent, is_tdp);
-    // Register Producer Table
-    rpt->displayEnergy(indent, is_tdp);
+    // Backtrack hardware
+    cout << indent_str << "Backtrack Hardware:" << endl;
+    cout << indent_str_next << "Area = " << bthw->area.get_area()  *1e-6<< " mm^2" << endl;
+    double static_power = (long_channel? bthw->power.readOp.longer_channel_leakage:bthw->power.readOp.leakage) + bthw->power.readOp.gate_leakage;
+    double peak_power = static_power + bthw->power.readOp.dynamic*clockRate;
+    double runtime_power = static_power + bthw->rt_power.readOp.dynamic/executionTime;
+    cout << indent_str_next << "Total Peak = " << peak_power << " W" << endl;
+    cout << indent_str_next << "Total Runtime = " << runtime_power << " W" << endl;
+    cout << endl;
+    bthw->displayEnergy(indent+2, is_tdp);
   } 
   else 
   {
@@ -1769,9 +1876,6 @@ MIM::~MIM() {
   if (mfm_alu) { delete mfm_alu; mfm_alu = 0; }
   if (mfm_ct) { delete mfm_ct; mfm_ct = 0; }
   if (mfm_flt) { delete mfm_flt; mfm_flt = 0; }
-  if (iit) { delete iit; iit = 0; }
-  if (mpt) { delete mpt; mpt = 0; }
-  if (rpt) { delete rpt; rpt = 0; }
 }
 
 MIM_FunctionalUnit::MIM_FunctionalUnit(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, enum FU_type fu_type_)
