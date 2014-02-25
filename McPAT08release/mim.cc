@@ -19,7 +19,7 @@ MIM_LoadStoreU::MIM_LoadStoreU(ParseXML* XML_interface, int ithCore_, InputParam
 	  cache_p = (Cache_policy)XML->sys.core[ithCore].MIM.mcache_config[7];
 
 	  interface_ip.num_search_ports    = XML->sys.core[ithCore].memory_ports;
-	  interface_ip.is_cache			   = true;
+	  interface_ip.is_cache			       = true;
 	  interface_ip.pure_cam            = false;
 	  interface_ip.pure_ram            = false;
 	  //Dcache
@@ -1543,10 +1543,12 @@ MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, c
   rfu = new MIM_RegFU(XML, ithCore, &interface_ip, coredynp);
   // Load/store + metadata invalidation cache
   lsu = new MIM_LoadStoreU(XML, ithCore, &interface_ip, coredynp);
-  // FIXME
-  lsu->exist = false;
+  // FIXME: get information from XML
+  //lsu->exist = false;
   // Metadata invalidation table
   mit = new MIM_InvalidationTable(XML, ithCore, &interface_ip, coredynp);
+  // FIXME: get information from XML
+  mit->exist = false;
   // Configuration table
   ct = new MIM_ConfigTable(XML, ithCore, &interface_ip, coredynp);
 
