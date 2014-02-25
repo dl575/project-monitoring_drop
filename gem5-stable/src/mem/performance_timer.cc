@@ -249,7 +249,7 @@ PerformanceTimer::actualOverhead()
 double
 PerformanceTimer::getAdjustedSlackMultiplier()
 {
-    slack_multiplier = effectiveOverhead() / actualOverhead() * slack_multiplier;
+    slack_multiplier = povr / actualOverhead() * slack_multiplier;
     return slack_multiplier;
 }
 
