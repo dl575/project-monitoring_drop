@@ -287,16 +287,16 @@
         <stat name="loads" value="{stats.system.cpu2.flagCacheLoads}"/>
         <stat name="stores" value="{stats.system.cpu2.flagCacheStores}"/>
         <!-- ConfigTable -->
-        <stat name="CT_duty_cycle" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filetered::LOAD + stats.system.cpu2.filetered::STORE + stats.system.cpu2.filtered::INTALU) / stats.system.cpu0.numCycles}"/>	
-        <stat name="CT_reads" value="{stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU}"/>	
+        <stat name="CT_duty_cycle" value="{(stats.system.cpu2.drops::total) / stats.system.cpu0.numCycles}"/>	
+        <stat name="CT_reads" value="{stats.system.cpu2.drops::total}"/>	
         <!-- not used for monitoring_soft_drop -->
         <!-- InvalidationTable -->
         <stat name="IT_duty_cycle" value="{(stats.system.cpu2.flagCacheLoads + stats.system.cpu2.flagCacheStores) / stats.system.cpu0.numCycles}"/>	
         <stat name="IT_reads" value="{stats.system.cpu2.flagCacheLoads}"/>	
         <stat name="IT_writes" value="{stats.system.cpu2.flagCacheStores}"/>	
         <!-- FunctionalUnit -->
-        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU) / stats.system.cpu0.numCycles}"/>	
-        <stat name="alu_accesses" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU)}"/>			
+        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.drops::total) / stats.system.cpu0.numCycles}"/>	
+        <stat name="alu_accesses" value="{(stats.system.cpu2.drops::total)}"/>			
       </component>
 
  			<component id="system.core0.metadata" name="MFM">
