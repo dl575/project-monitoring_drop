@@ -266,6 +266,10 @@
       </component>
 
  			<component id="system.core0.metadata" name="MIM">
+        <!-- Whether MIT (non-memory backed invalidation table) exists -->
+        <param name="MIT_exist" value="0"/>
+        <!-- Whether MIC (memory backed invalidation cache) exists -->
+        <param name="MIC_exist" value="1"/>
         <!--			<param name="mcache_config" value="2048,64,2,1,10,10,32,1"/>-->
   <param name="mcache_config" value="{join(',',config.system.cpu2.dcache.size,config.system.cpu2.dcache.block_size,config.system.cpu2.dcache.assoc,1,1,config.system.cpu2.dcache.hit_latency,32,1)}"/>
 				<!-- the parameters are capacity,block_width, associativity, bank, throughput w.r.t. core clock, latency w.r.t. core clock,output_width, cache policy,  -->

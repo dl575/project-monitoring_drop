@@ -151,13 +151,19 @@ typedef struct{
 	double replacements;
 } BTB_systemcore;
 typedef struct {
+  // Non-memory backed invalidation table
+  int MIT_exist;
+  // Memory backed invalidation cache
+  int MIC_exist;
   // Cache parameters
 	double mcache_config[20];
 	int buffer_sizes[20];
   int store_buffer_size;
   int load_buffer_size;
-  // RegFU
+  // FunctionalUnit
   double ALU_duty_cycle;
+  int alu_accesses;
+  // RegFU
   int regfile_reads;
   int regfile_writes;
   // LoadStore
@@ -175,8 +181,6 @@ typedef struct {
   double IT_duty_cycle;
   int IT_reads;
   int IT_writes;
-  // FunctionalUnit
-  int alu_accesses;
 } MIM_systemcore;
 typedef struct {
   // FunctionalUnit

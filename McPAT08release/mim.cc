@@ -1656,12 +1656,18 @@ MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, c
   rfu = new MIM_RegFU(XML, ithCore, &interface_ip, coredynp);
   // Load/store + metadata invalidation cache
   lsu = new MIM_LoadStoreU(XML, ithCore, &interface_ip, coredynp);
-  // FIXME: get information from XML
-  //lsu->exist = false;
+  if (XML->sys.core[ithCore].MIM.MIC_exist) {
+    lsu->exist = true;
+  } else {
+    lsu->exist = false;
+  }
   // Metadata invalidation table
   mit = new MIM_InvalidationTable(XML, ithCore, &interface_ip, coredynp);
-  // FIXME: get information from XML
-  mit->exist = false;
+  if (XML->sys.core[ithCore].MIM.MIT_exist) {
+    mit->exist = true;
+  } else {
+    mit->exist = false;
+  }
   // Configuration table
   ct = new MIM_ConfigTable(XML, ithCore, &interface_ip, coredynp);
 
@@ -1831,13 +1837,20 @@ void MIM::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
 			if (plevel >2){
 				lsu->displayEnergy(indent+4,plevel,is_tdp);
 			}
+    } else {
+      cout << indent_str << "Metadata Invalidation Cache: None" << endl;
+      cout << endl;
+    }
+    // Invalidation Table
+    if (mit->exist) {
+      mit->displayEnergy(indent, is_tdp);
+    } else {
+      cout << indent_str << "Metadata Invalidation Table: None" << endl;
+      cout << endl;
     }
 
     // Config Table
     ct->displayEnergy(indent, is_tdp);
-    if (mit->exist) {
-      mit->displayEnergy(indent, is_tdp);
-    }
 
     // MFM ALU
     if (plevel > 3) {

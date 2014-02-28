@@ -583,6 +583,8 @@ void ParseXML::parse(char* filepath)
 							itmp=xNode4.nChildNode("param");
 							for(k=0; k<itmp; k++)
 							{ //get all items of param in system.core0.MIM--MIM
+                if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"MIT_exist")==0) {sys.core[i].MIM.MIT_exist=atoi(xNode4.getChildNode("param",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"MIC_exist")==0) {sys.core[i].MIM.MIC_exist=atoi(xNode4.getChildNode("param",k).getAttribute("value"));continue;}
 								if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"mcache_config")==0)
 								{
 									strtmp.assign(xNode4.getChildNode("param",k).getAttribute("value"));
@@ -626,8 +628,8 @@ void ParseXML::parse(char* filepath)
 									m++;
 									chtmp1[0]='\0';
 								}
-                if (strcmp(xNode3.getChildNode("param",k).getAttribute("name"),"store_buffer_size")==0) {sys.core[i].MIM.store_buffer_size=atoi(xNode3.getChildNode("param",k).getAttribute("value"));continue;}
-							if (strcmp(xNode3.getChildNode("param",k).getAttribute("name"),"load_buffer_size")==0) {sys.core[i].MIM.load_buffer_size=atoi(xNode3.getChildNode("param",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"store_buffer_size")==0) {sys.core[i].MIM.store_buffer_size=atoi(xNode4.getChildNode("param",k).getAttribute("value"));continue;}
+							  if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"load_buffer_size")==0) {sys.core[i].MIM.load_buffer_size=atoi(xNode4.getChildNode("param",k).getAttribute("value"));continue;}
               } // MIM param
 
 							itmp=xNode4.nChildNode("stat");
