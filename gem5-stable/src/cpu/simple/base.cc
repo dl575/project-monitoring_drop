@@ -1274,7 +1274,8 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                   ||(check_store && (itp == inst_store))
                   ||(check_indctrl && (itp == inst_indctrl));
 
-        // Mark static instruction as having an event (if unchecked previously)
+        // Mark static instruction as having a check event 
+        // (if not previsouly found already)
         if (print_static_coverage && ischeck) {
           // Read PC from FIFO
           Addr pc = -1;
@@ -1487,8 +1488,10 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                       checkid_vec |= (((uint64_t)1) << (total_checks % 64));
                     }
                     
+                    // Mark static instruction as being monitored
+                    // (if not previously monitored already)
                     if (print_static_coverage) {
-                      // Mark static instruction as checked
+                      // Read PC from FIFO
                       Addr pc = -1;
                       readFromFifo(FIFO_INSTADDR, (uint8_t *)&pc, sizeof(pc), ArmISA::TLB::AllowUnaligned);
                       // Look for PC in list of full monitored PCs

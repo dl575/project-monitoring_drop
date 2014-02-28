@@ -199,8 +199,8 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
         registerExitCallback(cb);
     }
 
+    // Callback to print out checked static instructions
     if (print_static_coverage) {
-      // Callback to print out checked static instructions
       Callback *cb = new MakeCallback<DropSimpleCPU, &DropSimpleCPU::writeCheckedPC>(this);
       registerExitCallback(cb);
     }
@@ -246,6 +246,21 @@ DropSimpleCPU::regStats()
         .name(name() + ".numIITWrites")
         .desc("Number of writes to instruction importance table")
         ;
+
+    numCheckPC
+      .name(name() + ".numCheckPC")
+      .desc("Number of static instructions which cause a check monitoring operation.")
+      ;
+
+    numCheckPCFull
+      .name(name() + ".numCheckPCFull")
+      .desc("Number of static instrucstions which cause a check that are monitored at least once.")
+      ;
+
+    staticCoverage
+      .name(name() + ".staticCoverage")
+      .desc("Static coverage = numCheckPC/numCheckPCFull.")
+      ;
     
 }
 
@@ -425,26 +440,33 @@ DropSimpleCPU::writeBacktrackTable()
     os.close();
 }
 
+/*
+ *  On simulation exit, print out all PCs with check monitoring operations and
+ *  all of these PCs where at least one dynamic instance was monitored in full.
+ */
 void
 DropSimpleCPU::writeCheckedPC()
 {
+  // Print out all check monitoring operation PCs
   printf("All PCs:\n");
   std::list<int>::iterator it;
   for (it = pc_checked.begin(); it != pc_checked.end(); ++it) {
     printf("%x, ", *it);
   }
   printf("\n");
-  printf("size = %d\n", (int)pc_checked.size());
 
+  // Print out check monitoring operation PCs that were monitored at least once
   printf("Full monitored PCs:\n");
   for (it = pc_checked_full.begin(); it != pc_checked_full.end(); ++it) {
     printf("%x, ", *it);
   }
   printf("\n");
-  printf("size = %d\n", (int)pc_checked_full.size());
 
+  // Calculate static coverage statistics
+  numCheckPC = (int)pc_checked.size();
+  numCheckPCFull = (int)pc_checked_full.size();
   float coverage = (float)pc_checked_full.size()/(int)pc_checked.size();
-  printf("Static Coverage = %f\n", coverage);
+  staticCoverage = coverage;
 }
 
 Fault

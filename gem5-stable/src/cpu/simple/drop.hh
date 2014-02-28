@@ -211,6 +211,10 @@ class DropSimpleCPU : public BaseSimpleCPU
     Stats::Scalar numRegLoads;
     Stats::Scalar numRegStores;
     Stats::Scalar numIITWrites;
+    // Static coverage statistics
+    Stats::Scalar numCheckPC;
+    Stats::Scalar numCheckPCFull;
+    Stats::Scalar staticCoverage;
 
     bool backtrack_write_table;
     bool backtrack_read_table;
