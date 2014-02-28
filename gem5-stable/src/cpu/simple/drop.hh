@@ -210,6 +210,7 @@ class DropSimpleCPU : public BaseSimpleCPU
     Stats::Scalar numCacheStores;
     Stats::Scalar numRegLoads;
     Stats::Scalar numRegStores;
+    Stats::Scalar numIITWrites;
 
     bool backtrack_write_table;
     bool backtrack_read_table;

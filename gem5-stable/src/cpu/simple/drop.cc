@@ -242,6 +242,11 @@ DropSimpleCPU::regStats()
         .desc("Number of stores to flag register")
         ;
     
+    numIITWrites
+        .name(name() + ".numIITWrites")
+        .desc("Number of writes to instruction importance table")
+        ;
+    
 }
 
 void
@@ -967,10 +972,12 @@ void DropSimpleCPU::setInstructionPriority(Addr addr, const bool priority)
 {
     if (ipt_impl == TABLE) {
         ipt.update(addr, priority);
+        numIITWrites++;
     } else if (ipt_impl == BLOOM_FILTER) {
         // skip update if already in bloom filter
         if (!ipt_bloom.lookup(addr))
             ipt_bloom.update(addr, true);
+        numIITWrites++;
     } else {
         panic("Invalid IPT implementation!\n");
     }

@@ -673,6 +673,56 @@ void ParseXML::parse(char* filepath)
 
             } // MFM
 
+						// IIT 
+						if (strcmp(xNode4.getAttribute("name"),"IIT")==0) { //find system.core0.IIT 
+								itmp=xNode4.nChildNode("param"); 
+								for(k=0; k<itmp; k++) 
+								{ 
+								} // IIT param 
+ 
+								itmp=xNode4.nChildNode("stat"); 
+								for(k=0; k<itmp; k++) 
+								{ //get all items of stat in IIT 
+									if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"IIT_duty_cycle")==0) {sys.core[i].IIT.IIT_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;} 
+									if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"IIT_reads")==0) {sys.core[i].IIT.IIT_reads=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;} 
+									if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"IIT_writes")==0) {sys.core[i].IIT.IIT_writes=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;} 
+								} // IIT stat 
+						} // IIT 
+ 
+						// MPT 
+						if (strcmp(xNode4.getAttribute("name"),"MPT")==0) { //find system.core0.MPT 
+								itmp=xNode4.nChildNode("param"); 
+								for(k=0; k<itmp; k++) 
+								{ 
+								} // MPT param 
+ 
+								itmp=xNode4.nChildNode("stat"); 
+								for(k=0; k<itmp; k++) 
+								{ //get all items of stat in MPT 
+									if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"MPT_duty_cycle")==0) {sys.core[i].MPT.MPT_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;} 
+									if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"MPT_reads")==0) {sys.core[i].MPT.MPT_reads=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;} 
+									if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"MPT_writes")==0) {sys.core[i].MPT.MPT_writes=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;} 
+								} // MPT stat 
+						} // MPT 
+ 
+						// RPT 
+						if (strcmp(xNode4.getAttribute("name"),"RPT")==0) { //find system.core0.RPT 
+								itmp=xNode4.nChildNode("param"); 
+								for(k=0; k<itmp; k++) 
+								{ 
+								} // RPT param 
+ 
+								itmp=xNode4.nChildNode("stat"); 
+								for(k=0; k<itmp; k++) 
+								{ //get all items of stat in RPT 
+									if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"RPT_duty_cycle")==0) {sys.core[i].RPT.RPT_duty_cycle=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;} 
+									if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"RPT_reads")==0) {sys.core[i].RPT.RPT_reads=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;} 
+									if (strcmp(xNode4.getChildNode("stat",k).getAttribute("name"),"RPT_writes")==0) {sys.core[i].RPT.RPT_writes=atof(xNode4.getChildNode("stat",k).getAttribute("value"));continue;} 
+								} // RPT stat 
+						} // RPT 
+ 
+
+
 					}
 				}
 				else {

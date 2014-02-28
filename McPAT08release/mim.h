@@ -163,6 +163,74 @@ public:
     void leakage_feedback(double temperature);
 };
 
+class IIT_BloomFilter : public Component {
+  public:
+    ParseXML *XML;
+    int ithCore;
+    InputParameter interface_ip;
+    CoreDynParam coredynp;
+    double clockRate, executionTime;
+    ArrayST * ConfigTable;
+    bool exist;
+
+    IIT_BloomFilter(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, bool exist_=true);
+    void computeEnergy(bool is_tdp=true);
+    void displayEnergy(uint32_t indent=0, int plevel=100, bool is_tdp=true);
+    ~IIT_BloomFilter();
+};
+
+class MemoryProducerTable : public Component {
+  public:
+    ParseXML *XML;
+    int ithCore;
+    InputParameter interface_ip;
+    CoreDynParam coredynp;
+    double clockRate, executionTime;
+    ArrayST * ConfigTable;
+    bool exist;
+
+    MemoryProducerTable(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, bool exist_=true);
+    void computeEnergy(bool is_tdp=true);
+    void displayEnergy(uint32_t indent=0, int plevel=100, bool is_tdp=true);
+    ~MemoryProducerTable();
+};
+
+class RegisterProducerTable : public Component {
+  public:
+    ParseXML *XML;
+    int ithCore;
+    InputParameter interface_ip;
+    CoreDynParam coredynp;
+    double clockRate, executionTime;
+    ArrayST * ConfigTable;
+    bool exist;
+
+    RegisterProducerTable(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, bool exist_=true);
+    void computeEnergy(bool is_tdp=true);
+    void displayEnergy(uint32_t indent=0, int plevel=100, bool is_tdp=true);
+    ~RegisterProducerTable();
+};
+
+class BacktrackHardware : public Component {
+  public:
+    ParseXML *XML;
+    int ithCore;
+    InputParameter interface_ip;
+    CoreDynParam coredynp;
+    double clockRate, executionTime;
+    ArrayST * ConfigTable;
+    IIT_BloomFilter *iit;
+    MemoryProducerTable *mpt;
+    RegisterProducerTable *rpt;
+
+    bool exist;
+
+    BacktrackHardware(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, bool exist_=true);
+    void computeEnergy(bool is_tdp=true);
+    void displayEnergy(uint32_t indent=0, int plevel=100, bool is_tdp=true);
+    ~BacktrackHardware();
+};
+
 class MIM : public Component {
   public:
     ParseXML *XML;
@@ -178,6 +246,7 @@ class MIM : public Component {
     MFM_FunctionalUnit * mfm_alu;
     MFM_ConfigTable * mfm_ct;
     MFM_FilterLookupTable * mfm_flt;
+    BacktrackHardware * bthw;
 
     bool exist;
 
@@ -186,7 +255,5 @@ class MIM : public Component {
     void displayEnergy(uint32_t indent = 0, int plevel = 100, bool is_tdp=true);
     ~MIM();
 };
-
-
 
 #endif
