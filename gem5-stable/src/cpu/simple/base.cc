@@ -642,7 +642,7 @@ BaseSimpleCPU::postExecute()
 void 
 BaseSimpleCPU::performMonitoring() {
   
-    // Check if this instruction is predicated
+    // Check if this instruction is predicated (true is executed, false is predicated false)
     bool predicate_result = readPredicate();
   
     /* Check if FIFO has emptied after a timer stall */
@@ -706,11 +706,23 @@ BaseSimpleCPU::performMonitoring() {
     }
 
     /* Monitoring */
+   
+    // String representation of instruction
+    std::string inst_dis = curStaticInst->disassemble(tc->instAddr(), NULL); 
+    // op type
+    OpClass inst_opclass = curStaticInst->opClass();
+    // Determine whether the instruction writes to any ISA registers
+    bool destReg = false;
+    int i;
+    for (i = 0; i < curStaticInst->numDestRegs(); i++) {
+      if (TheISA::isISAReg(curStaticInst->destRegIdx(i))) {
+        destReg = true;
+      }
+    }
+
     // For certain instruction types, depending on mf (monitoring filter)
     // Fifo and monitoring must be enabled
     // Address cannot be for fifo, timer, or flagcache.
-    std::string inst_dis = curStaticInst->disassemble(tc->instAddr(), NULL); // String representaiton of instruction
-    OpClass inst_opclass = curStaticInst->opClass();
     if (fifo_enabled && ( (mp.done && curStaticInst->isStore()) || 
       (monitoring_enabled && predicate_result &&
        (
@@ -720,8 +732,8 @@ BaseSimpleCPU::performMonitoring() {
         (curStaticInst->isReturn() && mf.ret) ||
         // integer ALU, not including memory barrier, thready sync, etc. instructions
         (((inst_opclass == IntAluOp) || (inst_opclass == IntMultOp) || (inst_opclass == IntDivOp)) && curStaticInst->isInteger() &&
-         // and not including control instructions
-         !(curStaticInst->isControl()) && mf.intalu) || 
+         // and not including control instructions, must write to a register
+         !(curStaticInst->isControl()) && destReg && mf.intalu) || 
         ((inst_dis.find("mov") != string::npos) && mf.intmov && !curStaticInst->isControl()) ||
         ((inst_dis.find("add") != string::npos) && mf.intadd) ||
         ((inst_dis.find("sub") != string::npos) && mf.intsub) ||
