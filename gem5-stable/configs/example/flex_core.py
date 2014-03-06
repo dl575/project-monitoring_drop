@@ -113,6 +113,8 @@ parser.add_option("--important_percent", type="float", default=0.0)
 parser.add_option("--increment_important_only", action="store_true")
 # Read slack multiplier from file
 parser.add_option("--read_slack_multiplier", action="store_true")
+# Interval for adjusting slack multiplier (in cycles)
+parser.add_option("--slack_multiplier_interval", type="int", default=0)
 # Number of instructions to fast-forward
 # During fast-forwarding, full monitoring is performed. Invalidation is enabled
 # after fast-forward period.
@@ -387,6 +389,7 @@ timer.important_policy = important_policy[options.important_policy]
 timer.important_slack = options.important_slack
 timer.important_percent = options.important_percent
 timer.increment_important_only = options.increment_important_only
+timer.slack_multiplier_interval = options.slack_multiplier_interval
 timer.read_slack_multiplier = options.read_slack_multiplier
 timer.persistence_dir = options.backtrack_table_dir
 # We can also set a probabilistic range
