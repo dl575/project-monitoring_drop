@@ -66,6 +66,9 @@ def addCommonOptions(parser):
     parser.add_option("-I", "--maxinsts", action="store", type="int",
                       default=None, help="""Total number of instructions to
                                             simulate (default: run forever)""")
+    parser.add_option("--maxinsts_cpu0", action="store", type="int",
+                      default=None, help="""Total number of instructions to
+                                            simulate for cpu0 (default: run forever)""")
     parser.add_option("--work-item-id", action="store", type="int",
                       help="the specific work id for exit & checkpointing")
     parser.add_option("--work-begin-cpu-id-exit", action="store", type="int",

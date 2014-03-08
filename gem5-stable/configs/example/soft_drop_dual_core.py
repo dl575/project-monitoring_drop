@@ -260,7 +260,7 @@ if options.probabilistic_drop:
 DropCPUClass.print_static_coverage = options.static_coverage
 
 if options.monitor == "umc":
-  monitor_bin = "umc_hwfilter"
+  monitor_bin = "umc_full"
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
@@ -274,7 +274,7 @@ if options.monitor == "umc":
   DropCPUClass.check_store = False
   DropCPUClass.check_indctrl = False
 elif options.monitor == "dift" or options.monitor == "multidift":
-  monitor_bin = "dift_soft_drop"
+  monitor_bin = "dift_full"
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
