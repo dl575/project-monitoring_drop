@@ -203,8 +203,7 @@ MonCPUClass.fifo_enabled = True
 MonCPUClass.monitoring_enabled = False
 # Enable slack timer so it can read from it
 MonCPUClass.timer_enabled = True
-# Need flag cache for monitoring core
-#MonCPUClass.flagcache_enabled = False
+# Monitoring core can access flagcache for revalidation
 MonCPUClass.flagcache_enabled = True
 #MonCPUClass.monitor_type = available_monitors[options.monitor]
 if (options.simulatestalls and options.cpu_type == 'atomic'):
@@ -357,7 +356,7 @@ system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1), DropCPUCla
 cpu_list = [MainCPUClass, MonCPUClass, DropCPUClass]
 
 # Connect port between drop and monitoring cpu
-#system.cpu[1].monitor_port = system.cpu[2].monitor_port
+system.cpu[1].monitor_port = system.cpu[2].monitor_port
 
 # Number of CPUs
 options.num_cpus = 3

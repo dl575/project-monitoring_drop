@@ -46,6 +46,7 @@
 #include "base/bigint.hh"
 #include "config/the_isa.hh"
 #include "cpu/simple/atomic.hh"
+#include "cpu/simple/drop.hh" // Include for flagcache defines
 #include "cpu/exetrace.hh"
 #include "debug/ExecFaulting.hh"
 #include "debug/SimpleCPU.hh"
@@ -110,6 +111,7 @@ AtomicSimpleCPU::AtomicSimpleCPU(AtomicSimpleCPUParams *p)
       simulate_data_stalls(p->simulate_data_stalls),
       simulate_inst_stalls(p->simulate_inst_stalls),
       icachePort(name() + "-iport", this), dcachePort(name() + "-iport", this),
+      monitorPort(name() + "-iport", this),
       fastmem(p->fastmem),
       fifoEvent(this)
 {
@@ -388,7 +390,47 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
     
     // Write to flag cache
     if (flagcache_enabled && (addr >= FLAG_CACHE_ADDR_START && addr <= FLAG_CACHE_ADDR_END)) {
+      // If invalidation is performed on this core
+      if (invtab.initialized) {
         return writeToFlagCache(addr, data, size, flags);
+      // Invalidation is done on another core, send message
+      } else {
+        if (addr == FC_SET_ADDR) {
+          panic("Unimplemented. Use REVALIDATE/INVALIDATE or implement.");
+        } else if (addr == FC_SET_FLAG) {
+          panic("Unimplemented. Use REVALIDATE/INVALIDATE or implement.");
+        } else if (addr == FC_CLEAR_FLAG) {
+          panic("Unimplemented. Use REVALIDATE/INVALIDATE or implement.");
+        } else if (addr == FC_CACHE_REVALIDATE) {
+          // Create request
+          Request *req = &monitor_req;
+          req->setPhys(DROP_CLEAR_CACHE, sizeof(fed.data), ArmISA::TLB::AllowUnaligned, dataMasterId());
+          // Create packet
+          PacketPtr p = new Packet(req, MemCmd::WriteReq);
+          p->dataStatic(&fed.data);
+          // Send packet
+          monitorPort.sendFunctional(p);
+          // Clean up
+          delete p;
+        } else if (addr == FC_ARRAY_REVALIDATE) {
+          // Create request
+          Request *req = &monitor_req;
+          req->setPhys(DROP_CLEAR_ARRAY, sizeof(fed.data), ArmISA::TLB::AllowUnaligned, dataMasterId());
+          // Create packet
+          PacketPtr p = new Packet(req, MemCmd::WriteReq);
+          p->dataStatic(&fed.data);
+          // Send packet
+          monitorPort.sendFunctional(p);
+          // Clean up
+          delete p;
+        } else if (addr == FC_CACHE_INVALIDATE) {
+          panic("Invalidation unimplemented. Please implement.");
+        } else if (addr == FC_ARRAY_INVALIDATE) {
+          panic("Invalidation unimplemented. Please implement.");
+        }
+
+        return NoFault;
+      }
     }
 
     // use the CPU's statically allocated write request and packet objects
@@ -687,4 +729,14 @@ AtomicSimpleCPUParams::create()
     if (!FullSystem && workload.size() != 1)
         panic("only one workload allowed");
     return new AtomicSimpleCPU(this);
+}
+
+MasterPort & 
+AtomicSimpleCPU::getMasterPort(const std::string &if_name, int idx)
+{
+  if (if_name == "monitor_port") {
+    return monitorPort;
+  } else {
+    return BaseSimpleCPU::getMasterPort(if_name, idx);
+  }
 }

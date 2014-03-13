@@ -69,6 +69,10 @@ extern "C" {
 #define FC_SET_ADDR            (FLAG_CACHE_ADDR + 0x00)
 #define FC_SET_FLAG            (FLAG_CACHE_ADDR + 0x04)
 #define FC_CLEAR_FLAG          (FLAG_CACHE_ADDR + 0x08)
+#define FC_CACHE_REVALIDATE    (FLAG_CACHE_ADDR + 0x0c)
+#define FC_ARRAY_REVALIDATE    (FLAG_CACHE_ADDR + 0x10)
+#define FC_CACHE_INVALIDATE    (FLAG_CACHE_ADDR + 0x14)
+#define FC_ARRAY_INVALIDATE    (FLAG_CACHE_ADDR + 0x18)
 // type for specifying write to cache or register file
 #define FC_REGFILE 0
 #define FC_CACHE 1
