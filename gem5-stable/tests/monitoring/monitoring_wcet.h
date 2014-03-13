@@ -13,7 +13,7 @@
 #define ISA_PAGE_SIZE 4096
 
 // Address of monitoring fifo (for read)
-#define MONITOR_ADDR 0x30000000
+#define MONITOR_ADDR 0x50000000
 
 // Fifo Size
 #define FIFO_SIZE 16

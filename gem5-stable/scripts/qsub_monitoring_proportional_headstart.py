@@ -55,6 +55,8 @@ class ClusterDispatcher:
       script = '' + qsub_script_header % ()
       for task in q:
         script += '\n%s\n' % task
+      # Touch done flag
+      script += "\ntouch queue%03d.done\n" % (j)
       # write script
       with open(os.path.join(run_dir, "queue%03d.csh" % j), 'w') as f:
         f.write(script)
@@ -87,8 +89,10 @@ def run(config, n_jobs):
     config_args = ' --cpu-type=%s --clock=%s --monfreq=%s --monitor=%s' % (prod[0], prod[1], prod[2], prod[3])
     # Scale headstart based on slack and cycles of simulation
     config_args += ' --headstart_slack=%d' % (prod[5]*config['max_insts']/10)
+    if config['static_coverage']:
+      config_args += ' --static_coverage'
     if config['max_insts']:
-      config_args += ' --maxinsts=%d' % (config['max_insts'])
+      config_args += ' --maxinsts_cpu0=%d' % (config['max_insts'])
     if config['ff_insts']:
       config_args += ' --fastforward_insts=%d' % (config['ff_insts'])
     if config['emulate_filtering']:
