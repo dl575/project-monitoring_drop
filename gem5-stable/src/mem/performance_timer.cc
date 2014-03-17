@@ -304,7 +304,7 @@ PerformanceTimer::adjustSlackMultiplier()
 void
 PerformanceTimer::updateSlackSubtrahend()
 {
-    if (stored_tp.isDecrement || !last_important) {
+    if (!stored_tp.isDecrement && !last_important) {
         slack_subtrahend += (curTick() - slack_subtrahend_last_update) * effectiveOverhead();
     }
     slack_subtrahend_last_update = curTick();
@@ -507,12 +507,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             } else if (write_addr == TIMER_END_DECREMENT) {
               if (stored_tp.intask){
                   stored_tp.isDecrement = false;
-                  //Include povr to offset increase in slack over the delay time
-                  Tick delay_time;
-                  if (!increment_important_only)
-                    delay_time = (curTick() - stored_tp.decrementStart)*(1+effectiveOverhead());
-                  else
-                    delay_time = curTick() - stored_tp.decrementStart;
+                  Tick delay_time = curTick() - stored_tp.decrementStart;
                   long long int slack = stored_tp.slack - delay_time;
                   if (slack > stored_tp.slack){
                     panic("Timer Underflow.");
@@ -520,6 +515,8 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                   stored_tp.slack = slack;
                   _cumulative_delay_time += delay_time;
                   cumulative_delay_time += delay_time;
+                  // Increase slack_subtrahend to offset increase in slack over the delay time
+                  slack_subtrahend += delay_time * effectiveOverhead();
                   
                   DPRINTF(SlackTimer, "Written to timer: decrement end, slack = %d\n", effectiveSlack());
 
