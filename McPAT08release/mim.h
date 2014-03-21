@@ -179,6 +179,22 @@ class IIT_BloomFilter : public Component {
     ~IIT_BloomFilter();
 };
 
+class IIT_Tagless : public Component {
+  public:
+    ParseXML *XML;
+    int ithCore;
+    InputParameter interface_ip;
+    CoreDynParam coredynp;
+    double clockRate, executionTime;
+    ArrayST * ConfigTable;
+    bool exist;
+
+    IIT_Tagless(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, bool exist_=true);
+    void computeEnergy(bool is_tdp=true);
+    void displayEnergy(uint32_t indent=0, int plevel=100, bool is_tdp=true);
+    ~IIT_Tagless();
+};
+
 class MemoryProducerTable : public Component {
   public:
     ParseXML *XML;
@@ -219,7 +235,7 @@ class BacktrackHardware : public Component {
     CoreDynParam coredynp;
     double clockRate, executionTime;
     ArrayST * ConfigTable;
-    IIT_BloomFilter *iit;
+    IIT_Tagless *iit;
     MemoryProducerTable *mpt;
     RegisterProducerTable *rpt;
 

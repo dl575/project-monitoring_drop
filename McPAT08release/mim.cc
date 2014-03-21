@@ -444,6 +444,127 @@ MFM_FilterLookupTable::MFM_FilterLookupTable(ParseXML* XML_interface, int ithCor
 }
 
 // Based on RegFU
+IIT_Tagless::IIT_Tagless(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_, const CoreDynParam & dyn_p_,bool exist_)
+:XML(XML_interface),
+ ithCore(ithCore_),
+ interface_ip(*interface_ip_),
+ coredynp(dyn_p_),
+ ConfigTable(0),
+ exist(exist_)
+{
+  if (!exist) return;
+
+  clockRate = coredynp.clockRate;
+  executionTime = coredynp.executionTime;
+
+  // A tagless table used for IIT
+  // size = 32768
+  // assume readout width = 8, select 1 bit from output data
+  int table_output_width = 8;
+  // 12-bit address space
+  int table_input_width = 12;
+  int num_entries = 1 << table_input_width;
+
+	interface_ip.is_cache            = false;
+	interface_ip.pure_cam            = false;
+	interface_ip.pure_ram            = true;
+  // Line size in bytes
+	interface_ip.line_sz             = int(ceil(table_output_width/8.0));
+	interface_ip.cache_sz            = num_entries*interface_ip.line_sz;
+	interface_ip.assoc               = 1;
+	interface_ip.nbanks              = 1;
+  // Output bus width in bits
+	interface_ip.out_w               = interface_ip.line_sz*8;
+	interface_ip.access_mode         = 1;
+	interface_ip.throughput          = 1.0/clockRate;
+	interface_ip.latency             = 1.0/clockRate;
+	interface_ip.obj_func_dyn_energy = 0;
+	interface_ip.obj_func_dyn_power  = 0;
+	interface_ip.obj_func_leak_power = 0;
+	interface_ip.obj_func_cycle_t    = 1;
+	interface_ip.num_rw_ports    = 1;
+	interface_ip.num_rd_ports    = 0;
+	interface_ip.num_wr_ports    = 0;
+	interface_ip.num_se_rd_ports = 0;
+
+	ConfigTable = new ArrayST(&interface_ip, "Instruction Importance Table", Core_device, coredynp.opt_local, coredynp.core_ty);
+
+	ConfigTable->area.set_area(ConfigTable->area.get_area() + ConfigTable->local_result.area*cdb_overhead);
+	area.set_area(area.get_area()+ ConfigTable->local_result.area*cdb_overhead);
+}
+
+void IIT_Tagless::computeEnergy(bool is_tdp)
+{
+	if (!exist) return;
+
+  int issueW = 1;
+  double CT_duty_cycle = XML->sys.core[ithCore].IIT.IIT_duty_cycle;
+
+	if (is_tdp)
+    {
+      // FIXME: stats are for core
+    	//init stats for Peak
+    	ConfigTable->stats_t.readAc.access  = issueW*2*(CT_duty_cycle*1.1);
+    	ConfigTable->stats_t.writeAc.access  = issueW*(CT_duty_cycle*1.1);
+    	//Rule of Thumb: about 10% RF related instructions do not need to access ALUs
+    	ConfigTable->tdp_stats = ConfigTable->stats_t;
+     }
+    else
+    {
+    	//init stats for Runtime Dynamic (RTP)
+    	ConfigTable->stats_t.readAc.access  = XML->sys.core[ithCore].IIT.IIT_reads;
+    	ConfigTable->stats_t.writeAc.access  = XML->sys.core[ithCore].IIT.IIT_writes;
+    	ConfigTable->rtp_stats = ConfigTable->stats_t;
+
+    }
+	ConfigTable->power_t.reset();
+	ConfigTable->power_t.readOp.dynamic  +=  (ConfigTable->stats_t.readAc.access*ConfigTable->local_result.power.readOp.dynamic
+			+ConfigTable->stats_t.writeAc.access*ConfigTable->local_result.power.writeOp.dynamic);
+
+	if (is_tdp)
+	{
+		ConfigTable->power  =  ConfigTable->power_t + ConfigTable->local_result.power *coredynp.pppm_lkg_multhread;
+		power	    =  power + ConfigTable->power;
+	}
+	else
+	{
+		ConfigTable->rt_power  =  ConfigTable->power_t + ConfigTable->local_result.power *coredynp.pppm_lkg_multhread;
+		rt_power	   =  rt_power + ConfigTable->power_t;
+	}
+}
+
+void IIT_Tagless::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
+{
+	if (!exist) return;
+	string indent_str(indent, ' ');
+	string indent_str_next(indent+2, ' ');
+	bool long_channel = XML->sys.longer_channel_device;
+
+	if (is_tdp)
+	{	
+    cout << indent_str << "Instruction Importance Table:" << endl;
+		cout << indent_str_next << "Area = " << ConfigTable->area.get_area()*1e-6<< " mm^2" << endl;
+		cout << indent_str_next << "Peak Dynamic = " << ConfigTable->power.readOp.dynamic*clockRate << " W" << endl;
+		cout << indent_str_next << "Subthreshold Leakage = "
+			<< (long_channel? ConfigTable->power.readOp.longer_channel_leakage:ConfigTable->power.readOp.leakage) <<" W" << endl;
+		cout << indent_str_next << "Gate Leakage = " << ConfigTable->power.readOp.gate_leakage << " W" << endl;
+		cout << indent_str_next << "Runtime Dynamic = " << ConfigTable->rt_power.readOp.dynamic/executionTime << " W" << endl;
+		cout <<endl;
+	}
+	else
+	{
+		cout << indent_str_next << "Config Table    Peak Dynamic = " << ConfigTable->rt_power.readOp.dynamic*clockRate << " W" << endl;
+		cout << indent_str_next << "Config Table    Subthreshold Leakage = " << ConfigTable->rt_power.readOp.leakage <<" W" << endl;
+		cout << indent_str_next << "Config Table    Gate Leakage = " << ConfigTable->rt_power.readOp.gate_leakage << " W" << endl;
+	}
+}
+
+IIT_Tagless ::~IIT_Tagless() {
+  if (!exist) return;
+  if (ConfigTable) {delete ConfigTable; ConfigTable = 0;}
+}
+
+// Based on RegFU
 IIT_BloomFilter::IIT_BloomFilter(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_, const CoreDynParam & dyn_p_,bool exist_)
 :XML(XML_interface),
  ithCore(ithCore_),
@@ -1529,7 +1650,7 @@ BacktrackHardware::BacktrackHardware(ParseXML* XML_interface, int ithCore_, Inpu
 
   // Create components
   // IIT Bloom filter
-  iit = new IIT_BloomFilter(XML, ithCore, &interface_ip, coredynp);
+  iit = new IIT_Tagless(XML, ithCore, &interface_ip, coredynp);
   // Memory Producer Table
   mpt = new MemoryProducerTable(XML, ithCore, &interface_ip, coredynp);
   // Register Producer Table
