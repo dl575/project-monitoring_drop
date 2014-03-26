@@ -138,6 +138,8 @@ def run(options, root, testsys, cpu_class):
     if options.maxinsts:
         for i in xrange(np):
             testsys.cpu[i].max_insts_any_thread = options.maxinsts
+    if options.maxinsts_cpu0:
+        testsys.cpu[0].max_insts_any_thread = options.maxinsts_cpu0
 
     if cpu_class:
         switch_cpus = [cpu_class(defer_registration=True, cpu_id=(np+i))
@@ -155,6 +157,8 @@ def run(options, root, testsys, cpu_class):
             # Add checker cpu if selected
             if options.checker:
                 switch_cpus[i].addCheckerCpu()
+        if options.maxinsts_cpu0:
+            switch_cpus[0] = maxinsts_cpu0
 
         testsys.switch_cpus = switch_cpus
         switch_cpu_list = [(testsys.cpu[i], switch_cpus[i]) for i in xrange(np)]
@@ -201,6 +205,8 @@ def run(options, root, testsys, cpu_class):
             # simulation period
             if options.maxinsts:
                 switch_cpus_1[i].max_insts_any_thread = options.maxinsts
+            if options.maxinsts_cpu0:
+                switch_cpus_1[0].max_insts_any_thread = options.maxinsts_cpu0
 
             # attach the checker cpu if selected
             if options.checker:
@@ -450,19 +456,22 @@ def run_ff(options, root, testsys, cpu_list):
 
     # Modified from "if cpu_class:" in run()
     switch_cpus = [cpu_list[i](defer_registration=True, cpu_id=(np+i)) for i in xrange(np)]
+    # Fast forward (only apply to main core)
+    testsys.cpu[0].max_insts_any_thread = options.fastforward_insts
     for i in xrange(np):
-        # Fast forward
-        testsys.cpu[i].max_insts_any_thread = options.fastforward_insts
-
         switch_cpus[i].system = testsys
         switch_cpus[i].workload = testsys.cpu[i].workload
         switch_cpus[i].clock = testsys.cpu[i].clock
         # Simulation period
-        switch_cpus[i].max_insts_any_thread = options.maxinsts
+        if options.maxinsts: 
+            switch_cpus[i].max_insts_any_thread = options.maxinsts
+    if options.maxinsts_cpu0:
+        switch_cpus[0].max_insts_any_thread = options.maxinsts_cpu0
 
     testsys.switch_cpus = switch_cpus
     # Hook up all the fifos for the new cpu models
-    testsys.switch_cpus[1].monitor_port = testsys.switch_cpus[2].monitor_port
+    if testsys.cpu[2].monitor_port:
+        testsys.switch_cpus[1].monitor_port = testsys.switch_cpus[2].monitor_port
     if testsys.switch_cpus[0].fifo_enabled:
         testsys.switch_cpus[0].fifo_port = testsys.fifo_main_to_dc.port
     if testsys.switch_cpus[1].fifo_enabled:

@@ -10,7 +10,7 @@
 #include "monitor_timing.h"
 
 // Timer base address
-#define TIMER_ADDR 0x30010000
+#define TIMER_ADDR 0x50010000
 
 // Initialization
 volatile int *timer;

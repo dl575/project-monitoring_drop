@@ -102,8 +102,13 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     AtomicCPUPort icachePort;
     AtomicCPUPort dcachePort;
 
+    // Port for sending invalidation/revalidation information to dropping core
+    CpuPort monitorPort;
+
     bool fastmem;
     Request ifetch_req;
+    // Request used to send messages to drop core to update flag cache
+    Request monitor_req;
 
     bool dcache_access;
     Tick dcache_latency;
@@ -138,6 +143,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
      * debugging).
      */
     void printAddr(Addr a);
+
+    MasterPort & getMasterPort(const std::string &if_name, int idx);
 
   private:
 

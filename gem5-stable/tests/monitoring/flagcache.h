@@ -8,7 +8,7 @@
 #define __FLAGCACHE_H__
 
 // Address of monitoring fifo (for read)
-#define FC_ADDR 0x30020000
+#define FC_ADDR 0x50020000
 
 // Initialization
 volatile unsigned int *flagcache;
@@ -25,5 +25,13 @@ volatile unsigned int *flagcache;
 #define FC_CACHE_SET           *(flagcache + 1) = 1;
 #define FC_ARRAY_CLEAR         *(flagcache + 2) = 0;
 #define FC_CACHE_CLEAR         *(flagcache + 2) = 1;
+// Revalidate memory location specified
+#define FC_CACHE_REVALIDATE(addr)  *(flagcache + 3) = addr;
+// Revalidate specified register
+#define FC_ARRAY_REVALIDATE(reg)   *(flagcache + 4) = reg;
+// Invalidate memory location specified
+#define FC_CACHE_INVALIDATE(addr)  *(flagcache + 5) = addr;
+// Invalidate specified register
+#define FC_ARRAY_INVALIDATE(reg)   *(flagcache + 6) = reg;
 
 #endif // __FLAGCACHE_H__

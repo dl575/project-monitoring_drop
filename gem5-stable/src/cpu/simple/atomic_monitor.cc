@@ -1265,7 +1265,7 @@ void
 AtomicSimpleMonitor::UMCExecute()
 {
     if (mp.load) {
-        DPRINTF(Monitor, "UMC: Load instruction\n");
+        DPRINTF(Monitor, "UMC: Load instruction mem[0x%x]\n", mp.memAddr);
         numLoadInsts++;
         numMonitorInsts++;
         if (!(UMCTag)readBitTag(mp.memAddr)) {
@@ -1273,7 +1273,7 @@ AtomicSimpleMonitor::UMCExecute()
             numUMCErrors++;
         }
     } else if (mp.store && !mp.settag) {
-        DPRINTF(Monitor, "UMC: Store instruction\n");
+        DPRINTF(Monitor, "UMC: Store instruction mem[0x%x:0x%x]\n", mp.memAddr, mp.memEnd);
         numStoreInsts++;
         numMonitorInsts++;
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {

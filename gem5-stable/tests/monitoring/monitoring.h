@@ -8,7 +8,7 @@
 #define __SLACKTIMER_H__
 
 // Timer base address
-#define TIMER_ADDR 0x30010000
+#define TIMER_ADDR 0x50010000
 
 // Initialization
 volatile int *timer;
@@ -42,7 +42,7 @@ volatile int *timer;
 #define ISA_PAGE_SIZE 4096
 
 // Address of monitoring fifo (for read)
-#define MONITOR_ADDR 0x30000000
+#define MONITOR_ADDR 0x50000000
 
 // Fifo Size
 #define FIFO_SIZE 16
