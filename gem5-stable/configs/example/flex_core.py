@@ -128,6 +128,8 @@ parser.add_option("--coverage", type="float", default=1.0)
 parser.add_option("--coverage_adjust", type="int", default=0)
 # Enable probabilistic drop
 parser.add_option("--probabilistic_drop", action="store_true")
+# Drop only at source set tag operations
+parser.add_option("--source_dropping", action="store_true")
 
 parser.add_option("--static_coverage", action="store_true")
 
@@ -256,6 +258,8 @@ DropCPUClass.check_frequency = options.coverage_adjust
 if options.probabilistic_drop:
   DropCPUClass.print_checkid = True
 DropCPUClass.print_static_coverage = options.static_coverage
+if options.source_dropping:
+  DropCPUClass.source_dropping = True
 
 if options.monitor == "umc":
   # Set up monitoring filter
