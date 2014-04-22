@@ -574,6 +574,8 @@ class BaseSimpleCPU : public BaseCPU
     unsigned total_checks;
     unsigned full_packets;
     unsigned all_packets;
+    // Perform dropping only on set tag operations
+    bool source_dropping;
 
     // Data structure for handling fifo event
     class fifoEventDetails {

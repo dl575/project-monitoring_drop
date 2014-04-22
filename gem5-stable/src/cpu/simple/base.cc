@@ -109,6 +109,7 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     target_coverage(p->target_coverage),
     check_frequency(p->check_frequency),
     total_checks(0), full_packets(1), all_packets(1),
+    source_dropping(p->source_dropping),
     perf_mon(true),
     _backtrack(p->backtrack),
     print_checkid(p->print_checkid),
@@ -1261,26 +1262,56 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags)
 {
     bool skip_drop = false;
+    bool skip_filter = false;
     instType itp = inst_undef;
     bool entry_filtered = false;
     uint8_t intask = false;
     bool coverage_drop = false;
     bool ischeck = false;
+    // read data
+    long long int read_timer = 1;
+
+    ///////////////////////////////////////////////////////
+    // Return slack value
+    ///////////////////////////////////////////////////////
+    if (addr == TIMER_READ_SLACK) {
+        // use the CPU's statically allocated read request and packet objects
+        Request *req = &data_read_req;
     
-    if (addr == TIMER_READ_DROP){
+        // Create request at timer location
+        req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
+        // Read command
+        MemCmd cmd = MemCmd::ReadReq;
+        // Create packet
+        PacketPtr pkt = new Packet(req, cmd);
+        // Point packet to data pointer
+        pkt->dataStatic(&read_timer);
+
+        // Send read request
+        timerPort.sendFunctional(pkt);
+        
+        // Clean up
+        delete pkt;
+
+        // Print out for debug
+    #ifdef DEBUG
+        DPRINTF(SlackTimer, "read from timer: %d ticks, %d cycles\n", read_timer, read_timer/ticks(1));
+    #endif
+    
+        read_timer /= ticks(1);
+    ///////////////////////////////////////////////////////
+    // Perform filtering + dropping
+    ///////////////////////////////////////////////////////
+    } else if (addr == TIMER_READ_DROP) {
         // Check if we are in a task
         readFromTimer(TIMER_TASK_PACKET, &intask, sizeof(intask), ArmISA::TLB::AllowUnaligned);
-    }
-    
-    if (addr == TIMER_READ_DROP && fifo_enabled){
+
         // Pop the fifo entry
         bool pop = true;
         Fault result = writeToFifo(FIFO_NEXT, (uint8_t *)&pop, sizeof(pop), ArmISA::TLB::AllowUnaligned);
         if (result != NoFault) { return result; }
-               
         // Read instruction type from fifo
         itp = readFifoInstType();
-        
         // Test if it is a check packet
         ischeck = (check_load && (itp == inst_load))
                   ||(check_store && (itp == inst_store))
@@ -1323,6 +1354,14 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         
         // FIXME: Prevents settag packets from being dropped. Does not work in real-time settings.
         readFromFifo(FIFO_SETTAG, (uint8_t *)&skip_drop, sizeof(skip_drop), ArmISA::TLB::AllowUnaligned);
+        skip_filter = skip_drop;
+        // For source dropping, only set tag operations should be dropped while
+        // other operations should not be dropped. Filtering is always allowed
+        // to occur.
+        if (source_dropping) {
+          skip_drop = !skip_drop;
+          skip_filter = false;
+        }
         
         if (_backtrack) {
             // calculate whether an instruction is important
@@ -1332,7 +1371,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         }
 
         // Perform filtering
-        if (!skip_drop && flagcache_enabled && invtab.initialized && fptab.initialized 
+        if (!skip_filter && flagcache_enabled && invtab.initialized && fptab.initialized 
             && (filtertab1.initialized || filtertab2.initialized))
         {
             DPRINTF(Invalidation, "Begin filtering\n");
@@ -1415,60 +1454,46 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             coverage_drop = true;
             DPRINTF(Invalidation, "Coverage packet drop fifo entry: num_coverage_dropped: %d\n", coveragedropstats.total());
         }
-    
-    }
-    
-    // use the CPU's statically allocated read request and packet objects
-    Request *req = &data_read_req;
-    // read data
-    long long int read_timer = 1;
-    
-    // If the packet is droppable, read whether there is enough slack to
-    // perform full monitoring into read_timer.
-    // read_timer = 1 indicates enough slack, = 0 indicates drop.
-    if (!skip_drop) {
-        if (!(_backtrack && _important)) {
-            // Create request at timer location
-            req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
-            // Read command
-            MemCmd cmd = MemCmd::ReadReq;
-            // Create packet
-            PacketPtr pkt = new Packet(req, cmd);
-            // Point packet to data pointer
-            pkt->dataStatic(&read_timer);
-
-            // Send read request
-            timerPort.sendFunctional(pkt);
-            
-            // Clean up
-            delete pkt;
-        } else {
-            // Create request at timer location
-            req->setPhys(TIMER_READ_DROP_IMPORTANT, sizeof(read_timer), flags, dataMasterId());
-            // Read command
-            MemCmd cmd = MemCmd::ReadReq;
-            // Create packet
-            PacketPtr pkt = new Packet(req, cmd);
-            // Point packet to data pointer
-            pkt->dataStatic(&read_timer);
-
-            // Send read request
-            timerPort.sendFunctional(pkt);
-            
-            // Clean up
-            delete pkt;
-        }
-    }
-    
-    if (addr == TIMER_READ_SLACK) {
-        // Print out for debug
-    #ifdef DEBUG
-        DPRINTF(SlackTimer, "read from timer: %d ticks, %d cycles\n", read_timer, read_timer/ticks(1));
-    #endif
-    
-        read_timer /= ticks(1);
+      
+        // use the CPU's statically allocated read request and packet objects
+        Request *req = &data_read_req;
         
-    } else if (addr == TIMER_READ_DROP) {
+        // If the packet is droppable, read whether there is enough slack to
+        // perform full monitoring into read_timer.
+        // read_timer = 1 indicates enough slack, = 0 indicates drop.
+        if (!skip_drop) {
+            if (!(_backtrack && _important)) {
+                // Create request at timer location
+                req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
+                // Read command
+                MemCmd cmd = MemCmd::ReadReq;
+                // Create packet
+                PacketPtr pkt = new Packet(req, cmd);
+                // Point packet to data pointer
+                pkt->dataStatic(&read_timer);
+
+                // Send read request
+                timerPort.sendFunctional(pkt);
+                
+                // Clean up
+                delete pkt;
+            } else {
+                // Create request at timer location
+                req->setPhys(TIMER_READ_DROP_IMPORTANT, sizeof(read_timer), flags, dataMasterId());
+                // Read command
+                MemCmd cmd = MemCmd::ReadReq;
+                // Create packet
+                PacketPtr pkt = new Packet(req, cmd);
+                // Point packet to data pointer
+                pkt->dataStatic(&read_timer);
+
+                // Send read request
+                timerPort.sendFunctional(pkt);
+                
+                // Clean up
+                delete pkt;
+            }
+        }
         
         // If the entry should not have been marked as filtered, then it
         // contributes to either drop or non-drop statistics.

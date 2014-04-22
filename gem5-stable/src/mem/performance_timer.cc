@@ -58,9 +58,11 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
     AbstractMemory(p),
     lat(p->latency), lat_var(p->latency_var),
     povr(p->percent_overhead),
+    clock(p->start_cycles_clock),
     important_percent(p->important_percent),
     increment_important_only(p->increment_important_only),
     read_slack_multiplier(p->read_slack_multiplier),
+    slack_multiplier_interval(p->slack_multiplier_interval),
     use_start_ticks(p->use_start_ticks)
 {
     for (size_t i = 0; i < p->port_port_connection_count; ++i) {
@@ -129,6 +131,9 @@ PerformanceTimer::init()
         slack_multiplier = 1.0;
     slack_subtrahend = 0;
     _cumulative_delay_time = 0;
+    last_non_stall_time = 0;
+    last_slack_allocated = 0;
+    slack_multiplier_last_update = curTick();
 }
 
 void
@@ -208,8 +213,10 @@ PerformanceTimer::effectiveImportantSlack(){
 inline long long int
 PerformanceTimer::slackAllocated()
 {
-    long long int slack = taskExecutionTime() * effectiveOverhead() - slack_subtrahend;
+    long long int slack = last_slack_allocated + (curTick() - slack_multiplier_last_update) * effectiveOverhead() - slack_subtrahend;
     slack_allocated = slack;
+    // update taskExecutionTime
+    taskExecutionTime();
     return slack;
 }
 
@@ -253,10 +260,51 @@ PerformanceTimer::getAdjustedSlackMultiplier()
     return slack_multiplier;
 }
 
+/**
+ * Adjust the slack multiplier for the current interval
+ */
+double
+PerformanceTimer::adjustSlackMultiplier()
+{
+    // slack allocated in current interval
+    long long int current_slack_allocated;
+    // non-stall time in current interval
+    long long int current_non_stall_time;
+    // actual overhead for the current interval
+    double current_actual_overhead;
+
+    current_slack_allocated = slackAllocated() - last_slack_allocated;
+    current_non_stall_time = nonStallTime() - last_non_stall_time;
+    if (current_non_stall_time != 0)
+        current_actual_overhead = ((double)current_slack_allocated) / current_non_stall_time;
+
+    // computed adjusted slack multiplier
+    if ((current_non_stall_time != 0) && (current_slack_allocated != 0)) {
+        double factor = povr / current_actual_overhead;
+        // limit factor between 0.5 and 1.0, prevent slack multiplier from changing radically
+        if (factor > 2.0)
+            factor = 2.0;
+        if (factor < 0.5)
+            factor = 0.5;
+        slack_multiplier *= factor;
+    }
+
+    // update data for future use
+    last_slack_allocated += current_slack_allocated;
+    last_non_stall_time += current_non_stall_time;
+    slack_subtrahend = 0;
+    slack_multiplier_last_update = curTick();
+    slack_subtrahend_last_update = curTick();
+
+    DPRINTF(SlackTimer, "[%llu] slack multiplier adjusted to: %.4f\n", slack_multiplier_last_update, slack_multiplier);
+
+    return slack_multiplier;
+}
+
 void
 PerformanceTimer::updateSlackSubtrahend()
 {
-    if (stored_tp.isDecrement || !last_important) {
+    if (!stored_tp.isDecrement && !last_important) {
         slack_subtrahend += (curTick() - slack_subtrahend_last_update) * effectiveOverhead();
     }
     slack_subtrahend_last_update = curTick();
@@ -287,14 +335,20 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             long long int slack;
             long long int impt_slack = 0;
             if (stored_tp.intask && !stored_tp.isDecrement){
-                if (increment_important_only)
+                if (increment_important_only) {
                     updateSlackSubtrahend();
+                    if (slack_multiplier_interval != 0 && (curTick() - slack_multiplier_last_update > clock * slack_multiplier_interval))
+                        adjustSlackMultiplier();
+                }
                 slack = effectiveSlack();
                 if (important_policy == PERCENT)
                     impt_slack = effectiveImportantSlack();
             } else if (stored_tp.isDecrement){
-                if (increment_important_only)
+                if (increment_important_only) {
                     updateSlackSubtrahend();
+                    if (slack_multiplier_interval != 0 && (curTick() - slack_multiplier_last_update > clock * slack_multiplier_interval))
+                        adjustSlackMultiplier();
+                }
                 slack = effectiveSlack() - (curTick() - stored_tp.decrementStart);
                 if (slack > effectiveSlack()){ panic("Timer Underflow."); }
 
@@ -462,12 +516,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             } else if (write_addr == TIMER_END_DECREMENT) {
               if (stored_tp.intask){
                   stored_tp.isDecrement = false;
-                  //Include povr to offset increase in slack over the delay time
-                  Tick delay_time;
-                  if (!increment_important_only)
-                    delay_time = (curTick() - stored_tp.decrementStart)*(1+effectiveOverhead());
-                  else
-                    delay_time = curTick() - stored_tp.decrementStart;
+                  Tick delay_time = curTick() - stored_tp.decrementStart;
                   long long int slack = stored_tp.slack - delay_time;
                   if (slack > stored_tp.slack){
                     panic("Timer Underflow.");
@@ -475,6 +524,8 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                   stored_tp.slack = slack;
                   _cumulative_delay_time += delay_time;
                   cumulative_delay_time += delay_time;
+                  // Increase slack_subtrahend to offset increase in slack over the delay time
+                  slack_subtrahend += delay_time * effectiveOverhead();
                   
                   DPRINTF(SlackTimer, "Written to timer: decrement end, slack = %d\n", effectiveSlack());
 
@@ -559,6 +610,8 @@ PerformanceTimer::resume()
   }
   // reset slack subtrahend last update timestamp
   slack_subtrahend_last_update = curTick();
+  // reset slack multiplier last update timestamp
+  slack_multiplier_last_update = curTick();
 
   DPRINTF(SlackTimer, "Resuming simulation, slack = %d\n", effectiveSlack());
 

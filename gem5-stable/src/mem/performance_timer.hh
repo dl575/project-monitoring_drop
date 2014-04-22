@@ -123,6 +123,7 @@ class PerformanceTimer : public AbstractMemory
     double actualSlowdown();
     double actualOverhead();
     double getAdjustedSlackMultiplier();
+    double adjustSlackMultiplier();
     
     std::vector<MemoryPort*> ports;
 
@@ -138,6 +139,8 @@ class PerformanceTimer : public AbstractMemory
     double povr;
     // Probabilistic slack range
     long long int slack_lo, slack_hi;
+    // number of ticks in a clock cycle
+    Tick clock;
 
     // Policy for forwarding important instructions
     enum ImportantPolicy {
@@ -162,12 +165,20 @@ class PerformanceTimer : public AbstractMemory
     bool increment_important_only;
     // read slack multiplier from file
     bool read_slack_multiplier;
+    // Interval for adjusting slack multiplier (in cycles)
+    long long int slack_multiplier_interval;
     // whether the last instruction that requested slack is important
     bool last_important;
     // slack multiplier
     double slack_multiplier;
     // slack subtrahend
     long long int slack_subtrahend;
+    // last non-stall time
+    long long int last_non_stall_time;
+    // last allocated slack
+    long long int last_slack_allocated;
+    // last time slack multiplier is updated
+    Tick slack_multiplier_last_update;
     // last time slack subtrahend was updated
     Tick slack_subtrahend_last_update;
     // directory to store persistence data
