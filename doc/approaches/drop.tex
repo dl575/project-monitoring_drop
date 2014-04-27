@@ -1,0 +1,334 @@
+\documentclass[11pt, letterpaper]{article}
+	\title{Dropping Algorithms for Selective Monitoring}
+	\author{Daniel Lo \{dl575\}}
+	
+	% Packages for math formatting
+	\usepackage{amsfonts}
+	\usepackage{amsmath}
+	\usepackage{amsthm}
+
+	% for letter paper
+	\usepackage[letterpaper]{geometry}
+	% 1 inch margins
+	\usepackage{fullpage}    
+	% allow enumerate numberings to be specified
+	\usepackage{enumerate}
+	% Insert images
+	\usepackage{graphicx}
+	% For syntax highlighting
+	\usepackage{listings}
+  % Graphviz
+  \usepackage{graphviz}
+  % Algorithms
+  \usepackage{algorithm}
+  \usepackage{algorithmic}
+		
+	% Header
+	\usepackage{fancyhdr}
+	\pagestyle{fancy}
+	\headheight 30pt
+	\rhead{}
+	\lhead{Dropping Algorithms for Selective Monitoring \\
+  Daniel Lo \{dl575@cornell.edu\}}
+  \headsep 0.1in
+	
+	% Define a problem "theorem" heading
+	\newtheorem{problem}{Problem}
+	% Proposition theorem
+	\newtheorem{proposition}{Proposition}
+	% Scientific form
+	\providecommand{\e}[1]{\ensuremath{\cdot 10^{#1}}}
+	% Matrix - use mathbf font
+	\providecommand{\m}[1]{\mathbf{#1}}
+	% Degree symbol
+	\providecommand{\degrees}{^{\circ}}
+	% Insert figure
+	\providecommand{\fig}[1]{
+		\noindent
+		\begin{center}
+			\includegraphics[height=3.5in]{#1}
+		\end{center}
+	}
+	\providecommand{\dualfig}[2]{
+		\noindent
+		\begin{center}
+		\includegraphics[width=3.2in]{#1} \hspace{-0.3in}
+		\includegraphics[width=3.2in]{#2}
+		\end{center}
+	}
+	\providecommand{\tripfig}[3]{
+		\noindent
+		\begin{center}
+		\hspace{-0.3in}
+		\includegraphics[width=2.3in]{#1} \hspace{-0.3in}
+		\includegraphics[width=2.3in]{#2} \hspace{-0.3in}
+		\includegraphics[width=2.3in]{#3} \hspace{-0.3in}
+		\end{center}
+	}
+	% begin/end align*
+	\providecommand{\eq}[1]{
+		\begin{align*}
+		#1
+		\end{align*}
+	}
+	% Kernel/Image
+	\providecommand{\im}[1]{
+		\text{Im}(#1)
+	}
+	\renewcommand{\ker}[1]{
+		\text{Ker}(#1)
+	}
+	% Trace
+	\providecommand{\tr}[1]{
+		\text{Tr}\left(#1\right)
+	}
+	% Such that
+	\providecommand{\st}[0]{
+		%\text{ s.t. }
+		\ni
+	}
+	% Real numbers
+	\providecommand{\reals}[0]{
+		\mathbb{R}
+	}
+	% Use overline which is longer instead of bar
+	\renewcommand{\bar}[1]{
+		\overline{#1}
+	}
+	% Create divided matrix representing state-space system
+	\providecommand{\statespace}[4]{
+		\begin{bmatrix}
+		\begin{array}{c|c}
+			#1 & #2 \\
+			\hline
+			#3 & #4
+		\end{array}
+		\end{bmatrix}
+	}
+	% Include matlab code
+	\providecommand{\matlab}[1]{
+	  \lstinputlisting[language=matlab,
+		showstringspaces=false,
+		basicstyle=\footnotesize]
+		{#1}
+	}
+  % Generate graph using dot/graphviz
+  \providecommand{\dotgraph}[2]{
+    \vspace{-0.6in}
+    \begin{center}
+    \digraph[scale=0.75]{#1}{#2}
+    \end{center}
+    \vspace{-0.6in}
+  }
+		
+	
+	% Insert a blank line between paragraphs
+	\setlength{\parskip}{\baselineskip}
+\begin{document}
+
+%\maketitle
+
+\section{Introduction}
+In this document, we discuss possible coverage objectives and several dropping
+algorithms that target different objectives and work well in different
+contexts.
+
+\section{Coverage}
+
+There are several ways to define monitoring coverage. In all cases, we consider
+only check operations (and not update operations) as contributing to coverage.
+
+First, coverage can either be static coverage or dynamic coverage. Static
+coverage refers to the portion of static code instructions that are monitored
+at least once. Dynamic coverage refers to the portion of dynamic check event
+instances that are monitored. For example, consider the following piece of code.
+
+\begin{center}
+\begin{tabular}{|c|}
+\hline
+\\
+\begin{lstlisting}[language=c]
+for (i = 0; i < N; i++) {
+  input = get_user_input();
+  memcpy(&input, &output, MAX_INPUT);
+}
+\end{lstlisting}
+\\\\ \hline
+\end{tabular}
+\end{center}
+
+Suppose array bounds check is used to check for buffer overflows on the {\tt memcpy}.
+Dynamic coverage is calculated as the number of iterations that are checked
+divided by $N$. On the other hand, if {\tt memcpy} is checked on at least one
+iteration of the loop, then static coverage is 100\%. In this sense, dynamic
+coverage is a better metric for detecting \emph{attacks} such as for BC and
+DIFT. On the other hand, static coverage gives a measure of code coverage for
+finding \emph{code bugs} such as for UMC.
+
+The other attribute we can consider is whether coverage is measured for a
+single run or for multiple runs. Optimizing for multiple-run coverage is good
+for \emph{detection}. The goal is to detect all errors over multiple runs
+and/or users. However, the chance that an attack is detected for a given user
+is poor. Instead, optimizing for single-run coverage is good for
+\emph{protection}. Although certain checks may never be done by any user, each
+user will be doing a maximum number of checks, reducing the number of dropped
+checks or ``unprotected portions''.
+
+The following chart shows the spectrum of coverage targets.
+
+\begin{center}
+\begin{tabular}{c|c|c|}
+ & \textbf{Static Coverage} & \textbf{Dynamic Coverage} \\ \hline
+\textbf{Single run} & Developer Tool & Attack Prevention \\ \hline
+\textbf{Multiple run} & Bug Detection & Attack Detection \\ \hline
+\end{tabular}
+\end{center}
+
+Providing single-run, static coverage is useful for a developer or debugging
+tool where the user wants to run the code with monitoring once to check that
+written code does not have obvious bugs. Single-run, dynamic coverage works
+well for preventing attacks by minimizing the dropped dynamic checks.
+Multiple-run, static coverage is good for detecting code bugs since over
+multiple users static instructions should be checked. Multiple-run, dynamic
+coverage is good for detecting attacks since over multiple users a large number
+of dynamic check instances should be covered, decreasing the chance of an
+attack point being undetected.
+
+\subsection{Related Work}
+
+Our previous real-time work \footnote{Lo et al. Slack-Aware Opportunistic
+Monitoring for Real-Time Systems. RTAS 2014.} optimizes for dynamic coverage on
+a single run. This is done while providing a strict guarantee of overhead.
+
+Huang et al. \footnote{Huang et al. Software Monitoring with Controllable
+Overhead. STTT 2012.} enable or disable monitoring interrupts with controllers
+designed using control theory concepts in order to match an overhead target.
+This targets dynamic coverage on a single run.
+
+Greathouse et al. \footnote{Greathouse et al. Highly Scalable Distributed
+Dataflow Analysis. CGO 2011.} performs dynamic dataflow analysis with an
+overhead target. If a performance threshold is crossed, then dataflows are
+randomly discarded (clear taint). This randomness provides good dynamic
+coverage over multiple runs assuming flows are short. For long chains and high
+overheads, it's unlikely that all operations will be performed unless the
+random probability is set low enough.
+
+QVM \footnote{Arnold et al. QVM: An Efficient Runtime for Detecting Defects in
+Deployed Systems. OOPSLA 2008.} modified the JVM to support monitoring with adjustable
+overheads by adjusting the rate of monitoring for each object allocation site.
+Since the rate is tied to object allocation sites, static coverage is maximized
+with dynamic coverage as a secondary objective. Thus, QVM targets static
+coverage on a single run.
+
+Testudo \footnote{Greathouse et al. Testudo: Heavyweight Security Analysis via
+Statistical Sampling. MICRO 2008.} monitors only one DIFT flow at a time in order to reduce
+overheads. The choice of flow is done randomly in order to provide good
+coverage over multiple users. Thus, Testudo provides good dynamic coverage over
+multiple runs with no explicit overhead target.
+
+The following chart attempts to classify these approaches in terms of coverage
+target.
+\begin{center}
+\begin{tabular}{c|c|c|}
+ & \textbf{Static Coverage} & \textbf{Dynamic Coverage} \\ \hline
+\textbf{Single run} & QVM & Lo et al., Huang et al. \\ \hline
+\textbf{Multiple run} & & Testudo, Greathouse et al. \\ \hline
+\end{tabular}
+\end{center}
+
+\section{Challenges}
+\subsection{Chain of Randomness}
+
+\dotgraph{random_chain}{
+  rankdir=LR; a->b; b->c; c->d; d->e;
+}
+Introducing randomness can be used to improve coverage over multiple runs.
+However, if there are multiple dependent nodes (as in the above figure) and
+each is randomly dropped, then it is unlikely that the final node (i.e, node e)
+will be monitored. For example, if each node has a 20\% probability of being
+dropped, then the probability that monitoring is done for node e is only
+$1-0.80^5 = 33\%$.
+
+\subsection{Overhead Target vs. Multiple-Run Coverage}
+There is an inherent tension between meeting an overhead target and achieving
+good coverage over multiple runs. Optimizing for good coverage over multiple
+runs implies that randomness should be used. However, only using randomness is
+not necessarily able to meet an overhead target. On the other hand, if dropping
+decisions are made based on an overhead target, then bursty sections of the
+program will see lower monitoring for all runs/users.
+
+This can be seen in previous work. Techniques that target an overhead do not
+use randomness and do not work well for multiple-run coverage. On the other
+hand, Testudo achieves good multiple-run coverage using randomness, but does
+not take into account an overhead target at all. The work by Greathouse et al.
+randomly drops flows when the overhead is over the target. This attempts to
+provide an overhead target and multiple-run coverage. However, this works
+poorly if overheads are high and flows are large due to the ``Chain of
+Randomness'' challenge.
+
+\subsection{Early vs. Late Usage of Slack}
+One source of bias in monitoring for an overhead target is that earlier
+monitoring operations may use up budget for later events. For example, suppose
+there is a burst of monitoring operations in the middle of the program and
+another burst at the end of the program. When the group of monitoring
+operations in the middle of the program is seen, it is likely to be performed
+because overheads are low. However, if these cause larger overheads, then it is
+unlikely that the monitoring operations at the end of the program will be
+performed. In order for the monitoring operations at the end of the program to
+be performed, the monitoring operations in the middle of the program must be
+dropped. This is difficult to handle because at the middle of the program
+execution, it may not be known whether there are operations later for which
+overhead/slack should be saved. This is somewhat similar to the ``Chain of
+Randomness'' challenge but dealing with temporal location of events.
+
+\section{Approaches}
+This section discusses several dropping decision approaches.
+
+\subsection{Source Dropping}
+\label{sec:source}
+\textbf{When: } Dropping decision is made at sources (set tag operations). \\
+\textbf{How: } Randomly decide whether to drop or not. Adjust probability based
+on overhead target and actual overhead. \\
+\textbf{Optimizes for: } Multiple-run dynamic coverage. \\
+\textbf{Pros/Cons: }
+\begin{itemize}
+  \item[+] No wasted work
+  \item[+] Works well for many small flows
+  \item[--] Works poorly for a few large flows (hard to match overhead target)
+  \item[--] Does not work if a single flow exceeds overhead target
+\end{itemize}
+
+\subsection{Static Dropping}
+\label{sec:static}
+\textbf{When: } Use static analysis to find dependence graph and determine
+which checks and nodes to perform. \\
+\textbf{How: } Choose minimal checks dropped such that number of nodes dropped
+is estimated to meet overhead target. \\
+\textbf{Optimizes for: } Any type of coverage depending on how selection is done. \\
+\textbf{Pros/Cons: }
+\begin{itemize}
+  \item[+] No wasted work
+  \item[--] Difficult to match overhead (need to use estimate based on nodes dropped)
+\end{itemize}
+
+\subsection{Optimal-Point Dropping}
+\label{sec:opt}
+\textbf{When: } Use dependence graph to determine ``optimal'' dropping points
+(points which lead to no wasted work). Perform dropping decision at these
+points. \\
+\textbf{How: } Static analysis calculates number of checks and nodes dropped at
+the optimal dropping points. This provides the cost and benefit of dropping the
+node. The cost:benefit ratio is compared to a threshold that is dynamically
+adjusted in an attempt to meet the overhead target. In addition, there is a
+random probability for each optimal dropping point to be dropped, independent
+of the threshold decision. \\
+\textbf{Optimizes for: Dynamic coverage over multiple runs.} \\
+\textbf{Pros/Cons: }
+\begin{itemize}
+  \item[+] Minimal wasted work (only occurs for merges and only half is dropped)
+  \item[+] Can better match overheads for large flows than Approach~\ref{sec:source}
+  \item[+] Randomness works well for multiple-run coverage if number of dropping points in a chain are low
+  \item[--] Randomness works poorly for multiple-run coverage if many dropping points in a chain
+\end{itemize}
+
+\end{document}
