@@ -382,7 +382,9 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                 // if using unified important slack policy, drop unimportant instruction if slack is below threshold
                 if (important_policy == UNIFIED)
                   adjusted_slack -= important_slack;
-                int drop_status;
+                int drop_status; // 0 = drop, 1 = not drop
+
+                // Probabilistic drop using linear function
                 if (adjusted_slack < slack_lo){
                     drop_status = 0; // Drop
                 } else if (adjusted_slack >= slack_hi){
@@ -400,6 +402,13 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                     
                     DPRINTF(SlackTimer, "Prob computation: slack = %lld, rate = %f, number = %f, result = %d\n", adjusted_slack, not_drop_rate, random_number, drop_status);
                 }
+
+                /*
+                // 50/50 drop
+                double random_number = (double)rand()/RAND_MAX;
+                drop_status = (random_number <= 0.95);
+                */
+
                 send_data = drop_status;
                 if (stored_tp.intask || curTick() < stored_tp.WCET_end){
                     if (drop_status) { not_drops++; }
