@@ -133,10 +133,18 @@ In this document, we discuss possible coverage objectives and several dropping
 algorithms that target different objectives and work well in different
 contexts.
 
-\section{Coverage}
+Section~\ref{sec:coverage} discusses several ways to think about and measure
+coverage. Section~\ref{sec:challenges} discusses some challenges that must be
+kept in mind when designing dropping algorithms. Section~\ref{sec:approaches}
+discusses some possible dropping algorithms and their advantages and
+disadvantages.
 
-There are several ways to define monitoring coverage. In all cases, we consider
-only check operations (and not update operations) as contributing to coverage.
+\section{Coverage}
+\label{sec:coverage}
+
+There are several ways to define monitoring coverage. In all cases, we only
+consider check operations (and not update operations) as contributing to
+coverage.
 
 First, coverage can either be static coverage or dynamic coverage. Static
 coverage refers to the portion of static code instructions that are monitored
@@ -169,12 +177,11 @@ The other attribute we can consider is whether coverage is measured for a
 single run or for multiple runs. Optimizing for multiple-run coverage is good
 for \emph{detection}. The goal is to detect all errors over multiple runs
 and/or users. However, the chance that an attack is detected for a given user
-is poor. Instead, optimizing for single-run coverage is good for
-\emph{protection}. Although certain checks may never be done by any user, each
-user will be doing a maximum number of checks, reducing the number of dropped
-checks or ``unprotected portions''.
+may be poor. Instead, optimizing for single-run coverage is good for
+\emph{protection}. It minimizes the number of dropped checks or ``unprotected
+regions''. 
 
-The following chart shows the spectrum of coverage targets.
+The following chart attempts to characterize the spectrum of coverage targets.
 
 \begin{center}
 \begin{tabular}{c|c|c|}
@@ -186,11 +193,12 @@ The following chart shows the spectrum of coverage targets.
 
 Providing single-run, static coverage is useful for a developer or debugging
 tool where the user wants to run the code with monitoring once to check that
-written code does not have obvious bugs. Single-run, dynamic coverage works
+written code does not have obvious bugs. In a sense, this is like doing static
+analysis. Single-run, dynamic coverage works
 well for preventing attacks by minimizing the dropped dynamic checks.
 Multiple-run, static coverage is good for detecting code bugs since over
-multiple users static instructions should be checked. Multiple-run, dynamic
-coverage is good for detecting attacks since over multiple users a large number
+multiple users all static instructions should be checked. Multiple-run, dynamic
+coverage is good for detecting possible attack vulnerabilities since over multiple users a large number
 of dynamic check instances should be covered, decreasing the chance of an
 attack point being undetected.
 
@@ -211,7 +219,8 @@ overhead target. If a performance threshold is crossed, then dataflows are
 randomly discarded (clear taint). This randomness provides good dynamic
 coverage over multiple runs assuming flows are short. For long chains and high
 overheads, it's unlikely that all operations will be performed unless the
-random probability is set low enough.
+random probability is set low enough (see the challenge discussed in
+Section~\ref{sec:chain_of_randomness}).
 
 QVM \footnote{Arnold et al. QVM: An Efficient Runtime for Detecting Defects in
 Deployed Systems. OOPSLA 2008.} modified the JVM to support monitoring with adjustable
@@ -237,7 +246,10 @@ target.
 \end{center}
 
 \section{Challenges}
+\label{sec:challenges}
+
 \subsection{Chain of Randomness}
+\label{sec:chain_of_randomness}
 
 \dotgraph{random_chain}{
   rankdir=LR; a->b; b->c; c->d; d->e;
@@ -279,16 +291,16 @@ be performed, the monitoring operations in the middle of the program must be
 dropped. This is difficult to handle because at the middle of the program
 execution, it may not be known whether there are operations later for which
 overhead/slack should be saved. This is somewhat similar to the ``Chain of
-Randomness'' challenge but dealing with temporal location of events.
+Randomness'' challenge but dealing with the temporal location of events.
 
 \section{Approaches}
+\label{sec:approaches}
 This section discusses several dropping decision approaches.
 
 \subsection{Source Dropping}
 \label{sec:source}
 \textbf{When: } Dropping decision is made at sources (set tag operations). \\
-\textbf{How: } Randomly decide whether to drop or not. Adjust probability based
-on overhead target and actual overhead. \\
+\textbf{How: } Randomly decide whether to drop or not. Adjust probability using feedback on overhead seen versus overhead target. \\
 \textbf{Optimizes for: } Multiple-run dynamic coverage. \\
 \textbf{Pros/Cons: }
 \begin{itemize}
@@ -298,12 +310,28 @@ on overhead target and actual overhead. \\
   \item[--] Does not work if a single flow exceeds overhead target
 \end{itemize}
 
+\subsection{Lateness Possible Dropping}
+\label{sec:latest}
+This is the dropping algorithm that we have submitted to PACT.
+
+\noindent\textbf{When: } Perform dropping decision at every monitoring event. \\
+\textbf{How: } Drop when seen overhead exceeds overhead target. \\
+\textbf{Optimizes for: } Dynamic coverage for a single run. \\
+\textbf{Pros/Cons: } 
+\begin{itemize}
+  \item[+] Able to closely match overhead target
+  \item[--] Wasted work exists
+  \item[--] Adding randomness to target multiple-run coverage works poorly due to ``Chain of Randomness'' challenge
+\end{itemize}
+
 \subsection{Static Dropping}
 \label{sec:static}
 \textbf{When: } Use static analysis to find dependence graph and determine
 which checks and nodes to perform. \\
-\textbf{How: } Choose minimal checks dropped such that number of nodes dropped
-is estimated to meet overhead target. \\
+\textbf{How: } Choose a set of checks to be dropped such that number of nodes
+dropped is estimated to meet overhead target. Multiple-run coverage can be
+targeted by finding multiple drop sets that are assigned to users or randomly
+selected form. Single-run coverage can be targeted by minimizing the checks dropped. \\
 \textbf{Optimizes for: } Any type of coverage depending on how selection is done. \\
 \textbf{Pros/Cons: }
 \begin{itemize}
@@ -318,17 +346,43 @@ is estimated to meet overhead target. \\
 points. \\
 \textbf{How: } Static analysis calculates number of checks and nodes dropped at
 the optimal dropping points. This provides the cost and benefit of dropping the
-node. The cost:benefit ratio is compared to a threshold that is dynamically
-adjusted in an attempt to meet the overhead target. In addition, there is a
-random probability for each optimal dropping point to be dropped, independent
-of the threshold decision. \\
-\textbf{Optimizes for: Dynamic coverage over multiple runs.} \\
+node. The cost:benefit ratio is compared to a threshold to decide whether to
+drop or not. This threshold is adjusted using feedback based on the seen overhead and
+the overhead target.  \\
+\textbf{Optimizes for: } Dynamic coverage for a single run. \\
 \textbf{Pros/Cons: }
 \begin{itemize}
-  \item[+] Minimal wasted work (only occurs for merges and only half is dropped)
+  \item[+] Minimal wasted work (can occur at a merge point if only one half was dropped)
   \item[+] Can better match overheads for large flows than Approach~\ref{sec:source}
-  \item[+] Randomness works well for multiple-run coverage if number of dropping points in a chain are low
+  \item[--] No randomness means deterministic coverage over multiple runs
+\end{itemize}
+
+\subsection{Optimal-Point Dropping with Randomness}
+\label{sec:opt_rand}
+This is similar to the dropping approach described in Section~\ref{sec:opt} but
+introduces randomness to target multiple-run coverage.
+
+\noindent\textbf{When: } Use dependence graph to determine ``optimal'' dropping points
+(points which lead to no wasted work). Perform dropping decision at these
+points. \\
+\textbf{How: } The cost:benefit ratio is used with a dynamically tuned threshold
+in order to determine whether an event should be dropped or not. There is then
+a small probability that this decision is not followed. Since the probability
+is low, it should be possible to meet the overhead target. However, with enough
+runs/users this probability should provide good coverage over multiple runs. \\
+\textbf{Optimizes for: } Dynamic coverage over multiple runs. \\
+\textbf{Pros/Cons: }
+\begin{itemize}
+  \item[+] Minimal wasted work (can occur at a merge point if only one half was dropped)
+  \item[+] Can better match overheads for large flows than Approach~\ref{sec:source}
+  \item[+] Randomness works well for multiple-run coverage if number of dropping points in a chain are low (avoids ``Chain of Randomness'' issue)
+  \item[+] Randomly not dropping an event that should dropped helps improve multiple-run coverage (even in bursty portions, some monitoring will get done)
+  \item[+] Randomly dropping an event that should not be dropped helps deal with the ``Early vs. Late Usage of Slack'' challenge
   \item[--] Randomness works poorly for multiple-run coverage if many dropping points in a chain
+  \item[--] Randomness may interact poorly with the decision to drop based on
+  overhead target. The hope is that the feedback mechanism will provide both good
+  coverage and closely meet the overhead target, but randomness could cause the
+  overhead target to be overshot or undershot (less than optimal amount of monitoring done).
 \end{itemize}
 
 \end{document}
