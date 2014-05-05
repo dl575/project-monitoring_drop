@@ -1075,6 +1075,31 @@ AtomicSimpleMonitor::setTagProxy(Addr addr, int nbytes, uint8_t tag)
 void
 AtomicSimpleMonitor::revalidateRegTag(int idx)
 {
+  // Source propagation uses flag cache as 1 = valid
+  if (source_propagation) {
+    // If invalidation is performed on this core
+    if (invtab.initialized) {
+      // Set register number in flag cache
+      setFlagCacheAddr(idx);
+      // Set register valid flag
+      unsigned type = FC_REGFILE;
+      writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type),
+          ArmISA::TLB::AllowUnaligned);
+    // Invalidation is done on another core, send message
+    } else {
+      // create request
+      Request *req = &monitor_req;
+      req->setPhys(DROP_SET_ARRAY, sizeof(idx), ArmISA::TLB::AllowUnaligned, dataMasterId());
+      // create packet
+      PacketPtr p = new Packet(req, MemCmd::WriteReq);
+      p->dataStatic(&idx);
+      // send packet
+      monitorPort.sendFunctional(p);
+      // clean up
+      delete p;
+    }
+  // Clear flag to indicate valid
+  } else {
     // If invalidation is performed on this core
     if (invtab.initialized) {
       // Set register number in flag cache
@@ -1096,6 +1121,7 @@ AtomicSimpleMonitor::revalidateRegTag(int idx)
       // clean up
       delete p;
     }
+  }
 }
 
 
@@ -1131,6 +1157,32 @@ AtomicSimpleMonitor::invalidateRegTag(int idx)
 void
 AtomicSimpleMonitor::revalidateMemTag(Addr addr)
 {
+  // Source propagation uses flag cache as 1 = valid
+  if (source_propagation) {
+    // If invalidation is performed on this core
+    if (invtab.initialized) {
+      // Set address to revalidate
+      setFlagCacheAddr(addr);
+      // Set valid flag in cache
+      unsigned type = FC_CACHE; 
+      writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type),
+          ArmISA::TLB::AllowUnaligned);
+    // Invalidation is done on another core, send message
+    } else {
+      // create request
+      Request *req = &monitor_req;
+      Addr word_addr = addr >> 2;
+      req->setPhys(DROP_SET_CACHE, sizeof(word_addr), ArmISA::TLB::AllowUnaligned, dataMasterId());
+      // create packet
+      PacketPtr p = new Packet(req, MemCmd::WriteReq);
+      p->dataStatic(&word_addr);
+      // send packet
+      monitorPort.sendFunctional(p);
+      // clean up
+      delete p;
+    }
+  // Clear flag to indicate valid
+  } else {
     // If invalidation is performed on this core
     if (invtab.initialized) {
       // Set address to revalidate
@@ -1153,6 +1205,7 @@ AtomicSimpleMonitor::revalidateMemTag(Addr addr)
       // clean up
       delete p;
     }
+  }
 }
 
 void

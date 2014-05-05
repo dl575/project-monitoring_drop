@@ -477,6 +477,7 @@ class BaseSimpleCPU : public BaseCPU
         inst_ret,         // Return instruction
         inst_intalu,      // Integer ALU instruction
         inst_indctrl,     // Indirect control instruction
+        inst_settag,      // Set tag instruction
         num_inst_types    // Number of instruction types
     };
 
@@ -576,6 +577,8 @@ class BaseSimpleCPU : public BaseCPU
     unsigned all_packets;
     // Perform dropping only on set tag operations
     bool source_dropping;
+    // Perform propagation only on flows that started with a set tag operation
+    bool source_propagation;
 
     // Data structure for handling fifo event
     class fifoEventDetails {
@@ -632,6 +635,8 @@ class BaseSimpleCPU : public BaseCPU
         }
     };
     monitorFilter mf;
+    // Mark store instructions as set tag events. Used for UMC with source dropping.
+    bool settag_store;
 
     // Fifo monitoring packet
     monitoringPacket mp;

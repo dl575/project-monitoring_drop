@@ -496,6 +496,10 @@ def run_ff(options, root, testsys, cpu_list):
     testsys.cpu[2].filter_file_1 = ""
     testsys.cpu[2].filter_file_2 = ""
     testsys.cpu[2].filter_ptr_file = ""
+    # Disable source dropping/propagation before switch
+    testsys.cpu[1].source_propagation = False
+    testsys.cpu[2].source_dropping = False
+    testsys.cpu[2].source_propagation = False
  
     switch_cpu_list = [(testsys.cpu[i], switch_cpus[i]) for i in xrange(np)]
 

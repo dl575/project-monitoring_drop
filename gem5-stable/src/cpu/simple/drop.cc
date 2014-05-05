@@ -936,6 +936,7 @@ DropSimpleCPU::writeToFlagCache(Addr addr, uint8_t * data,
         }
         
         numCacheStores++;
+    // Write to flag array (register file)
     } else {
         fault = BaseSimpleCPU::writeToFlagCache(addr, data, size, flags);
         

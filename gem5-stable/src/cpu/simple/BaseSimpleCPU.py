@@ -56,6 +56,8 @@ class BaseSimpleCPU(BaseCPU):
     monitoring_filter_intsub = Param.Bool(False, "monitoring integer subtract instructions")
     monitoring_filter_intmul = Param.Bool(False, "monitoring integer multiply instructions")
     monitoring_filter_indctrl = Param.Bool(False, "monitoring indirect control instructions")
+    # Used to mark store instructions as set tag type for UMC with source dropping
+    settag_store = Param.Bool(False, "set store instruction as set tag type")
     # Check definition parameters
     check_load = Param.Bool(False, "check load instructions")
     check_store = Param.Bool(False, "check store instructions")
@@ -72,6 +74,8 @@ class BaseSimpleCPU(BaseCPU):
     backtrack_table_dir = Param.String("", "directory to read/write backtrack table")
     # Perform dropping only on set tag operations
     source_dropping = Param.Bool(False, "perform dropping only on set tag operations")
+    # Perform propagation only on flows that start with a set tag operation
+    source_propagation = Param.Bool(False, "perform propagation only on for non-null metadata")
 
     print_checkid = Param.Bool(False, "Print out ID# of checks as they occured. Used for probabilistic monitoring. Used instead of DPRINTF so gem5.fast executes it")
     print_static_coverage = Param.Bool(False, "Keep track of and print out coverage of static instructions.")

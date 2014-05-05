@@ -110,6 +110,7 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     check_frequency(p->check_frequency),
     total_checks(0), full_packets(1), all_packets(1),
     source_dropping(p->source_dropping),
+    source_propagation(p->source_propagation),
     perf_mon(true),
     _backtrack(p->backtrack),
     print_checkid(p->print_checkid),
@@ -128,6 +129,7 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     mf.intsub = p->monitoring_filter_intsub;
     mf.intmul = p->monitoring_filter_intmul;
     mf.indctrl = p->monitoring_filter_indctrl;
+    settag_store = p->settag_store;
     
     // Initialize table if specified
     if (p->invalidation_file.size()){
@@ -769,6 +771,9 @@ BaseSimpleCPU::performMonitoring() {
         bool isMicroOp = inst_dis.find("uop") != string::npos;
         bool isLoad = curStaticInst->isLoad();
         bool isStore = curStaticInst->isStore();
+        if (isStore && settag_store) {
+            mp.settag = true;
+        }
         if (isLoad && !isMicroOp && numSrc == 5) {
             mp.rs1 = curStaticInst->srcRegIdx(0);
             mp.rs2 = 33;
@@ -942,6 +947,11 @@ BaseSimpleCPU::instType
 BaseSimpleCPU::readFifoInstType()
 {
     bool is_type = false;
+    readFromFifo(FIFO_SETTAG, (uint8_t*)&is_type, sizeof(is_type), ArmISA::TLB::AllowUnaligned);
+    if (is_type) {
+      DPRINTF(Invalidation, "Fifo entry instruction type is SETTAG\n");
+      return inst_settag;
+    }
     readFromFifo(FIFO_LOAD, (uint8_t *)&is_type, sizeof(is_type), ArmISA::TLB::AllowUnaligned);
     if (is_type) { 
         DPRINTF(Invalidation, "Fifo entry instruction type is LOAD\n");
@@ -986,6 +996,7 @@ BaseSimpleCPU::instTypeToString(int inst_type)
         case inst_ret: return "RET";
         case inst_intalu: return "INTALU";
         case inst_indctrl: return "INDCTRL";
+        case inst_settag: return "SETTAG";
     };
     
     return "UNDEF";
@@ -1006,6 +1017,8 @@ BaseSimpleCPU::parseInstType(const char * inst_type)
         return inst_intalu;
     }else if (!strcmp(inst_type, "INDCTRL")){
         return inst_indctrl;
+    }else if (!strcmp(inst_type, "SETTAG")){
+        return inst_settag;
     }
     return inst_undef;
 }
@@ -1359,7 +1372,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
         // other operations should not be dropped. Filtering is always allowed
         // to occur.
         if (source_dropping) {
-          skip_drop = !skip_drop;
+          skip_drop = !skip_drop; // Allow set tag to be dropped. Disallow non-set tag to be dropped.
           skip_filter = false;
         }
         

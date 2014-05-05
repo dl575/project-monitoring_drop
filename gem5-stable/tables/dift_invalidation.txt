@@ -4,6 +4,7 @@
   STORE     MEMADDR   c       shftr    2    HW_set_cache
   INTALU    RD        c       add      0    HW_set_array
   INDCTRL   -         -       -        -    HW_nop
+  SETTAG    MEMADDR   c       shftr    2    HW_set_cache
 
 //idx       sel1      sel2    op       c    action
 

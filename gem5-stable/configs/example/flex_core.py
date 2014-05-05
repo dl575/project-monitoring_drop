@@ -128,10 +128,13 @@ parser.add_option("--coverage", type="float", default=1.0)
 parser.add_option("--coverage_adjust", type="int", default=0)
 # Enable probabilistic drop
 parser.add_option("--probabilistic_drop", action="store_true")
+# Output static coverage
+parser.add_option("--static_coverage", action="store_true")
+
 # Drop only at source set tag operations
 parser.add_option("--source_dropping", action="store_true")
-
-parser.add_option("--static_coverage", action="store_true")
+# Only do monitoring for propagations starting at a source set tag
+parser.add_option("--source_propagation", action="store_true")
 
 # Configuration for WCET bound mode
 parser.add_option("--wcet", action="store_true")
@@ -210,6 +213,8 @@ MonCPUClass.monitor_type = available_monitors[options.monitor]
 if (options.simulatestalls and options.cpu_type == 'atomic'):
     # Simulate d cache stalls
     MonCPUClass.simulate_data_stalls = True
+if options.source_propagation:
+  MonCPUClass.source_propagation = True
 
 # Create drop core
 prev_cpu_type = options.cpu_type
@@ -260,16 +265,25 @@ if options.probabilistic_drop:
 DropCPUClass.print_static_coverage = options.static_coverage
 if options.source_dropping:
   DropCPUClass.source_dropping = True
+if options.source_propagation:
+  DropCPUClass.source_propagation = True
 
+if options.source_propagation:
+  table_dir = os.environ["GEM5"] + "/tables/source_propagation/"
+else:
+  table_dir = os.environ["GEM5"] + "/tables/"
 if options.monitor == "umc":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
+  if options.source_dropping:
+    # Mark stores at set tag operations for the purpose of source dropping
+    MainCPUClass.settag_store = True
   if options.invalidation:
     # Load the invalidation file
-    DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/umc_invalidation.txt"
-    DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/umc_filter.txt"
-    DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/umc_filter_ptrs.txt"
+    DropCPUClass.invalidation_file = table_dir + "umc_invalidation.txt"
+    DropCPUClass.filter_file_1 = table_dir + "umc_filter.txt"
+    DropCPUClass.filter_ptr_file = table_dir + "umc_filter_ptrs.txt"
   # Set coverage check flags
   DropCPUClass.check_load = True
   DropCPUClass.check_store = False
@@ -282,10 +296,10 @@ elif options.monitor == "dift" or options.monitor == "multidift":
   MainCPUClass.monitoring_filter_indctrl = True
   if options.invalidation:
     # Load the invalidation file
-    DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/dift_invalidation.txt"
-    DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/dift_filter1.txt"
-    DropCPUClass.filter_file_2 = os.environ["GEM5"] + "/tables/dift_filter2.txt"
-    DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/dift_filter_ptrs.txt"
+    DropCPUClass.invalidation_file = table_dir + "dift_invalidation.txt"
+    DropCPUClass.filter_file_1 = table_dir + "dift_filter1.txt"
+    DropCPUClass.filter_file_2 = table_dir + "dift_filter2.txt"
+    DropCPUClass.filter_ptr_file = table_dir + "dift_filter_ptrs.txt"
     # Set coverage check flags
     DropCPUClass.check_load = False
     DropCPUClass.check_store = False
@@ -302,10 +316,10 @@ elif options.monitor == "bc":
   MainCPUClass.monitoring_filter_intmul = True
   if options.invalidation:
     # Load the invalidation file
-    DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/dift_invalidation.txt"
-    DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/dift_filter1.txt"
-    DropCPUClass.filter_file_2 = os.environ["GEM5"] + "/tables/dift_filter2.txt"
-    DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/dift_filter_ptrs.txt"
+    DropCPUClass.invalidation_file = table_dir + "dift_invalidation.txt"
+    DropCPUClass.filter_file_1 = table_dir + "dift_filter1.txt"
+    DropCPUClass.filter_file_2 = table_dir + "dift_filter2.txt"
+    DropCPUClass.filter_ptr_file = table_dir + "dift_filter_ptrs.txt"
   # Set coverage check flags
   DropCPUClass.check_load = True
   DropCPUClass.check_store = True
@@ -322,10 +336,10 @@ elif options.monitor == "hb":
   MainCPUClass.monitoring_filter_intmul = True
   if options.invalidation:
     # Load the invalidation file
-    DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/dift_invalidation.txt"
-    DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/dift_filter1.txt"
-    DropCPUClass.filter_file_2 = os.environ["GEM5"] + "/tables/dift_filter2.txt"
-    DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/dift_filter_ptrs.txt"
+    DropCPUClass.invalidation_file = table_dir + "dift_invalidation.txt"
+    DropCPUClass.filter_file_1 = table_dir + "dift_filter1.txt"
+    DropCPUClass.filter_file_2 = table_dir + "dift_filter2.txt"
+    DropCPUClass.filter_ptr_file = table_dir + "dift_filter_ptrs.txt"
   # Set coverage check flags
   DropCPUClass.check_load = True
   DropCPUClass.check_store = True
@@ -336,9 +350,9 @@ elif options.monitor == "lrc":
   MainCPUClass.monitoring_filter_ret = True
   if options.invalidation:
     # Load the invalidation file
-    DropCPUClass.invalidation_file = os.environ["GEM5"] + "/tables/lrc_invalidation.txt"
-    DropCPUClass.filter_file_1 = os.environ["GEM5"] + "/tables/lrc_filter.txt"
-    DropCPUClass.filter_ptr_file = os.environ["GEM5"] + "/tables/lrc_filter_ptrs.txt"
+    DropCPUClass.invalidation_file = table_dir + "lrc_invalidation.txt"
+    DropCPUClass.filter_file_1 = table_dir + "lrc_filter.txt"
+    DropCPUClass.filter_ptr_file = table_dir + "lrc_filter_ptrs.txt"
   # Set coverage check flags
   #DropCPUClass.check_ret = True
 elif options.monitor == "none":
@@ -349,7 +363,7 @@ else:
 
 # Create system, CPUs, bus, and memory
 system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1), DropCPUClass(cpu_id=2)],
-                physmem = SimpleMemory(range=AddrRange("1GB"), latency='15ns'),
+                physmem = SimpleMemory(range=AddrRange("1GB"), latency='30ns'),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
 # Save a list of the CPU classes. These will be used in fast-forwarding
