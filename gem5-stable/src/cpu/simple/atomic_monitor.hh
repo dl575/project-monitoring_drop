@@ -63,10 +63,6 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
 
     virtual void init();
 
-    SimpleThread* monitor_thread;
-
-  private:
-
     // monitoring extensions
     enum MonitoringExtension {
       // no monitoring
@@ -94,6 +90,8 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     // monitoring extension
     enum MonitoringExtension monitorExt;
   
+  private:
+
     struct TickEvent : public Event
     {
         AtomicSimpleMonitor *cpu;
@@ -314,6 +312,9 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     Stats::Scalar numBCLoadErrors;
     Stats::Scalar numBCStoreErrors;
     Stats::Formula numBCErrors;
+    Stats::Scalar numSyscallTags;
 };
+
+extern SimpleThread* monitor_thread;
 
 #endif // __MONITOR_SIMPLE_ATOMIC_HH__

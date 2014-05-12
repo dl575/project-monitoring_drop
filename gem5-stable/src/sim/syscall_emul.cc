@@ -42,6 +42,7 @@
 #include "config/the_isa.hh"
 #include "cpu/base.hh"
 #include "cpu/thread_context.hh"
+#include "cpu/simple/atomic_monitor.hh"
 #include "debug/SyscallVerbose.hh"
 #include "mem/page_table.hh"
 #include "sim/process.hh"
@@ -222,6 +223,25 @@ readFunc(SyscallDesc *desc, int num, LiveProcess *p, ThreadContext *tc)
 
     if (bytes_read != -1)
         bufArg.copyOut(tc->getMemProxy());
+
+    // DIFT : mark read data as tainted
+    // UMC  : mark read data as initialized
+    
+    // get pointer to monitor
+    AtomicSimpleMonitor* monitor =
+        (AtomicSimpleMonitor*)(monitor_thread->getCpuPtr());
+    if (monitor->monitorExt == AtomicSimpleMonitor::MONITOR_DIFT ||
+        monitor->monitorExt == AtomicSimpleMonitor::MONITOR_UMC) {
+        // set tags
+        for (ChunkGenerator gen(bufPtr, nbytes, TheISA::VMPageSize); !gen.done(); gen.    next()) {
+            Addr paddr;
+            if (p->pTable->translate(gen.addr(), paddr)) {
+                monitor->setTagProxy(paddr, gen.size(), true);
+            } else {
+                fatal("Address Translation Error\n");
+            }
+        }
+    }
 
     return bytes_read;
 }

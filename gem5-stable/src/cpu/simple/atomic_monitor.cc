@@ -367,6 +367,10 @@ AtomicSimpleMonitor::regStats()
         .name(name() + ".numBCErrors")
         .desc("Number of BC errors")
         ;
+    numSyscallTags
+        .name(name() + ".numSyscallTags")
+        .desc("Number of syscalls that lead to setting tags")
+        ;
     
     numTaintedInsts = numTaintedIntegerInsts + numTaintedLoadInsts + numTaintedStoreInsts + numTaintedIndirectCtrlInsts;
     numBCErrors = numBCLoadErrors + numBCStoreErrors;
@@ -1070,6 +1074,7 @@ AtomicSimpleMonitor::setTagProxy(Addr addr, int nbytes, uint8_t tag)
             }
         }
     }
+    numSyscallTags++;
 }
 
 void
