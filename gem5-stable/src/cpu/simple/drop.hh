@@ -309,6 +309,16 @@ class DropSimpleCPU : public BaseSimpleCPU
     void backtrace_metadata_inst_load(monitoringPacket &mpkt);
     void backtrace_metadata_inst_store(monitoringPacket &mpkt);
     void backtrace_metadata_inst_intalu(monitoringPacket &mpkt);
+    /**
+     * Whether an instruction is an optimal dropping point
+     * @param inst_addr The instruction's address
+     * @param producer_addr The instruction's producer's address
+     */
+    bool isOptimalDroppingPoint(Addr inst_addr, Addr producer_addr);
+    /**
+     * Mark an instruction as an optimal dropping point
+     */
+    void markOptimalDroppingPoint(Addr inst_addr);
     int drop_threshold;
     void adjustDropThreshold();
 };

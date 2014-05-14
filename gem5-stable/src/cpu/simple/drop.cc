@@ -1536,6 +1536,8 @@ DropSimpleCPU::backtrace_metadata_inst_indctrl(monitoringPacket &mpkt)
             // add instruction to producer's check set
             addToCheckSet(producer, mpkt.instAddr);
         }
+        if (compute_optimal_dropping && isOptimalDroppingPoint(mpkt.instAddr, producer))
+            markOptimalDroppingPoint(mpkt.instAddr);
     } else {
         DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", addr, mpkt.instAddr);
     }
@@ -1551,6 +1553,8 @@ DropSimpleCPU::backtrace_metadata_inst_load(monitoringPacket &mpkt)
         if (producer != 0) {
             mergeCheckSets(producer, mpkt.instAddr);
         }
+        if (compute_optimal_dropping && isOptimalDroppingPoint(mpkt.instAddr, producer))
+            markOptimalDroppingPoint(mpkt.instAddr);
     } else {
         DPRINTF(Backtrack, "warning: cannot find producer of 0x%x, instAddr=0x%x\n", addr, mpkt.instAddr);
     }
@@ -1569,6 +1573,8 @@ DropSimpleCPU::backtrace_metadata_inst_store(monitoringPacket &mpkt)
         if (producer != 0) {
             mergeCheckSets(producer, mpkt.instAddr);
         }
+        if (compute_optimal_dropping && isOptimalDroppingPoint(mpkt.instAddr, producer))
+            markOptimalDroppingPoint(mpkt.instAddr);
     } else {
         DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", src, mpkt.instAddr);
     }
@@ -1580,6 +1586,7 @@ DropSimpleCPU::backtrace_metadata_inst_intalu(monitoringPacket &mpkt)
     // find producers of sources
     Addr rs1 = mpkt.rs1;
     Addr rs2 = mpkt.rs2;
+    bool optimal_1, optimal_2;
 
     if (!TheISA::isISAReg(rs1))
         return;
@@ -1589,6 +1596,7 @@ DropSimpleCPU::backtrace_metadata_inst_intalu(monitoringPacket &mpkt)
         if (producer1 != 0) {
             mergeCheckSets(producer1, mpkt.instAddr);
         }
+        optimal_1 = compute_optimal_dropping && isOptimalDroppingPoint(mpkt.instAddr, producer1);
     } else {
         DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", rs1, mpkt.instAddr);
     }
@@ -1601,11 +1609,42 @@ DropSimpleCPU::backtrace_metadata_inst_intalu(monitoringPacket &mpkt)
         if (producer2 != 0) {
             mergeCheckSets(producer2, mpkt.instAddr);
         }
+        optimal_2 = compute_optimal_dropping && isOptimalDroppingPoint(mpkt.instAddr, producer2);
     } else {
         DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", rs2, mpkt.instAddr);
     }
+    // only mark optimal dropping points when both producers are supersets
+    if (optimal_1 && optimal_2)
+        markOptimalDroppingPoint(mpkt.instAddr);
 }
 
+bool
+DropSimpleCPU::isOptimalDroppingPoint(Addr inst_addr, Addr producer_addr)
+{
+    InstructionMetadata *inst_metadata = imt.lookup(inst_addr);
+    InstructionMetadata *producer_metadata = imt.lookup(producer_addr);
+    if (producer_metadata == NULL)
+        return false;
+    std::set<Addr> *producer_check_set = producer_metadata->checks;
+    if (inst_metadata == NULL)
+        return producer_check_set->size() > 0 ? true : false;
+    std::set<Addr> *inst_check_set = inst_metadata->checks;
+    // decide whether producer_check_set is a strict superset of inst_check_set
+    if (producer_check_set->size() <= inst_check_set->size())
+        return false;
+    std::set<Addr>::iterator it;
+    for (it = inst_check_set->begin(); it != inst_check_set->end(); ++it) {
+        if (producer_check_set->find(*it) == producer_check_set->end())
+            return false;
+    }
+    return true;
+}
+
+void
+DropSimpleCPU::markOptimalDroppingPoint(Addr inst_addr)
+{
+    odt.update(inst_addr, true);
+}
 
 
 void
