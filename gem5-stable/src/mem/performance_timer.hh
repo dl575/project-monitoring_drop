@@ -124,6 +124,13 @@ class PerformanceTimer : public AbstractMemory
     double actualOverhead();
     double getAdjustedSlackMultiplier();
     double adjustSlackMultiplier();
+    /**
+     * Return the status of current actual overhead compared to target overhead
+     * @return Zero if overhead matches, a positive integer if actual overhead is
+     * greater than target, a negative integer if actual overhead is smaller than
+     * target
+     */
+    int actualOverheadStatus();
     
     std::vector<MemoryPort*> ports;
 

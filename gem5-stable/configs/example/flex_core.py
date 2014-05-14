@@ -115,6 +115,14 @@ parser.add_option("--increment_important_only", action="store_true")
 parser.add_option("--read_slack_multiplier", action="store_true")
 # Interval for adjusting slack multiplier (in cycles)
 parser.add_option("--slack_multiplier_interval", type="int", default=0)
+
+# compute check sets
+parser.add_option("--compute_check_sets", action="store_true")
+# read check sets from file
+parser.add_option("--read_check_sets", action="store_true")
+# compute optimal dropping points
+parser.add_option("--compute_optimal_dropping", action="store_true")
+
 # Number of instructions to fast-forward
 # During fast-forwarding, full monitoring is performed. Invalidation is enabled
 # after fast-forward period.
@@ -244,6 +252,9 @@ DropCPUClass.backtrack = options.backtrack
 DropCPUClass.backtrack_read_table = options.backtrack_read_table
 DropCPUClass.backtrack_write_table = options.backtrack_write_table
 DropCPUClass.backtrack_table_dir = options.backtrack_table_dir
+DropCPUClass.compute_check_sets = options.compute_check_sets
+DropCPUClass.read_check_sets = options.read_check_sets
+DropCPUClass.compute_optimal_dropping = options.compute_optimal_dropping
 DropCPUClass.ipt_impl = ipt_impl[options.ipt_impl]
 DropCPUClass.ipt_tagged = not options.ipt_tagless
 DropCPUClass.ipt_false_positive_rate = options.ipt_fpr

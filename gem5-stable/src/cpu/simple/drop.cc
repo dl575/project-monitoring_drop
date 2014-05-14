@@ -67,6 +67,9 @@
 
 #include "debug/FlagCache.hh"
 
+#include <iomanip>
+#include <sstream>
+
 using namespace std;
 using namespace TheISA;
 
@@ -150,6 +153,43 @@ DropSimpleCPU::init()
             warn("instruction priority table could not be opened.\n");
         is.close();
     }
+
+    // initialize structures for dependence analysis
+    odt.init();
+    imt.init();
+    if (read_check_sets) {
+        ifstream is;
+        is.open(backtrack_table_dir + "/checksets.txt", std::ios::in);
+        if (is.good()) {
+            std::string line;
+            while (std::getline(is, line)) {
+                std::stringstream lineStream(line);
+                std::vector<std::string> fields;
+                std::string field;
+                while (std::getline(lineStream, field, ',')) {
+                    fields.push_back(field);
+                }
+                if (fields.size() <= 1)
+                    continue;
+                std::vector<std::string>::iterator i = fields.begin();
+                std::string inst_addr_str = *i++;
+                std::stringstream ss;
+                unsigned inst_addr;
+                ss << std::hex << inst_addr_str;
+                ss >> inst_addr;
+                for (; i != fields.end(); ++i) {
+                    std::string check_addr_str = *i;
+                    std::stringstream sss;
+                    sss << std::hex << check_addr_str;
+                    unsigned check_addr;
+                    sss >> check_addr;
+                    addToCheckSet(inst_addr, check_addr);
+                }
+            }
+        } else {
+            warn("check sets table could not be opened.\n");
+        }
+    }
 }
 
 DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
@@ -164,7 +204,12 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
       mptb(p->mpt_size, 30-floorLog2(p->mpt_size), 2),
       ipt_tagged(p->ipt_tagged),
       ipt(p->ipt_tagged, p->ipt_size/p->ipt_entry_size, p->ipt_entry_size, 30-floorLog2(p->ipt_size), 2),
-      ipt_bloom(p->ipt_size, p->ipt_false_positive_rate)
+      ipt_bloom(p->ipt_size, p->ipt_false_positive_rate),
+      compute_check_sets(p->compute_check_sets),
+      read_check_sets(p->read_check_sets),
+      compute_optimal_dropping(p->compute_optimal_dropping),
+      imt(p->ipt_tagged, p->ipt_size/p->ipt_entry_size, p->ipt_entry_size, 30-floorLog2(p->ipt_size), 2),
+      odt(p->ipt_tagged, p->ipt_size/p->ipt_entry_size, p->ipt_entry_size, 30-floorLog2(p->ipt_size), 2)
 {
     _status = Idle;    
 
@@ -196,6 +241,18 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
     // set up callback at simulation exit to write out backtrack tables
     if (p->backtrack && p->backtrack_write_table) {
         Callback *cb = new MakeCallback<DropSimpleCPU, &DropSimpleCPU::writeBacktrackTable>(this);
+        registerExitCallback(cb);
+    }
+
+    // callback to output check sets data
+    if (compute_check_sets) {
+        Callback *cb = new MakeCallback<DropSimpleCPU, &DropSimpleCPU::writeCheckSets>(this);
+        registerExitCallback(cb);
+    }
+
+    // callback to output optimal dropping points
+    if (compute_optimal_dropping) {
+        Callback *cb = new MakeCallback<DropSimpleCPU, &DropSimpleCPU::writeODT>(this);
         registerExitCallback(cb);
     }
 
@@ -437,6 +494,60 @@ DropSimpleCPU::writeBacktrackTable()
         os << slack_multiplier << std::endl;
     } else
         warn("slack multiplier file could not be opened.\n");
+    os.close();
+}
+
+/**
+ * Write out check sets
+ * File format is: instAddr,checkAddr0,checkAddr1,...
+ */
+void
+DropSimpleCPU::writeCheckSets()
+{
+    ofstream os;
+    // write out check sets
+    os.open(backtrack_table_dir + "/checksets.txt", std::ios::out);
+    if (os.good()) {
+        unsigned numEntries = imt.getNumEntries();
+        unsigned entrySize = imt.getEntrySize();
+        unsigned step = 1 << imt.getInstShiftAmt();
+        for (unsigned i = 0; i < numEntries * entrySize; i+=step) {
+            os << std::hex << i;
+            InstructionMetadata *metadata = imt.lookup(i);
+            if (metadata != NULL) {
+                std::set<Addr>::iterator it;
+                for (it = metadata->checks->begin(); it != metadata->checks->end(); ++it) {
+                    os << "," << *it;
+                }
+            }
+            os << std::endl;
+        }
+    } else
+        warn("check sets table could not be opened.\n");
+    os.close();
+}
+
+/**
+ * Write out optimal dropping points
+ * File format is: instAddr:[01]
+ */
+void
+DropSimpleCPU::writeODT()
+{
+    ofstream os;
+    // write out optimal dropping points
+    os.open(backtrack_table_dir + "/optimal_dropping.txt", std::ios::out);
+    if (os.good()) {
+        unsigned numEntries = odt.getNumEntries();
+        unsigned entrySize = odt.getEntrySize();
+        unsigned step = 1 << odt.getInstShiftAmt();
+        for (unsigned i = 0; i < numEntries * entrySize; i+=step) {
+            if (odt.lookup(i)) {
+                os << std::hex << i << std::endl;
+            }
+        }
+    } else
+        warn("optimal dropping table could not be opened.\n");
     os.close();
 }
 
@@ -1243,6 +1354,259 @@ void DropSimpleCPU::backtrack_inst_intalu(monitoringPacket &mpkt)
         DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", rs2, mpkt.instAddr);
     }
 }
+
+/**
+ * selective dropping
+ */
+void
+DropSimpleCPU::adjustDropThreshold()
+{
+    int64_t actual_overhead_status;
+    // Create request
+    Request *timer_read_request = &data_read_req;
+    // set physical address
+    timer_read_request->setPhys(TIMER_ACTUAL_OVERHEAD_STATUS, sizeof(actual_overhead_status), ArmISA::TLB::AllowUnaligned, dataMasterId());
+    // Create read packet
+    MemCmd cmd = MemCmd::ReadReq;
+    PacketPtr timerpkt = new Packet(timer_read_request, cmd);
+    // Set data
+    timerpkt->dataStatic(&actual_overhead_status);
+    // Send read request packet on timer port
+    timerPort.sendFunctional(timerpkt);
+    // Clean up
+    delete timerpkt;
+
+    if (actual_overhead_status > 0)
+        drop_threshold++;
+    else if (actual_overhead_status < 0)
+        drop_threshold--;
+}
+
+bool
+DropSimpleCPU::addToCheckSet(Addr inst_addr, Addr check_addr)
+{
+    InstructionMetadata *metadata = imt.lookup(inst_addr);
+    // lazy initialization
+    if (metadata == NULL) {
+        metadata = new InstructionMetadata();
+        metadata->checks = new std::set<Addr>();
+        imt.update(inst_addr, metadata);
+    }
+    std::pair<std::set<Addr>::iterator,bool> ret;
+    ret = metadata->checks->insert(check_addr);
+
+    return ret.second;
+}
+
+bool
+DropSimpleCPU::mergeCheckSets(Addr inst_addr_producer, Addr inst_addr_consumer)
+{
+    InstructionMetadata *consumer_metadata = imt.lookup(inst_addr_consumer);
+    if (consumer_metadata == NULL)
+        return false;
+
+    std::set<Addr>::iterator it;
+    bool changed = false;
+    for (it = consumer_metadata->checks->begin(); it != consumer_metadata->checks->end(); ++it) {
+        changed = addToCheckSet(inst_addr_producer, *it) || changed;
+    }
+    return changed;
+}
+
+/**
+ * Backtrace to compute instruction metadata
+ */
+void
+DropSimpleCPU::backtrace_metadata()
+{
+    if (!compute_check_sets)
+        return;
+
+    if (monitorExt == MONITOR_UMC)
+        backtrace_metadata_umc();
+    else if (monitorExt == MONITOR_DIFT)
+        backtrace_metadata_dift();
+    else if (monitorExt == MONITOR_HB)
+        backtrace_metadata_hb();
+}
+
+void
+DropSimpleCPU::backtrace_metadata_hb()
+{
+    monitoringPacket mpkt;
+    readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
+
+    // determine instruction type
+    if (mpkt.load) {
+        // LOAD instructions are checks for HB
+        addToCheckSet(mpkt.instAddr, mpkt.instAddr);
+        // do backtracing
+        backtrace_metadata_inst_load(mpkt);
+
+        // update producer table
+        Addr rd = mpkt.rd;
+        rptb.update(rd, mpkt.instAddr, 0);
+    } else if (mpkt.store) {
+        // STORE instructions are checks for HB
+        addToCheckSet(mpkt.instAddr, mpkt.instAddr);
+        // do backtracing
+        backtrace_metadata_inst_store(mpkt);
+
+        // update producer table
+        Addr addr = mpkt.memAddr;
+        mptb.update(addr, mpkt.instAddr);
+    } else if (mpkt.intalu) {
+        backtrace_metadata_inst_intalu(mpkt);
+
+        // update producer table
+        Addr addr = mpkt.rd;
+        rptb.update(addr, mpkt.instAddr, 0);
+    }
+}
+
+void
+DropSimpleCPU::backtrace_metadata_dift()
+{
+    monitoringPacket mpkt;
+    readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
+
+    // determine instruction type
+    if (mpkt.indctrl) {
+        // INDCTRL instructions are checks for DIFT
+        addToCheckSet(mpkt.instAddr, mpkt.instAddr);
+        // do backtracing
+        backtrace_metadata_inst_indctrl(mpkt);
+    } else if (mpkt.load) {
+        backtrace_metadata_inst_load(mpkt);
+
+        // update producer table
+        Addr rd = mpkt.rd;
+        rptb.update(rd, mpkt.instAddr, 0);
+    } else if (mpkt.store) {
+        backtrace_metadata_inst_store(mpkt);
+
+        // update producer table
+        Addr addr = mpkt.memAddr;
+        mptb.update(addr, mpkt.instAddr);
+    } else if (mpkt.intalu) {
+        backtrace_metadata_inst_intalu(mpkt);
+
+        // update producer table
+        Addr addr = mpkt.rd;
+        rptb.update(addr, mpkt.instAddr, 0);
+    }
+}
+
+void
+DropSimpleCPU::backtrace_metadata_umc()
+{
+    monitoringPacket mpkt;
+    readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
+
+    // determine instruction type
+    if (mpkt.load) {
+        // LOAD instructions are checks for UMC
+        addToCheckSet(mpkt.instAddr, mpkt.instAddr);
+        // do backtracing
+        backtrace_metadata_inst_load(mpkt);
+
+        // update producer table
+        Addr rd = mpkt.rd;
+        rptb.update(rd, mpkt.instAddr, 0);
+    } else if (mpkt.store) {
+        backtrace_metadata_inst_store(mpkt);
+
+        // update producer table
+        Addr addr = mpkt.memAddr;
+        mptb.update(addr, mpkt.instAddr);
+    }
+}
+
+void
+DropSimpleCPU::backtrace_metadata_inst_indctrl(monitoringPacket &mpkt)
+{
+    // indirect control transfer does not write any registers
+    Addr addr = mpkt.rs1;
+    if (!TheISA::isISAReg(addr))
+        return;
+    // find out the producer of rs1
+    if (rptb.valid(addr)) {
+        Addr producer = rptb.lookup1(addr);
+        if (producer != 0) {
+            // add instruction to producer's check set
+            addToCheckSet(producer, mpkt.instAddr);
+        }
+    } else {
+        DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", addr, mpkt.instAddr);
+    }
+}
+
+void
+DropSimpleCPU::backtrace_metadata_inst_load(monitoringPacket &mpkt)
+{
+    Addr addr = mpkt.memAddr;
+    // find out producer of memory address
+    if (mptb.valid(addr)) {
+        Addr producer = mptb.lookup(addr);
+        if (producer != 0) {
+            mergeCheckSets(producer, mpkt.instAddr);
+        }
+    } else {
+        DPRINTF(Backtrack, "warning: cannot find producer of 0x%x, instAddr=0x%x\n", addr, mpkt.instAddr);
+    }
+}
+
+void
+DropSimpleCPU::backtrace_metadata_inst_store(monitoringPacket &mpkt)
+{
+    Addr src = mpkt.rs2;
+
+    if (!TheISA::isISAReg(src))
+        return;
+    // find out the producer of rs2
+    if (rptb.valid(src)) {
+        Addr producer = rptb.lookup1(src);
+        if (producer != 0) {
+            mergeCheckSets(producer, mpkt.instAddr);
+        }
+    } else {
+        DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", src, mpkt.instAddr);
+    }
+}
+
+void
+DropSimpleCPU::backtrace_metadata_inst_intalu(monitoringPacket &mpkt)
+{
+    // find producers of sources
+    Addr rs1 = mpkt.rs1;
+    Addr rs2 = mpkt.rs2;
+
+    if (!TheISA::isISAReg(rs1))
+        return;
+    // find out the producer of rs1
+    if (rptb.valid(rs1)) {
+        Addr producer1 = rptb.lookup1(rs1);
+        if (producer1 != 0) {
+            mergeCheckSets(producer1, mpkt.instAddr);
+        }
+    } else {
+        DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", rs1, mpkt.instAddr);
+    }
+
+    if (!TheISA::isISAReg(rs2))
+        return;
+    // find out the producer of rs2
+    if (rptb.valid(rs2)) {
+        Addr producer2 = rptb.lookup1(rs2);
+        if (producer2 != 0) {
+            mergeCheckSets(producer2, mpkt.instAddr);
+        }
+    } else {
+        DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", rs2, mpkt.instAddr);
+    }
+}
+
+
 
 void
 DropSimpleCPU::tick()

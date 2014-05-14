@@ -1,59 +1,60 @@
 /*
- * Invalidation Priority Table
+ * Invalidation Metadata Table
  *
  * Authors: Tao Chen
  */
 
-#ifndef __INVALIDATION_PT_HH__
-#define __INVALIDATION_PT_HH__
+#ifndef __INSTRUCTION_METADATA_TABLE_HH__
+#define __INSTRUCTION_METADATA_TABLE_HH__
 
 #include <iostream>
 #include <fstream>
 
 #include "arch/types.hh"
 
-class InvalidationPT
+template <typename MetadataType>
+class InstructionMetadataTable
 {
   private:
-    struct PTEntry
+    struct Entry
     {
-        PTEntry() : tag(0), valid(false)
+        Entry() : tag(0), valid(false)
         {}
         // tag of entry
         Addr tag;
-        // the entry's priority
-        std::vector<bool> priority;
+        // the entry's metadata
+        std::vector<MetadataType*> metadata;
         // whether the entry is valid
         bool valid;
     };
 
   public:
     /**
-     * Creates a invalidation priority table
+     * Creates a instruction metadata table
      * @param numEntries Number of entries
      * @param entrySize Size of entry
      * @param tagBits Number of bits in each tag
      * @param instShiftAmt Amount to shift instructions
      */
-    InvalidationPT(bool tagged, unsigned numEntries, unsigned entrySize, unsigned tagBits, unsigned instShiftAmt);
+    InstructionMetadataTable(bool tagged, unsigned numEntries, unsigned entrySize, unsigned tagBits, unsigned instShiftAmt);
 
     void init();
     void reset();
 
     /**
-     * Looks up a memory address in the PTB, must call valid() first
+     * Looks up a instruction address in the table, must call valid() first
      */
-    bool lookup(Addr addr);
+    MetadataType* lookup(Addr addr);
 
     /**
-     * Checks if an instruction is in the PTB
+     * Checks if an instruction is in the table
      */
     bool valid(Addr addr);
 
     /**
-     * Update the priority of an memory location
+     * Update the metadata of an instruction
      */
-    void update(Addr addr, const bool priority);
+    void update(Addr addr, MetadataType *metadata);
 
     /**
      * Serialize the table to an output stream
@@ -72,7 +73,7 @@ class InvalidationPT
     inline unsigned getOffset(Addr addr);
 
     /**
-     * Return the index into the PTB
+     * Return the index into the table
      */
     inline unsigned getIndex(Addr addr);
 
@@ -82,7 +83,7 @@ class InvalidationPT
     inline Addr getTag(Addr addr);
 
     /** The actual table */
-    std::vector<PTEntry> ipt;
+    std::vector<Entry> imt;
 
     /** Whether the table has tags */
     bool tagged;
@@ -123,4 +124,4 @@ class InvalidationPT
     unsigned getInstShiftAmt() { return instShiftAmt; }
 };
 
-#endif // __INVALIDATION_PT_HH__
+#endif // __INSTRUCTION_METADATA_TABLE_HH__

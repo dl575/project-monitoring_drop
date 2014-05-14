@@ -1331,6 +1331,8 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                 numImportantInsts++;
         }
 
+        backtrace_metadata();
+
         // Perform filtering
         if (!skip_drop && flagcache_enabled && invtab.initialized && fptab.initialized 
             && (filtertab1.initialized || filtertab2.initialized))
@@ -2039,4 +2041,13 @@ BaseSimpleCPU::backtrack()
 {
     // actual backtrack implemented in sub-classes
     return false;
+}
+
+/**
+ * Backtrace to compute instruction metadata
+ */
+void
+BaseSimpleCPU::backtrace_metadata()
+{
+    // actual backtrace implemented in sub-classes
 }

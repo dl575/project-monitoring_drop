@@ -56,15 +56,15 @@ bitmap_t *bitmap_resize(bitmap_t *bitmap, size_t old_size, size_t new_size)
     
     /* resize if mmap exists and possible on this os, else new mmap */
     if (bitmap->array != NULL) {
-#if __linux
-        bitmap->array = mremap(bitmap->array, old_size, new_size, MREMAP_MAYMOVE);
-        if (bitmap->array == MAP_FAILED) {
-            perror("Error resizing mmap");
-            free_bitmap(bitmap);
-            close(fd);
-            return NULL;
-        }
-#else
+// #if __linux
+//         bitmap->array = mremap(bitmap->array, old_size, new_size, MREMAP_MAYMOVE);
+//         if (bitmap->array == MAP_FAILED) {
+//             perror("Error resizing mmap");
+//             free_bitmap(bitmap);
+//             close(fd);
+//             return NULL;
+//         }
+// #else
         if (munmap(bitmap->array, bitmap->bytes) < 0) {
             perror("Error unmapping memory");
             free_bitmap(bitmap);
@@ -72,7 +72,7 @@ bitmap_t *bitmap_resize(bitmap_t *bitmap, size_t old_size, size_t new_size)
             return NULL;
         }
         bitmap->array = NULL;
-#endif
+// #endif
     }
     if (bitmap->array == NULL) {
         bitmap->array = mmap(0, new_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);

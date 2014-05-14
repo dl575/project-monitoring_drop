@@ -49,6 +49,10 @@
 #include "mem/drop/rptb.hh"
 #include "mem/drop/ipt.hh"
 #include "mem/drop/ipt_bloom.hh"
+#include "mem/drop/imt.hh"
+#include "mem/drop/imt_impl.hh"
+
+#include <set>
 
 #define DROP_CLEAR_ARRAY 0
 #define DROP_CLEAR_CACHE 1
@@ -220,6 +224,8 @@ class DropSimpleCPU : public BaseSimpleCPU
     bool backtrack_read_table;
     std::string backtrack_table_dir;
     void writeBacktrackTable();
+    void writeCheckSets();
+    void writeODT();
     void writeCheckedPC();
 
   private:
@@ -261,8 +267,28 @@ class DropSimpleCPU : public BaseSimpleCPU
     InvalidationPT ipt;
     InvalidationPTBloom ipt_bloom;
 
+    bool compute_check_sets;
+    bool read_check_sets;
+    bool compute_optimal_dropping;
+    struct InstructionMetadata {
+      std::set<Addr> *checks;  // checks the instruction leads to
+    };
+    InstructionMetadataTable<InstructionMetadata> imt;
+    // reuse InvalidationPT for optimal dropping table
+    InvalidationPT odt;
+
     bool getInstructionPriority(Addr addr);
     void setInstructionPriority(Addr addr, const bool priority);
+    /**
+     * Add a node to an instruction's check set
+     * @return Return true if the element is inserted, false if already in the set
+     */
+    bool addToCheckSet(Addr inst_addr, Addr check_addr);
+    /**
+     * Merge the check sets of a consumer instruction into its producer's check set
+     * @return Return true if any check is added to the producer's check set, false otherwise
+     */
+    bool mergeCheckSets(Addr inst_addr_producer, Addr inst_addr_consumer);
     virtual bool backtrack();
     bool backtrack_hb();
     bool backtrack_dift();
@@ -272,6 +298,19 @@ class DropSimpleCPU : public BaseSimpleCPU
     void backtrack_inst_store(monitoringPacket &mpkt);
     void backtrack_inst_intalu(monitoringPacket &mpkt);
 
+    /**
+     * selective dropping
+     */
+    virtual void backtrace_metadata();
+    void backtrace_metadata_hb();
+    void backtrace_metadata_dift();
+    void backtrace_metadata_umc();
+    void backtrace_metadata_inst_indctrl(monitoringPacket &mpkt);
+    void backtrace_metadata_inst_load(monitoringPacket &mpkt);
+    void backtrace_metadata_inst_store(monitoringPacket &mpkt);
+    void backtrace_metadata_inst_intalu(monitoringPacket &mpkt);
+    int drop_threshold;
+    void adjustDropThreshold();
 };
 
 #endif // __CPU_SIMPLE_DROP_HH__

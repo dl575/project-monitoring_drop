@@ -703,6 +703,9 @@ class BaseSimpleCPU : public BaseCPU
     bool _important;
     virtual bool backtrack();
 
+    // backtrace for heuristic dropping
+    virtual void backtrace_metadata();
+
     // Flag for whether to print out ID #s of checks that are monitored in full
     bool print_checkid;
     // Keep track of and print out coverage of static instructions

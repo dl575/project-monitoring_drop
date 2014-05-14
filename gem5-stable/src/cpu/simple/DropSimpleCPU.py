@@ -62,3 +62,7 @@ class DropSimpleCPU(BaseSimpleCPU):
     ipt_size = Param.Int(0x100000, "Size of instruction priority table")
     ipt_entry_size = Param.Int(16, "Size of instruction priority table entry")
     ipt_false_positive_rate = Param.Float(0.01, "False positive rate of IPT bloom filter")
+
+    compute_check_sets = Param.Bool(False, "Compute check sets")
+    read_check_sets = Param.Bool(False, "Read check sets from file")
+    compute_optimal_dropping = Param.Bool(False, "Compute optimal dropping points")

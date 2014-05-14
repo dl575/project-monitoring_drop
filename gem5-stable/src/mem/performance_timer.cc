@@ -301,6 +301,38 @@ PerformanceTimer::adjustSlackMultiplier()
     return slack_multiplier;
 }
 
+int
+PerformanceTimer::actualOverheadStatus()
+{
+    // slack allocated in current interval
+    long long int current_slack_allocated;
+    // non-stall time in current interval
+    long long int current_non_stall_time;
+    // actual overhead for the current interval
+    double current_actual_overhead;
+    int retval = 0;
+
+    current_slack_allocated = slackAllocated() - last_slack_allocated;
+    current_non_stall_time = nonStallTime() - last_non_stall_time;
+    if (current_non_stall_time != 0) {
+        current_actual_overhead = ((double)current_slack_allocated) / current_non_stall_time;
+        // compare actual overhead with target
+        if (current_actual_overhead > povr + 0.005)
+            retval = 1;
+        else if (current_actual_overhead < povr - 0.005)
+            retval = -1;
+        else
+            retval = 0;
+    }
+    // update data for future use
+    last_slack_allocated += current_slack_allocated;
+    last_non_stall_time += current_non_stall_time;
+    slack_subtrahend = 0;
+    slack_subtrahend_last_update = curTick();
+
+    return retval;
+}
+
 void
 PerformanceTimer::updateSlackSubtrahend()
 {
@@ -373,6 +405,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             
             Addr read_addr = pkt->getAddr();
             uint64_t send_data = 0;
+            int64_t send_data_int = 0;
             double send_data_double = 0.0;
             
             if (read_addr == TIMER_READ_SLACK){
@@ -448,10 +481,14 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                 send_data = (stored_tp.intask || curTick() < stored_tp.WCET_end);
             } else if (read_addr == TIMER_ADJUSTED_SLACK_MULTIPLIER) {
                 send_data_double = getAdjustedSlackMultiplier();
+            } else if (read_addr == TIMER_ACTUAL_OVERHEAD_STATUS){
+                send_data_int = actualOverheadStatus();
             }
             
             if (read_addr == TIMER_ADJUSTED_SLACK_MULTIPLIER)
                 pkt->setData((uint8_t *)&send_data_double);
+            else if (read_addr == TIMER_ACTUAL_OVERHEAD_STATUS)
+                pkt->setData((uint8_t *)&send_data_int);
             else
                 pkt->setData((uint8_t *)&send_data);
         }
