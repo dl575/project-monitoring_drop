@@ -1197,14 +1197,9 @@ DropSimpleCPU::backtrack_umc()
         setInstructionPriority(mpkt.instAddr, true);
 
     } else if (mpkt.store) {
-        if (important) {
-            backtrack_inst_store(mpkt);
-        }
-
         // update producer table
         Addr addr = mpkt.memAddr;
         mptb.update(addr, mpkt.instAddr);
-
     }
 
     return important;
@@ -1303,11 +1298,11 @@ void DropSimpleCPU::backtrack_inst_load(monitoringPacket &mpkt)
 
 void DropSimpleCPU::backtrack_inst_store(monitoringPacket &mpkt)
 {
-    Addr src = mpkt.rs1;
+    Addr src = mpkt.rs2;
 
     if (!TheISA::isISAReg(src))
         return;
-    // find out the producer of rs1
+    // find out the producer of rs2
     if (rptb.valid(src)) {
         Addr producer1 = rptb.lookup1(src);
         if (producer1 != 0) {
@@ -1514,8 +1509,6 @@ DropSimpleCPU::backtrace_metadata_umc()
         Addr rd = mpkt.rd;
         rptb.update(rd, mpkt.instAddr, 0);
     } else if (mpkt.store) {
-        backtrace_metadata_inst_store(mpkt);
-
         // update producer table
         Addr addr = mpkt.memAddr;
         mptb.update(addr, mpkt.instAddr);
