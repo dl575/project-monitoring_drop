@@ -1579,7 +1579,7 @@ DropSimpleCPU::backtrace_metadata_inst_intalu(monitoringPacket &mpkt)
     // find producers of sources
     Addr rs1 = mpkt.rs1;
     Addr rs2 = mpkt.rs2;
-    bool optimal_1, optimal_2;
+    bool optimal_1 = false, optimal_2 = false;
 
     if (!TheISA::isISAReg(rs1))
         return;
