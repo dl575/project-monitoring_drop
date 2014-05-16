@@ -1,12 +1,5 @@
 //opcode    sel1      sel2    op       c    action
 
-//  LOAD      RD        c       add      0    HW_set_array
-//  STORE     MEMADDR   c       shftr    2    HW_set_cache
-//  INTALU    RD        c       add      0    HW_set_array
-  LOAD      RD        c       add      0    HW_clear_array
-  STORE     MEMADDR   c       shftr    2    HW_clear_cache
-  INTALU    RD        c       add      0    HW_clear_array
-  INDCTRL   -         -       -        -    HW_nop
   SETTAG    MEMADDR   c       shftr    2    HW_clear_cache
 
 //idx       sel1      sel2    op       c    action
