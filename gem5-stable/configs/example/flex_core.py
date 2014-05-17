@@ -115,6 +115,8 @@ parser.add_option("--increment_important_only", action="store_true")
 parser.add_option("--read_slack_multiplier", action="store_true")
 # Interval for adjusting slack multiplier (in cycles)
 parser.add_option("--slack_multiplier_interval", type="int", default=0)
+# Granularity of dropping decisions (in number of instructions)
+parser.add_option("--dropping_granularity", type="int", default=1)
 
 # compute check sets
 parser.add_option("--compute_check_sets", action="store_true")
@@ -401,6 +403,7 @@ timer.important_slack = options.important_slack
 timer.important_percent = options.important_percent
 timer.increment_important_only = options.increment_important_only
 timer.slack_multiplier_interval = options.slack_multiplier_interval
+timer.dropping_granularity = options.dropping_granularity
 timer.read_slack_multiplier = options.read_slack_multiplier
 timer.persistence_dir = options.backtrack_table_dir
 # We can also set a probabilistic range

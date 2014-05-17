@@ -174,6 +174,12 @@ class PerformanceTimer : public AbstractMemory
     bool read_slack_multiplier;
     // Interval for adjusting slack multiplier (in cycles)
     long long int slack_multiplier_interval;
+    // Granularity of dropping (in number of instructions)
+    int dropping_granularity;
+    // Drop status - 0: drop, 1: not drop
+    int drop_status;
+    // Number of queries to the timer
+    long long int num_queries;
     // whether the last instruction that requested slack is important
     bool last_important;
     // slack multiplier

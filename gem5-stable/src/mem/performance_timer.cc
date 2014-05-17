@@ -63,6 +63,7 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
     increment_important_only(p->increment_important_only),
     read_slack_multiplier(p->read_slack_multiplier),
     slack_multiplier_interval(p->slack_multiplier_interval),
+    dropping_granularity(p->dropping_granularity),
     use_start_ticks(p->use_start_ticks)
 {
     for (size_t i = 0; i < p->port_port_connection_count; ++i) {
@@ -117,6 +118,8 @@ PerformanceTimer::init()
     not_drops = 0;
 
     last_important = false;
+    drop_status = 1;
+    num_queries = 0;
     // initialize slack multiplier
     if (read_slack_multiplier) {
         ifstream is;
@@ -411,27 +414,29 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             if (read_addr == TIMER_READ_SLACK){
                 send_data = slack;
             } else if (read_addr == TIMER_READ_DROP) {
-                long long int adjusted_slack = slack - drop_thres;
-                // if using unified important slack policy, drop unimportant instruction if slack is below threshold
-                if (important_policy == UNIFIED)
-                  adjusted_slack -= important_slack;
-                int drop_status;
-                if (adjusted_slack < slack_lo){
-                    drop_status = 0; // Drop
-                } else if (adjusted_slack >= slack_hi){
-                    drop_status = 1; // Not Drop
-                } else {
-                    // We assume a linear probability model between slack_hi and slack_lo.
-                    // Note (slack_hi != slack_lo) in this part of the code (due to above conditions).
-                    // At slack_hi not_drop_rate = 1
-                    // At slack_lo not_drop_rate = 0
-                    double not_drop_rate = (double)(adjusted_slack - slack_lo)/(double)(slack_hi - slack_lo);
-                    // Get a random number
-                    double random_number = (double)rand()/RAND_MAX; 
-                    // If we get any random number under the not_drop_rate, we don't drop
-                    drop_status = (random_number <= not_drop_rate);
-                    
-                    DPRINTF(SlackTimer, "Prob computation: slack = %lld, rate = %f, number = %f, result = %d\n", adjusted_slack, not_drop_rate, random_number, drop_status);
+                num_queries++;
+                if (num_queries % dropping_granularity == 0) {
+                    long long int adjusted_slack = slack - drop_thres;
+                    // if using unified important slack policy, drop unimportant instruction if slack is below threshold
+                    if (important_policy == UNIFIED)
+                      adjusted_slack -= important_slack;
+                    if (adjusted_slack < slack_lo){
+                        drop_status = 0; // Drop
+                    } else if (adjusted_slack >= slack_hi){
+                        drop_status = 1; // Not Drop
+                    } else {
+                        // We assume a linear probability model between slack_hi and slack_lo.
+                        // Note (slack_hi != slack_lo) in this part of the code (due to above conditions).
+                        // At slack_hi not_drop_rate = 1
+                        // At slack_lo not_drop_rate = 0
+                        double not_drop_rate = (double)(adjusted_slack - slack_lo)/(double)(slack_hi - slack_lo);
+                        // Get a random number
+                        double random_number = (double)rand()/RAND_MAX;
+                        // If we get any random number under the not_drop_rate, we don't drop
+                        drop_status = (random_number <= not_drop_rate);
+
+                        DPRINTF(SlackTimer, "Prob computation: slack = %lld, rate = %f, number = %f, result = %d\n", adjusted_slack, not_drop_rate, random_number, drop_status);
+                    }
                 }
                 send_data = drop_status;
                 if (stored_tp.intask || curTick() < stored_tp.WCET_end){
@@ -441,36 +446,41 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                 // set last instruction importance
                 last_important = false;
             } else if (read_addr == TIMER_READ_DROP_IMPORTANT) {
-                if (important_policy == ALWAYS) {
-                    // always forward
-                    int drop_status = 1;
-                    send_data = drop_status;
-                    not_drops++;
-                } else if (important_policy == SLACK) {
-                    // forward/drop based on slack
-                    int drop_status = (slack + important_slack >= 0);
-                    send_data = drop_status;
-                    if (stored_tp.intask || curTick() < stored_tp.WCET_end){
-                        if (drop_status) { not_drops++; }
-                        else { drops++; }
+                num_queries++;
+                if (num_queries % dropping_granularity == 0) {
+                    if (important_policy == ALWAYS) {
+                        // always forward
+                        drop_status = 1;
+                        not_drops++;
+                    } else if (important_policy == SLACK) {
+                        // forward/drop based on slack
+                        drop_status = (slack + important_slack >= 0);
+                        if (stored_tp.intask || curTick() < stored_tp.WCET_end) {
+                            if (drop_status) { not_drops++; }
+                            else { drops++; }
+                        }
+                    } else if (important_policy == PERCENT) {
+                        long long int adjusted_slack = impt_slack - drop_thres;
+                        drop_status = (adjusted_slack >= 0);
+                        if (stored_tp.intask || curTick() < stored_tp.WCET_end) {
+                            if (drop_status) { not_drops++; }
+                            else { drops++; }
+                        }
+                    } else if (important_policy == UNIFIED) {
+                        long long int adjusted_slack = slack - drop_thres;
+                        drop_status = (adjusted_slack >= 0);
+                        if (stored_tp.intask || curTick() < stored_tp.WCET_end) {
+                            if (drop_status) { not_drops++; }
+                            else { drops++; }
+                        }
                     }
-                } else if (important_policy == PERCENT) {
-                    long long int adjusted_slack = impt_slack - drop_thres;
-                    int drop_status = (adjusted_slack >= 0);
-                    send_data = drop_status;
-                    if (stored_tp.intask || curTick() < stored_tp.WCET_end) {
-                        if (drop_status) { not_drops++; }
-                        else { drops++; }
-                    }
-                } else if (important_policy == UNIFIED) {
-                    long long int adjusted_slack = slack - drop_thres;
-                    int drop_status = (adjusted_slack >= 0);
-                    send_data = drop_status;
+                } else {
                     if (stored_tp.intask || curTick() < stored_tp.WCET_end) {
                         if (drop_status) { not_drops++; }
                         else { drops++; }
                     }
                 }
+                send_data = drop_status;
                 // set last instruction importance
                 last_important = true;
             } else if (read_addr == TIMER_DROPS){
