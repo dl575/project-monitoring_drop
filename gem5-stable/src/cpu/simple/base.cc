@@ -1068,6 +1068,8 @@ BaseSimpleCPU::selectValue(std::string &select, Addr c)
         readFromFifo(FIFO_RS2, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
     } else if (select == "RS3") {
         readFromFifo(FIFO_RS3, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (select == "PHYSADDR") {
+        readFromFifo(FIFO_PHYSADDR, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
     } else {
         warn("Unknown select \"%s\"\n", select.data());
     }

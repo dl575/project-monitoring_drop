@@ -1386,15 +1386,13 @@ AtomicSimpleMonitor::DIFTExecute()
         numIntegerInsts++;
         numMonitorInsts++;
     } else if (mp.load) {
-        DPRINTF(Monitor, "DIFT: Load instruction, addr=0x%x\n", mp.memAddr);
+        DPRINTF(Monitor, "DIFT: Load instruction, addr=0x%x\n", mp.physAddr);
         DIFTTag trd = false;
         if (TheISA::isISAReg(mp.rd)) {
             trd = thread->readIntReg(mp.rd);
         }
         tresult = false;
-        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
-            tresult |= (DIFTTag)readBitTag(pbyte);
-        }
+        tresult |= (DIFTTag)readBitTag(mp.physAddr);
         if (TheISA::isISAReg(mp.rd)) {
             thread->setIntReg((int)mp.rd, (uint64_t)tresult);
             revalidateRegTag((int)mp.rd);
@@ -1406,20 +1404,16 @@ AtomicSimpleMonitor::DIFTExecute()
         numLoadInsts++;
         numMonitorInsts++;
     } else if (mp.store && !mp.settag) {
-        DPRINTF(Monitor, "DIFT: Store instruction, addr=0x%x\n", mp.memAddr);
+        DPRINTF(Monitor, "DIFT: Store instruction, addr=0x%x\n", mp.physAddr);
         DIFTTag tsrc = false;
         if (TheISA::isISAReg(mp.rs1)) {
             tsrc = (DIFTTag)thread->readIntReg(mp.rs1);
         }
         DIFTTag tdest = false;
 
-        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
-            tdest |= readTagFunctional(pbyte);
-            writeBitTag(pbyte, tsrc);
-        }
-        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
-            revalidateMemTag(pbyte);
-        }
+        tdest |= readTagFunctional(mp.physAddr);
+        writeBitTag(mp.physAddr, tsrc);
+        revalidateMemTag(mp.physAddr);
 
         if (tdest || tsrc) {
             numTaintedStoreInsts++;
@@ -1428,12 +1422,8 @@ AtomicSimpleMonitor::DIFTExecute()
         numMonitorInsts++;
     } else if (mp.store && mp.settag) {
         DPRINTF(Monitor, "DIFT: Set taint mem[0x%x:0x%x]=%d\n", mp.memAddr, mp.memEnd, mp.data);
-        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
-            writeBitTag(pbyte, (bool)mp.data);
-        }
-        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
-            revalidateMemTag(pbyte);
-        }
+        writeBitTag(mp.physAddr, (bool)mp.data);
+        revalidateMemTag(mp.physAddr);
     } else if (mp.indctrl) {
         DPRINTF(Monitor, "DIFT: Indirect control transfer instruction\n");
         DIFTTag trs1 = false;

@@ -1,6 +1,6 @@
 //opcode    sel1      sel2    op       c    location
 
-  LOAD      MEMADDR   c       shftr    2    cache
+  LOAD      PHYSADDR  c       shftr    2    cache
   STORE     RS1       c       add      0    array
   INDCTRL   RS1       c       add      0    array
   INTALU    RS1       c       add      0    array
