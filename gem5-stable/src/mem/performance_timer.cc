@@ -395,14 +395,13 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                     // At slack_hi not_drop_rate = 1
                     // At slack_lo not_drop_rate = 0
                     double not_drop_rate = (double)(adjusted_slack - slack_lo)/(double)(slack_hi - slack_lo);
-                    // Get a random number
+                    // Get a random number in [0, 1]
                     double random_number = (double)rand()/RAND_MAX; 
                     // If we get any random number under the not_drop_rate, we don't drop
                     drop_status = (random_number <= not_drop_rate);
                     
                     DPRINTF(SlackTimer, "Prob computation: slack = %lld, rate = %f, number = %f, result = %d\n", adjusted_slack, not_drop_rate, random_number, drop_status);
                 }
-
                 /*
                 // 50/50 drop
                 double random_number = (double)rand()/RAND_MAX;

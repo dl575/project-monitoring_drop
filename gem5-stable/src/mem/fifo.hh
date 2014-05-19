@@ -53,6 +53,7 @@
 #include "mem/tport.hh"
 #include "params/Fifo.hh"
 #include "mem/peripheral_addr.hh"
+#include "sim/process.hh"
 
 // Addresses used for parts of monitoring packet
 #define FIFO_VALID         FIFO_ADDR                // valid packet
@@ -122,6 +123,11 @@ class monitoringPacket {
     uint64_t nextpc;      // next program counter
     uint8_t opcode;       // opcode for integer ALU instructions
     bool settag;          // manually set tag
+    char inst_dis[32];    // Disassembled string of instruction (for debugging)
+    // Data for handling syscall read
+    Addr syscallReadBufPtr;
+    int syscallReadNbytes;
+    LiveProcess *syscallReadP;
 
     // Clear all variables
     void init() {
@@ -149,34 +155,42 @@ class monitoringPacket {
       nextpc = 0;
       opcode = 0;
       settag = false;
+      memset(inst_dis, '\0', 32);
+      syscallReadBufPtr = 0;
+      syscallReadNbytes = 0;
+      syscallReadP = NULL;
     }
 
     // Print out full monitoring packet information
     void print() {
-      printf("valid = %d\n", valid);
-      printf("instAddr = 0x%x\n", (int)instAddr);
-      printf("memAddr = 0x%x\n", (int)memAddr);
-      printf("memEnd = 0x%x\n", (int)memEnd);
-      printf("virtAddr = 0x%x\n", (int)virtAddr);
-      printf("physAddr = 0x%x\n", (int)physAddr);
-      printf("size = %d\n", (int)size);
-      printf("data = %d\n", (int)data);
-      printf("store = %d\n", store);
-      printf("load = %d\n", load);
-      printf("done = %d\n", done);
-      printf("rs1 = %d\n", rs1);
-      printf("rs2 = %d\n", rs2);
-      printf("rs3 = %d\n", rs3);
-      printf("rd = %d\n", rd);
-      printf("control = %d\n", control);
-      printf("call = %d\n", call);
-      printf("ret = %d\n", ret);
-      printf("intalu = %d\n", intalu);
-      printf("indctrl = %d\n", indctrl);
-      printf("lr = 0x%x\n", (int)lr);
-      printf("nextpc = 0x%x\n", (int)nextpc);
-      printf("opcode = %d\n", opcode);
-      printf("settag = %d\n", settag);
+      printf("monitoringPacket {\n");
+      printf("  valid = %d\n", valid);
+      printf("  instAddr = 0x%x\n", (int)instAddr);
+      printf("  memAddr = 0x%x\n", (int)memAddr);
+      printf("  memEnd = 0x%x\n", (int)memEnd);
+      printf("  virtAddr = 0x%x\n", (int)virtAddr);
+      printf("  physAddr = 0x%x\n", (int)physAddr);
+      printf("  size = %d\n", (int)size);
+      printf("  data = %d\n", (int)data);
+      printf("  store = %d\n", store);
+      printf("  load = %d\n", load);
+      printf("  done = %d\n", done);
+      printf("  rs1 = %d\n", rs1);
+      printf("  rs2 = %d\n", rs2);
+      printf("  rs3 = %d\n", rs3);
+      printf("  rd = %d\n", rd);
+      printf("  control = %d\n", control);
+      printf("  call = %d\n", call);
+      printf("  ret = %d\n", ret);
+      printf("  intalu = %d\n", intalu);
+      printf("  indctrl = %d\n", indctrl);
+      printf("  lr = 0x%x\n", (int)lr);
+      printf("  nextpc = 0x%x\n", (int)nextpc);
+      printf("  opcode = %d\n", opcode);
+      printf("  settag = %d\n", settag);
+      printf("  syscallReadBufPtr = %llx\n", syscallReadBufPtr);
+      printf("  syscallReadNbytes = %d\n", syscallReadNbytes);
+      printf("}\n");
     }
 };
 

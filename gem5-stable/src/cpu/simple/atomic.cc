@@ -65,6 +65,8 @@
 using namespace std;
 using namespace TheISA;
 
+SimpleThread* main_thread;
+
 AtomicSimpleCPU::TickEvent::TickEvent(AtomicSimpleCPU *c)
     : Event(CPU_Tick_Pri), cpu(c)
 {
@@ -104,6 +106,9 @@ AtomicSimpleCPU::init()
     ifetch_req.setThreadContext(_cpuId, 0); // Add thread ID if we add MT
     data_read_req.setThreadContext(_cpuId, 0); // Add thread ID here too
     data_write_req.setThreadContext(_cpuId, 0); // Add thread ID here too
+
+    // Copy thread pointer
+    main_thread = thread;
 }
 
 AtomicSimpleCPU::AtomicSimpleCPU(AtomicSimpleCPUParams *p)
@@ -709,6 +714,18 @@ void AtomicSimpleCPU::handleFifoEvent() {
     schedule(fifoEvent, curTick() + ticks(1));
   }
 
+}
+
+// Function to setup monitoring for read syscall
+void 
+AtomicSimpleCPU::monitorSyscallRead(Addr bufPtr, int nbytes, LiveProcess *p)
+{
+  // Mark that there is a syscall read that should be sent throught FIFO
+  fed.syscallRead = true;
+  // Save information about the read so that the monitor can handle it
+  fed.syscallReadBufPtr = bufPtr;
+  fed.syscallReadNbytes = nbytes;
+  fed.syscallReadP = p;
 }
 
 void

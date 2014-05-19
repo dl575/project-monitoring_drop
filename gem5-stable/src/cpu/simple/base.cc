@@ -644,7 +644,23 @@ BaseSimpleCPU::postExecute()
 
 void 
 BaseSimpleCPU::performMonitoring() {
-  
+    // Handle monitoring for read syscall
+    if (fed.syscallRead) {
+      // Create FIFO packet
+      mp.valid = true;
+      mp.instAddr = tc->instAddr();
+      mp.settag = true;
+      mp.syscallReadBufPtr = fed.syscallReadBufPtr;
+      mp.syscallReadNbytes = fed.syscallReadNbytes;
+      mp.syscallReadP = fed.syscallReadP;
+      // Send packet on fifo port, stall if not successful
+      fifoStall = !sendFifoPacket();
+      // Any additional functionality needed for stall
+      if (fifoStall) {
+        stallFromFifo();
+      }
+    }
+    
     // Check if this instruction is predicated (true is executed, false is predicated false)
     bool predicate_result = readPredicate();
   

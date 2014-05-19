@@ -157,6 +157,12 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     void endTask();
     // Time to stall at end task
     Tick timer_latency;
+
+  public:
+    // Function to setup monitoring for read syscall
+    void monitorSyscallRead(Addr bufPtr, int nbytes, LiveProcess *p);
 };
+
+extern SimpleThread* main_thread;
 
 #endif // __CPU_SIMPLE_ATOMIC_HH__

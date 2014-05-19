@@ -1059,6 +1059,7 @@ AtomicSimpleMonitor::writeDWordTagFunctional(Addr addr, uint64_t tag)
     }
 }
 
+// Set tags from syscalls. Assumes tags are single bit.
 void
 AtomicSimpleMonitor::setTagProxy(Addr addr, int nbytes, uint8_t tag)
 {
@@ -1066,11 +1067,24 @@ AtomicSimpleMonitor::setTagProxy(Addr addr, int nbytes, uint8_t tag)
     // set tag for memory chunk
     int i;
     for (ChunkGenerator gen(addr, nbytes, 64); !gen.done(); gen.next()) {
+        // Handle chunks of 64 
         if (gen.size() == 64) {
-            writeDWordTagFunctional(gen.addr() >> 4, tag ? 0xffffffffffffffff : 0);
+            // Use writeDWordTag to quickly set 64 tags bits at a time
+            // Combining the addr >> 4 here with the addr << 1 in writeDWordTag
+            // means the writing starts at addr >> 3. This corresponds to there
+            // being 1 bit of tag per byte of memory.
+            writeDWordTag(gen.addr() >> 4, tag ? 0xffffffffffffffff : 0);
+            DPRINTF(Monitor, "writeDWordTag 0x%llx\n", gen.addr());
+            // Revalidate corresponding flags
+            for (i = 0; i < gen.size(); ++i) {
+              revalidateMemTag(gen.addr()+i);
+            }
         } else {
             for (i = 0; i < gen.size(); ++i) {
-                writeBitTagFunctional(gen.addr()+i, (bool)tag);
+                writeBitTag(gen.addr()+i, (bool)tag);
+                DPRINTF(Monitor, "writeBitTag 0x%llx\n", gen.addr() + i);
+                // Revalidate corresopnding flags
+                revalidateMemTag(gen.addr()+i);
             }
         }
     }
@@ -1349,6 +1363,17 @@ AtomicSimpleMonitor::UMCExecute()
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
             revalidateMemTag(pbyte);
         }
+    } else if (mp.settag && mp.syscallReadNbytes > 0) {
+      DPRINTF(Monitor, "UMC: Syscall read instruction\n");
+      // Set tags for syscall read
+      for (ChunkGenerator gen(mp.syscallReadBufPtr, mp.syscallReadNbytes, TheISA::VMPageSize); !gen.done(); gen.next()) {
+        Addr paddr;
+        if (mp.syscallReadP->pTable->translate(gen.addr(), paddr)) {
+          setTagProxy(paddr, gen.size(), true);
+        } else {
+          fatal("Address Translation Error\n");
+        }
+      }
     } else {
         warn("Unknown instruction PC = %x\n", mp.instAddr);
         numMonitorInsts++;
@@ -1437,6 +1462,17 @@ AtomicSimpleMonitor::DIFTExecute()
         }
         numIndirectCtrlInsts++;
         numMonitorInsts++;
+    } else if (mp.settag && mp.syscallReadNbytes > 0) {
+      DPRINTF(Monitor, "DIFT: Syscall read instruction\n");
+      // Set tags for read syscall
+      for (ChunkGenerator gen(mp.syscallReadBufPtr, mp.syscallReadNbytes, TheISA::VMPageSize); !gen.done(); gen.next()) {
+        Addr paddr;
+        if (mp.syscallReadP->pTable->translate(gen.addr(), paddr)) {
+          setTagProxy(paddr, gen.size(), true);
+        } else {
+          fatal("Address Translation Error\n");
+        }
+      }
     } else {
         warn("Unknown instruction PC = %x\n", mp.instAddr);
         numMonitorInsts++;
@@ -2080,7 +2116,7 @@ AtomicSimpleMonitor::tick()
             }
             // since we are doing full monitoring, we need to add the full_delay cycles
             single_tick = ticks(1+full_delay);
-        }
+        } 
 
     }
 

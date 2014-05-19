@@ -590,6 +590,11 @@ class BaseSimpleCPU : public BaseCPU
         Addr dataPhysAddr;
         unsigned dataSize;
         uint64_t data;
+        bool syscallRead; // A read syscall has occurred
+        // Information for read syscall
+        Addr syscallReadBufPtr;
+        int syscallReadNbytes;
+        LiveProcess *syscallReadP;
 
         void clear() {
           memAddr = 0;
@@ -599,6 +604,10 @@ class BaseSimpleCPU : public BaseCPU
           dataPhysAddr = 0;
           dataSize = 0;
           data = 0;
+          syscallRead = false;
+          syscallReadBufPtr = 0;
+          syscallReadNbytes = 0;
+          syscallReadP = NULL;
         }
     };
     // Data structure for saving informatino for monitoring

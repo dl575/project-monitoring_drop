@@ -42,6 +42,7 @@
 #include "config/the_isa.hh"
 #include "cpu/base.hh"
 #include "cpu/thread_context.hh"
+#include "cpu/simple/atomic.hh"
 #include "cpu/simple/atomic_monitor.hh"
 #include "debug/SyscallVerbose.hh"
 #include "mem/page_table.hh"
@@ -230,17 +231,11 @@ readFunc(SyscallDesc *desc, int num, LiveProcess *p, ThreadContext *tc)
     // get pointer to monitor
     AtomicSimpleMonitor* monitor =
         (AtomicSimpleMonitor*)(monitor_thread->getCpuPtr());
+    AtomicSimpleCPU* main = (AtomicSimpleCPU*)(main_thread->getCpuPtr());
     if (monitor->monitorExt == AtomicSimpleMonitor::MONITOR_DIFT ||
         monitor->monitorExt == AtomicSimpleMonitor::MONITOR_UMC) {
-        // set tags
-        for (ChunkGenerator gen(bufPtr, nbytes, TheISA::VMPageSize); !gen.done(); gen.    next()) {
-            Addr paddr;
-            if (p->pTable->translate(gen.addr(), paddr)) {
-                monitor->setTagProxy(paddr, gen.size(), true);
-            } else {
-                fatal("Address Translation Error\n");
-            }
-        }
+        // Set up main core to perform monitoring for this syscall
+        main->monitorSyscallRead(bufPtr, nbytes, p);
     }
 
     return bytes_read;
