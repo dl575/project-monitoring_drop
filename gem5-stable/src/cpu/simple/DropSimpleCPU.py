@@ -66,3 +66,4 @@ class DropSimpleCPU(BaseSimpleCPU):
     compute_check_sets = Param.Bool(False, "Compute check sets")
     read_check_sets = Param.Bool(False, "Read check sets from file")
     compute_optimal_dropping = Param.Bool(False, "Compute optimal dropping points")
+    read_optimal_dropping = Param.Bool(False, "Read optimal dropping points from file")

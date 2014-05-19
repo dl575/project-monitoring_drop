@@ -70,6 +70,7 @@ class BaseSimpleCPU(BaseCPU):
     backtrack_read_table = Param.Bool(False, "read backtrack table at start of simulation")
     backtrack_write_table = Param.Bool(False, "write backtrack table at end of simulation")
     backtrack_table_dir = Param.String("", "directory to read/write backtrack table")
+    optimal_dropping = Param.Bool(False, "Perform optimal dropping")
 
     print_checkid = Param.Bool(False, "Print out ID# of checks as they occured. Used for probabilistic monitoring. Used instead of DPRINTF so gem5.fast executes it")
     print_static_coverage = Param.Bool(False, "Keep track of and print out coverage of static instructions.")

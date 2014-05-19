@@ -111,6 +111,7 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     total_checks(0), full_packets(1), all_packets(1),
     perf_mon(true),
     _backtrack(p->backtrack),
+    optimal_dropping(p->optimal_dropping),
     print_checkid(p->print_checkid),
     print_static_coverage(p->print_static_coverage)
 {
@@ -1333,6 +1334,12 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
 
         backtrace_metadata();
 
+        if (optimal_dropping) {
+            _important = !inOptimalDroppingTable();
+            if (_important)
+                numImportantInsts++;
+        }
+
         // Perform filtering
         if (!skip_drop && flagcache_enabled && invtab.initialized && fptab.initialized 
             && (filtertab1.initialized || filtertab2.initialized))
@@ -1429,7 +1436,7 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
     // perform full monitoring into read_timer.
     // read_timer = 1 indicates enough slack, = 0 indicates drop.
     if (!skip_drop) {
-        if (!(_backtrack && _important)) {
+        if (!((_backtrack && _important) || (optimal_dropping && _important))) {
             // Create request at timer location
             req->setPhys(addr, sizeof(read_timer), flags, dataMasterId());
             // Read command
@@ -2050,4 +2057,11 @@ void
 BaseSimpleCPU::backtrace_metadata()
 {
     // actual backtrace implemented in sub-classes
+}
+
+bool
+BaseSimpleCPU::inOptimalDroppingTable()
+{
+    // actual backtrace implemented in sub-classes
+    return false;
 }

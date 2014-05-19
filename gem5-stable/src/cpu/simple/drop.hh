@@ -270,6 +270,7 @@ class DropSimpleCPU : public BaseSimpleCPU
     bool compute_check_sets;
     bool read_check_sets;
     bool compute_optimal_dropping;
+    bool read_optimal_dropping;
     struct InstructionMetadata {
       std::set<Addr> *checks;  // checks the instruction leads to
     };
@@ -319,6 +320,7 @@ class DropSimpleCPU : public BaseSimpleCPU
      * Mark an instruction as an optimal dropping point
      */
     void markOptimalDroppingPoint(Addr inst_addr);
+    virtual bool inOptimalDroppingTable();
     int drop_threshold;
     void adjustDropThreshold();
 };
