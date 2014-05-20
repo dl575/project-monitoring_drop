@@ -160,7 +160,7 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 
   public:
     // Function to setup monitoring for read syscall
-    void monitorSyscallRead(Addr bufPtr, int nbytes, LiveProcess *p);
+    void monitorSyscallRead(Addr bufPtr, int nbytes);
 };
 
 extern SimpleThread* main_thread;

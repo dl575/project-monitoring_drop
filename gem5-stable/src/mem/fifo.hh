@@ -127,7 +127,6 @@ class monitoringPacket {
     // Data for handling syscall read
     Addr syscallReadBufPtr;
     int syscallReadNbytes;
-    LiveProcess *syscallReadP;
 
     // Clear all variables
     void init() {
@@ -158,7 +157,6 @@ class monitoringPacket {
       memset(inst_dis, '\0', 32);
       syscallReadBufPtr = 0;
       syscallReadNbytes = 0;
-      syscallReadP = NULL;
     }
 
     // Print out full monitoring packet information

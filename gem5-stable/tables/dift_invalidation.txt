@@ -1,10 +1,10 @@
 //opcode    sel1      sel2    op       c    action
 
   LOAD      RD        c       add      0    HW_set_array
-  STORE     PHYSADDR  c       shftr    2    HW_set_cache
+  STORE     MEMADDR   c       shftr    2    HW_set_cache
   INTALU    RD        c       add      0    HW_set_array
   INDCTRL   -         -       -        -    HW_nop
-  SETTAG    PHYSADDR  c       shftr    2    HW_set_cache
+  SETTAG    MEMADDR   c       shftr    2    HW_set_cache
 
 //idx       sel1      sel2    op       c    action
 
@@ -14,4 +14,4 @@
 // If invalid indctrl, skip
   2         -         -       -        -    HW_nop
 // If invalid source, invalidate store location
-  3         PHYSADDR  c       shftr    2    HW_set_cache
+  3         MEMADDR   c       shftr    2    HW_set_cache

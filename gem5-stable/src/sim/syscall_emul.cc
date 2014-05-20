@@ -235,7 +235,7 @@ readFunc(SyscallDesc *desc, int num, LiveProcess *p, ThreadContext *tc)
     if (monitor->monitorExt == AtomicSimpleMonitor::MONITOR_DIFT ||
         monitor->monitorExt == AtomicSimpleMonitor::MONITOR_UMC) {
         // Set up main core to perform monitoring for this syscall
-        main->monitorSyscallRead(bufPtr, nbytes, p);
+        main->monitorSyscallRead(bufPtr, nbytes);
     }
 
     return bytes_read;

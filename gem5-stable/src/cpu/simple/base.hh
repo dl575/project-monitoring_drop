@@ -594,7 +594,6 @@ class BaseSimpleCPU : public BaseCPU
         // Information for read syscall
         Addr syscallReadBufPtr;
         int syscallReadNbytes;
-        LiveProcess *syscallReadP;
 
         void clear() {
           memAddr = 0;
@@ -607,7 +606,6 @@ class BaseSimpleCPU : public BaseCPU
           syscallRead = false;
           syscallReadBufPtr = 0;
           syscallReadNbytes = 0;
-          syscallReadP = NULL;
         }
     };
     // Data structure for saving informatino for monitoring

@@ -718,14 +718,13 @@ void AtomicSimpleCPU::handleFifoEvent() {
 
 // Function to setup monitoring for read syscall
 void 
-AtomicSimpleCPU::monitorSyscallRead(Addr bufPtr, int nbytes, LiveProcess *p)
+AtomicSimpleCPU::monitorSyscallRead(Addr bufPtr, int nbytes)
 {
   // Mark that there is a syscall read that should be sent throught FIFO
   fed.syscallRead = true;
   // Save information about the read so that the monitor can handle it
   fed.syscallReadBufPtr = bufPtr;
   fed.syscallReadNbytes = nbytes;
-  fed.syscallReadP = p;
 }
 
 void

@@ -652,7 +652,6 @@ BaseSimpleCPU::performMonitoring() {
       mp.settag = true;
       mp.syscallReadBufPtr = fed.syscallReadBufPtr;
       mp.syscallReadNbytes = fed.syscallReadNbytes;
-      mp.syscallReadP = fed.syscallReadP;
       // Send packet on fifo port, stall if not successful
       fifoStall = !sendFifoPacket();
       // Any additional functionality needed for stall

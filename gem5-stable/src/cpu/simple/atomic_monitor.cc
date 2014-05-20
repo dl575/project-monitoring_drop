@@ -1367,12 +1367,15 @@ AtomicSimpleMonitor::UMCExecute()
       DPRINTF(Monitor, "UMC: Syscall read instruction\n");
       // Set tags for syscall read
       for (ChunkGenerator gen(mp.syscallReadBufPtr, mp.syscallReadNbytes, TheISA::VMPageSize); !gen.done(); gen.next()) {
+        /*
         Addr paddr;
         if (mp.syscallReadP->pTable->translate(gen.addr(), paddr)) {
           setTagProxy(paddr, gen.size(), true);
         } else {
           fatal("Address Translation Error\n");
         }
+        */
+        setTagProxy(gen.addr(), gen.size(), true);
       }
     } else {
         warn("Unknown instruction PC = %x\n", mp.instAddr);
@@ -1387,8 +1390,8 @@ void
 AtomicSimpleMonitor::DIFTExecute()
 {
     DIFTTag tresult;
+    // integer ALU operation
     if (mp.intalu) {
-        // integer ALU operation
         DPRINTF(Monitor, "DIFT: Integer ALU instruction\n");
         DIFTTag trd = false;
         if (TheISA::isISAReg(mp.rd)) {
@@ -1410,14 +1413,15 @@ AtomicSimpleMonitor::DIFTExecute()
         }
         numIntegerInsts++;
         numMonitorInsts++;
+    // Load instruction
     } else if (mp.load) {
-        DPRINTF(Monitor, "DIFT: Load instruction, addr=0x%x\n", mp.physAddr);
+        DPRINTF(Monitor, "DIFT: Load instruction, addr=0x%x\n", mp.memAddr);
         DIFTTag trd = false;
         if (TheISA::isISAReg(mp.rd)) {
             trd = thread->readIntReg(mp.rd);
         }
         tresult = false;
-        tresult |= (DIFTTag)readBitTag(mp.physAddr);
+        tresult |= (DIFTTag)readBitTag(mp.memAddr);
         if (TheISA::isISAReg(mp.rd)) {
             thread->setIntReg((int)mp.rd, (uint64_t)tresult);
             revalidateRegTag((int)mp.rd);
@@ -1428,27 +1432,34 @@ AtomicSimpleMonitor::DIFTExecute()
         }
         numLoadInsts++;
         numMonitorInsts++;
+    // Store instruction
     } else if (mp.store && !mp.settag) {
-        DPRINTF(Monitor, "DIFT: Store instruction, addr=0x%x\n", mp.physAddr);
+        DPRINTF(Monitor, "DIFT: Store instruction, addr=0x%x\n", mp.memAddr);
         DIFTTag tsrc = false;
         if (TheISA::isISAReg(mp.rs1)) {
             tsrc = (DIFTTag)thread->readIntReg(mp.rs1);
         }
         DIFTTag tdest = false;
 
-        tdest |= readTagFunctional(mp.physAddr);
-        writeBitTag(mp.physAddr, tsrc);
-        revalidateMemTag(mp.physAddr);
+        tdest |= readTagFunctional(mp.memAddr);
+        writeBitTag(mp.memAddr, tsrc);
+        revalidateMemTag(mp.memAddr);
 
         if (tdest || tsrc) {
             numTaintedStoreInsts++;
         }
         numStoreInsts++;
         numMonitorInsts++;
+    // Set tag instruction
     } else if (mp.store && mp.settag) {
         DPRINTF(Monitor, "DIFT: Set taint mem[0x%x:0x%x]=%d\n", mp.memAddr, mp.memEnd, mp.data);
-        writeBitTag(mp.physAddr, (bool)mp.data);
-        revalidateMemTag(mp.physAddr);
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
+            writeBitTag(pbyte, (bool)mp.data);
+        }
+        for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
+            revalidateMemTag(pbyte);
+        }
+    // Indirect control instruction
     } else if (mp.indctrl) {
         DPRINTF(Monitor, "DIFT: Indirect control transfer instruction\n");
         DIFTTag trs1 = false;
@@ -1462,16 +1473,20 @@ AtomicSimpleMonitor::DIFTExecute()
         }
         numIndirectCtrlInsts++;
         numMonitorInsts++;
+    // Read syscall
     } else if (mp.settag && mp.syscallReadNbytes > 0) {
       DPRINTF(Monitor, "DIFT: Syscall read instruction\n");
       // Set tags for read syscall
       for (ChunkGenerator gen(mp.syscallReadBufPtr, mp.syscallReadNbytes, TheISA::VMPageSize); !gen.done(); gen.next()) {
+        /*
         Addr paddr;
         if (mp.syscallReadP->pTable->translate(gen.addr(), paddr)) {
           setTagProxy(paddr, gen.size(), true);
         } else {
           fatal("Address Translation Error\n");
         }
+        */
+        setTagProxy(gen.addr(), gen.size(), true);
       }
     } else {
         warn("Unknown instruction PC = %x\n", mp.instAddr);
@@ -1889,7 +1904,7 @@ AtomicSimpleMonitor::HBExecute()
             }
             // update register tag, only when load word
             if (mp.size == 4) {
-                HBTag tmem = readDWordTag(mp.physAddr);
+                HBTag tmem = readDWordTag(mp.memAddr);
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, tmem);
                     revalidateRegTag((int)mp.rd);
@@ -1921,7 +1936,7 @@ AtomicSimpleMonitor::HBExecute()
             }
             // update destination pointer tag
             if (mp.size == 4) {
-                writeDWordTag(mp.physAddr, tsrc);
+                writeDWordTag(mp.memAddr, tsrc);
             }
             for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
                 revalidateMemTag(pbyte);
@@ -1930,7 +1945,7 @@ AtomicSimpleMonitor::HBExecute()
             // should not reach here
             // if we reach here for some reason, conservatively clear pointer tag
             if (mp.size == 4)
-                writeDWordTag(mp.physAddr, 0);
+                writeDWordTag(mp.memAddr, 0);
             for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
                 revalidateMemTag(pbyte);
             }
@@ -1946,7 +1961,7 @@ AtomicSimpleMonitor::HBExecute()
             // set bound address
             setTagData = setTagData | (mp.data << 32);
             DPRINTF(Monitor, "HardBound: Set tag mem[0x%x]=%lx\n", mp.memAddr, setTagData);
-            writeDWordTag(mp.physAddr, setTagData);
+            writeDWordTag(mp.memAddr, setTagData);
             revalidateMemTag(mp.memAddr);
         }
     } else {
