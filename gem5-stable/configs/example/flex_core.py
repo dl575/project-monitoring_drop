@@ -120,6 +120,8 @@ parser.add_option("--dropping_granularity", type="int", default=1)
 
 # compute check sets
 parser.add_option("--compute_check_sets", action="store_true")
+# maximum check set size
+parser.add_option("--max_check_set_size", type="int", default=0)
 # read check sets from file
 parser.add_option("--read_check_sets", action="store_true")
 # compute optimal dropping points
@@ -259,6 +261,7 @@ DropCPUClass.backtrack_read_table = options.backtrack_read_table
 DropCPUClass.backtrack_write_table = options.backtrack_write_table
 DropCPUClass.backtrack_table_dir = options.backtrack_table_dir
 DropCPUClass.compute_check_sets = options.compute_check_sets
+DropCPUClass.max_check_set_size = options.max_check_set_size
 DropCPUClass.read_check_sets = options.read_check_sets
 DropCPUClass.compute_optimal_dropping = options.compute_optimal_dropping
 DropCPUClass.read_optimal_dropping = options.read_optimal_dropping

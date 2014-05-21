@@ -222,6 +222,7 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
       ipt(p->ipt_tagged, p->ipt_size/p->ipt_entry_size, p->ipt_entry_size, 30-floorLog2(p->ipt_size), 2),
       ipt_bloom(p->ipt_size, p->ipt_false_positive_rate),
       compute_check_sets(p->compute_check_sets),
+      max_check_set_size(p->max_check_set_size),
       read_check_sets(p->read_check_sets),
       compute_optimal_dropping(p->compute_optimal_dropping),
       read_optimal_dropping(p->read_optimal_dropping),
@@ -1404,10 +1405,14 @@ DropSimpleCPU::addToCheckSet(Addr inst_addr, Addr check_addr)
         metadata->checks = new std::set<Addr>();
         imt.update(inst_addr, metadata);
     }
-    std::pair<std::set<Addr>::iterator,bool> ret;
-    ret = metadata->checks->insert(check_addr);
-
-    return ret.second;
+    if ((max_check_set_size > 0) && (metadata->checks->size() >= max_check_set_size)) {
+        // we have reached maximum check set size, do nothing
+        return false;
+    } else {
+        std::pair<std::set<Addr>::iterator,bool> ret;
+        ret = metadata->checks->insert(check_addr);
+        return ret.second;
+    }
 }
 
 bool
@@ -1416,6 +1421,12 @@ DropSimpleCPU::mergeCheckSets(Addr inst_addr_producer, Addr inst_addr_consumer)
     InstructionMetadata *consumer_metadata = imt.lookup(inst_addr_consumer);
     if (consumer_metadata == NULL)
         return false;
+    // handle maximum check set size
+    if (max_check_set_size > 0) {
+        InstructionMetadata *producer_metadata = imt.lookup(inst_addr_producer);
+        if ((producer_metadata != NULL) && (producer_metadata->checks->size() >= max_check_set_size))
+            return false;
+    }
 
     std::set<Addr>::iterator it;
     bool changed = false;
@@ -1642,6 +1653,11 @@ DropSimpleCPU::isOptimalDroppingPoint(Addr inst_addr, Addr producer_addr)
     // decide whether producer_check_set is a strict superset of inst_check_set
     if (producer_check_set->size() <= inst_check_set->size())
         return false;
+    // handle huge sets
+    if ((max_check_set_size > 0) && (producer_check_set->size() == max_check_set_size)) {
+        // if the producer has a huge set, use a heuristic to determine optimality
+        return max_check_set_size > inst_check_set->size() * 2 ? true : false;
+    }
     std::set<Addr>::iterator it;
     for (it = inst_check_set->begin(); it != inst_check_set->end(); ++it) {
         if (producer_check_set->find(*it) == producer_check_set->end())

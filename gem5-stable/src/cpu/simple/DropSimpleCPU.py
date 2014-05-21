@@ -64,6 +64,7 @@ class DropSimpleCPU(BaseSimpleCPU):
     ipt_false_positive_rate = Param.Float(0.01, "False positive rate of IPT bloom filter")
 
     compute_check_sets = Param.Bool(False, "Compute check sets")
+    max_check_set_size = Param.Int(0, "Maximum check set size to be computed")
     read_check_sets = Param.Bool(False, "Read check sets from file")
     compute_optimal_dropping = Param.Bool(False, "Compute optimal dropping points")
     read_optimal_dropping = Param.Bool(False, "Read optimal dropping points from file")

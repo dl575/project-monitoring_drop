@@ -268,6 +268,7 @@ class DropSimpleCPU : public BaseSimpleCPU
     InvalidationPTBloom ipt_bloom;
 
     bool compute_check_sets;
+    int max_check_set_size;
     bool read_check_sets;
     bool compute_optimal_dropping;
     bool read_optimal_dropping;
