@@ -186,7 +186,7 @@ class monitoringPacket {
       printf("  nextpc = 0x%x\n", (int)nextpc);
       printf("  opcode = %d\n", opcode);
       printf("  settag = %d\n", settag);
-      printf("  syscallReadBufPtr = %llx\n", syscallReadBufPtr);
+      printf("  syscallReadBufPtr = 0x%x\n", (int)syscallReadBufPtr);
       printf("  syscallReadNbytes = %d\n", syscallReadNbytes);
       printf("}\n");
     }
