@@ -1846,12 +1846,14 @@ AtomicSimpleMonitor::HBExecute()
                 HBTag trs1 = (HBTag)thread->readIntReg(mp.rs1);
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, (uint64_t)trs1);
+                    DPRINTF(Monitor, "  r[%d] = %lx\n", (int)mp.rd, (uint64_t)trs1);
                     revalidateRegTag((int)mp.rd);
                 }
             } else {
                 // mov immediate
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, 0);
+                    DPRINTF(Monitor, "  r[%d] = 0\n", (int)mp.rd);
                     revalidateRegTag((int)mp.rd);
                 }
             }
@@ -1867,12 +1869,14 @@ AtomicSimpleMonitor::HBExecute()
                 }
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, (uint64_t)tresult);
+                    DPRINTF(Monitor, "  r[%d] = %lx\n", (int)mp.rd, (uint64_t)tresult);
                     revalidateRegTag((int)mp.rd);
                 }
             } else if (TheISA::isISAReg(mp.rs1)) {
                 HBTag trs1 = (HBTag)thread->readIntReg(mp.rs1);
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, (uint64_t)trs1);
+                    DPRINTF(Monitor, "  r[%d] = %lx\n", (int)mp.rd, (uint64_t)trs1);
                     revalidateRegTag((int)mp.rd);
                 }
             } else {
@@ -1883,6 +1887,7 @@ AtomicSimpleMonitor::HBExecute()
             // other ALU operations
             if (TheISA::isISAReg(mp.rd)) {
                 thread->setIntReg((int)mp.rd, 0);
+                DPRINTF(Monitor, "  r[%d] = 0\n", (int)mp.rd);
                 revalidateRegTag((int)mp.rd);
             }
         }
@@ -1895,6 +1900,7 @@ AtomicSimpleMonitor::HBExecute()
         if (TheISA::isISAReg(mp.rs1) && !(TheISA::isISAReg(mp.rs2))) {
             HBTag tptr = (HBTag)thread->readIntReg(mp.rs1);
             // check if access is within bound
+            DPRINTF(Monitor, "  m[%lx < %lx < %lx]\n", toBaseTag(tptr), mp.memAddr, toBoundTag(tptr));
             bool pass = (tptr == 0) || ((mp.memAddr >= toBaseTag(tptr)) 
                         && (mp.memAddr < toBoundTag(tptr)));
             if (!pass) {
@@ -1904,7 +1910,7 @@ AtomicSimpleMonitor::HBExecute()
             }
             // update register tag, only when load word
             if (mp.size == 4) {
-                HBTag tmem = readDWordTag(mp.memAddr);
+                HBTag tmem = readDWordTag(mp.physAddr);
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, tmem);
                     revalidateRegTag((int)mp.rd);
@@ -1925,8 +1931,9 @@ AtomicSimpleMonitor::HBExecute()
         DPRINTF(Monitor, "HardBound: Store instruction, vaddr=0x%x\n", mp.memAddr);
 
         if (TheISA::isISAReg(mp.rs1) && TheISA::isISAReg(mp.rs2)) {
-            BCTag tsrc = (BCTag)thread->readIntReg(mp.rs1);
-            BCTag tptr = (BCTag)thread->readIntReg(mp.rs2);
+            HBTag tsrc = (HBTag)thread->readIntReg(mp.rs1);
+            HBTag tptr = (HBTag)thread->readIntReg(mp.rs2);
+            DPRINTF(Monitor, "  m[%lx <= %lx <= %lx]\n", toBaseTag(tptr), mp.memAddr, toBoundTag(tptr));
             bool pass = (tptr == 0) || ((mp.memAddr >= toBaseTag(tptr)) 
                         && (mp.memAddr < toBoundTag(tptr)));
             if (!pass) {
@@ -1936,7 +1943,7 @@ AtomicSimpleMonitor::HBExecute()
             }
             // update destination pointer tag
             if (mp.size == 4) {
-                writeDWordTag(mp.memAddr, tsrc);
+                writeDWordTag(mp.physAddr, tsrc);
             }
             for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
                 revalidateMemTag(pbyte);
@@ -1945,7 +1952,7 @@ AtomicSimpleMonitor::HBExecute()
             // should not reach here
             // if we reach here for some reason, conservatively clear pointer tag
             if (mp.size == 4)
-                writeDWordTag(mp.memAddr, 0);
+                writeDWordTag(mp.physAddr, 0);
             for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
                 revalidateMemTag(pbyte);
             }
@@ -1960,8 +1967,8 @@ AtomicSimpleMonitor::HBExecute()
         } else if (mp.size == 1) {
             // set bound address
             setTagData = setTagData | (mp.data << 32);
-            DPRINTF(Monitor, "HardBound: Set tag mem[0x%x]=%lx\n", mp.memAddr, setTagData);
-            writeDWordTag(mp.memAddr, setTagData);
+            DPRINTF(Monitor, "HardBound: Set tag mem[0x%x]=%llx\n", mp.memAddr, setTagData);
+            writeDWordTag(mp.physAddr, setTagData);
             revalidateMemTag(mp.memAddr);
         }
     } else {

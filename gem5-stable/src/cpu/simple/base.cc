@@ -781,6 +781,7 @@ BaseSimpleCPU::performMonitoring() {
         mp.virtAddr = fed.dataVirtAddr;
         mp.physAddr = fed.dataPhysAddr;
         mp.size = fed.dataSize;
+        strcpy(mp.inst_dis, inst_dis.c_str());
         
         unsigned numSrc = curStaticInst->numSrcRegs();
         bool isMicroOp = inst_dis.find("uop") != string::npos;
