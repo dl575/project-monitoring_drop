@@ -63,33 +63,6 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
 
     virtual void init();
 
-    // monitoring extensions
-    enum MonitoringExtension {
-      // no monitoring
-      MONITOR_NONE,
-      // uninitialized memory check
-      MONITOR_UMC,
-      // dynamic information flow tracking
-      MONITOR_DIFT,
-      // boundary checking
-      MONITOR_BC,
-      // soft error checking
-      MONITOR_SEC,
-      // hard bound
-      MONITOR_HB,
-      // dift with 32-bit tags
-      MONITOR_MULTIDIFT,
-      // link-register (return address) check
-      MONITOR_LRC,
-      // dift with flag array storing taint
-      MONITOR_DIFTRF,
-      // number of monitoring extensions
-      NUM_MONITORING_EXTENSIONS
-    };
-    
-    // monitoring extension
-    enum MonitoringExtension monitorExt;
-  
   private:
 
     struct TickEvent : public Event

@@ -151,21 +151,6 @@ AtomicSimpleMonitor::AtomicSimpleMonitor(AtomicSimpleMonitorParams *p)
       fastmem(p->fastmem), full_wcet(p->full_wcet), full_delay(p->full_delay)
 {
     _status = Idle;
-    
-    // monitoring extension type
-    switch(p->monitor_type) {
-        case MONITOR_NONE: monitorExt = MONITOR_NONE; break;
-        case MONITOR_UMC: monitorExt = MONITOR_UMC; break;
-        case MONITOR_DIFT: monitorExt = MONITOR_DIFT; break;
-        case MONITOR_BC: monitorExt = MONITOR_BC; break;
-        case MONITOR_SEC: monitorExt = MONITOR_SEC; break;
-        case MONITOR_HB: monitorExt = MONITOR_HB; break;
-        case MONITOR_MULTIDIFT: monitorExt = MONITOR_MULTIDIFT; break;
-        case MONITOR_LRC: monitorExt = MONITOR_LRC; break;
-        case MONITOR_DIFTRF: monitorExt = MONITOR_DIFTRF; break;
-        default: panic("Invalid monitor type\n");
-    }
-    
 }
 
 

@@ -174,6 +174,7 @@ MainCPUClass.numThreads = numThreads;
 MainCPUClass.fifo_enabled = True
 # Monitoring will be enabled by software after startup
 MainCPUClass.monitoring_enabled = False
+MainCPUClass.monitor_type = available_monitors[options.monitor]
 # Enable slack timer so it can write to it
 MainCPUClass.timer_enabled = True
 # Don't need flag cache for main core
@@ -201,6 +202,7 @@ MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True
 MonCPUClass.monitoring_enabled = False
+MonCPUClass.monitor_type = available_monitors[options.monitor]
 # Enable slack timer so it can read from it
 MonCPUClass.timer_enabled = True
 # Monitoring core can access flagcache for revalidation

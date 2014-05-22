@@ -66,32 +66,6 @@ class DropSimpleCPU : public BaseSimpleCPU
     virtual void init();
 
   private:
-
-    // monitoring extensions
-    enum MonitoringExtension {
-      // no monitoring
-      MONITOR_NONE,
-      // uninitialized memory check
-      MONITOR_UMC,
-      // dynamic information flow tracking
-      MONITOR_DIFT,
-      // boundary checking
-      MONITOR_BC,
-      // soft error checking
-      MONITOR_SEC,
-      // hard bound
-      MONITOR_HB,
-      // Multi-bit DIFT
-      MONITOR_MULTIDIFT,
-      // link-register (return address) check
-      MONITOR_LRC,
-      // number of monitoring extensions
-      NUM_MONITORING_EXTENSIONS
-    };
-    
-    // monitoring extension
-    enum MonitoringExtension monitorExt;
-
     struct TickEvent : public Event
     {
         DropSimpleCPU *cpu;
