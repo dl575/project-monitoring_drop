@@ -288,6 +288,4 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     Stats::Scalar numSyscallTags;
 };
 
-extern SimpleThread* monitor_thread;
-
 #endif // __MONITOR_SIMPLE_ATOMIC_HH__

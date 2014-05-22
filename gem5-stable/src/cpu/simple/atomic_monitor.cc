@@ -66,8 +66,6 @@
 using namespace std;
 using namespace TheISA;
 
-SimpleThread* monitor_thread;
-
 AtomicSimpleMonitor::TickEvent::TickEvent(AtomicSimpleMonitor *c)
     : Event(CPU_Tick_Pri), cpu(c)
 {
@@ -137,9 +135,6 @@ AtomicSimpleMonitor::init()
         // Clean up
         delete timerpkt;
     }
-
-    // copy thread pointer
-    monitor_thread = thread;
 }
 
 AtomicSimpleMonitor::AtomicSimpleMonitor(AtomicSimpleMonitorParams *p)

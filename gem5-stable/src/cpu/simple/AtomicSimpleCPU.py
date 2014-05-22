@@ -48,3 +48,4 @@ class AtomicSimpleCPU(BaseSimpleCPU):
     simulate_inst_stalls = Param.Bool(False, "Simulate icache stall cycles")
     fastmem = Param.Bool(False, "Access memory directly")
     monitor_port = MasterPort("Monitor Port")
+    main_core = Param.Bool(False, "CPU is main core")

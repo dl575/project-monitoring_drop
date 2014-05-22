@@ -172,6 +172,8 @@ numThreads = 1
 MainCPUClass.clock = options.clock
 MainCPUClass.numThreads = numThreads;
 MainCPUClass.fifo_enabled = True
+# The CPU is a main core
+MainCPUClass.main_core = True
 # Monitoring will be enabled by software after startup
 MainCPUClass.monitoring_enabled = False
 MainCPUClass.monitor_type = available_monitors[options.monitor]

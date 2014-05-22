@@ -65,7 +65,7 @@
 using namespace std;
 using namespace TheISA;
 
-SimpleThread* main_thread;
+SimpleThread* AtomicSimpleCPU::main_thread = NULL;
 
 AtomicSimpleCPU::TickEvent::TickEvent(AtomicSimpleCPU *c)
     : Event(CPU_Tick_Pri), cpu(c)
@@ -108,7 +108,8 @@ AtomicSimpleCPU::init()
     data_write_req.setThreadContext(_cpuId, 0); // Add thread ID here too
 
     // Copy thread pointer
-    main_thread = thread;
+    if (main_core)
+        main_thread = thread;
 }
 
 AtomicSimpleCPU::AtomicSimpleCPU(AtomicSimpleCPUParams *p)
@@ -117,6 +118,7 @@ AtomicSimpleCPU::AtomicSimpleCPU(AtomicSimpleCPUParams *p)
       simulate_inst_stalls(p->simulate_inst_stalls),
       icachePort(name() + "-iport", this), dcachePort(name() + "-iport", this),
       monitorPort(name() + "-iport", this),
+      main_core(p->main_core),
       fastmem(p->fastmem),
       fifoEvent(this)
 {
