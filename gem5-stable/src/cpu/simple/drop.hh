@@ -52,8 +52,6 @@
 #include "mem/drop/imt.hh"
 #include "mem/drop/imt_impl.hh"
 
-#include <set>
-
 #define DROP_CLEAR_ARRAY 0
 #define DROP_CLEAR_CACHE 1
 #define DROP_FC_SET_ADDR 2
@@ -219,6 +217,8 @@ class DropSimpleCPU : public BaseSimpleCPU
     Stats::Scalar numCheckPC;
     Stats::Scalar numCheckPCFull;
     Stats::Scalar staticCoverage;
+    // Optimal dropping points statistics
+    Stats::Scalar numOptimalDroppingPoints;
 
     bool backtrack_write_table;
     bool backtrack_read_table;

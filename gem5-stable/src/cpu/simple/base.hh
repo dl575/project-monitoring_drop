@@ -70,6 +70,8 @@
 #include "mem/timer.hh"
 #include "mem/flag_cache.hh"
 
+#include <set>
+
 // forward declarations
 class Checkpoint;
 class Process;
@@ -718,6 +720,9 @@ class BaseSimpleCPU : public BaseCPU
     uint64_t checkid_vec;
 
     Stats::Scalar numImportantInsts;
+    Stats::Scalar numStaticPCForwarded;
+    // A collection of PCs of all static instructions forwarded at least once
+    std::set<Addr> pc_forwarded;
 
     // backup valid flags for DIFT_RF
 #define NUM_REGS 16

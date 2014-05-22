@@ -403,6 +403,11 @@ BaseSimpleCPU::regStats()
         .name(name() + ".num_important_insts")
         .desc("Number of dynamic instructions marked as important")
         ;
+
+    numStaticPCForwarded
+        .name(name() + ".numStaticPCForwarded")
+        .desc("Number of static instructions forwarded during execution")
+        ;
     
     idleFraction = constant(1.0) - notIdleFraction;
     numIdleCycles = idleFraction * numCycles;
@@ -807,6 +812,9 @@ BaseSimpleCPU::performMonitoring() {
 
         // ALU opcode
         mp.opcode = (uint8_t)curStaticInst->machInst.opcode;
+
+        pc_forwarded.insert(mp.instAddr);
+        numStaticPCForwarded = pc_forwarded.size();
 
         // Send packet on fifo port, stall if not successful
         fifoStall = !sendFifoPacket();

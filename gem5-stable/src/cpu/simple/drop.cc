@@ -337,6 +337,10 @@ DropSimpleCPU::regStats()
       .desc("Static coverage = numCheckPC/numCheckPCFull.")
       ;
     
+    numOptimalDroppingPoints
+        .name(name() + ".numOptimalDroppingPoints")
+        .desc("Number of optimal dropping points")
+        ;
 }
 
 void
@@ -562,6 +566,7 @@ DropSimpleCPU::writeODT()
         for (unsigned i = 0; i < numEntries * entrySize; i+=step) {
             if (odt.lookup(i)) {
                 os << std::hex << i << std::endl;
+                numOptimalDroppingPoints++;
             }
         }
     } else
