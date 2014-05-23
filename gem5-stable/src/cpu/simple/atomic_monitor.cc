@@ -1101,7 +1101,7 @@ AtomicSimpleMonitor::revalidateRegTag(int idx)
       // Set register number in flag cache
       setFlagCacheAddr(idx);
       // Set register valid flag
-      unsigned type = FC_REGFILE;
+      unsigned type = FC_ARRAY;
       writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type),
           ArmISA::TLB::AllowUnaligned);
     // Invalidation is done on another core, send message
@@ -1124,7 +1124,7 @@ AtomicSimpleMonitor::revalidateRegTag(int idx)
       // Set register number in flag cache
       setFlagCacheAddr(idx);
       // Clear register invalidation flag
-      unsigned type = FC_REGFILE;
+      unsigned type = FC_ARRAY;
       writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type),
           ArmISA::TLB::AllowUnaligned);
     // Invalidation is done on another core, send message
@@ -1155,7 +1155,7 @@ AtomicSimpleMonitor::invalidateRegTag(int idx)
       // Set register number in flag cache
       setFlagCacheAddr(idx);
       // Clear register invalidation flag
-      unsigned type = FC_REGFILE;
+      unsigned type = FC_ARRAY;
       writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type),
           ArmISA::TLB::AllowUnaligned);
     // Invalidation is done on another core, send message

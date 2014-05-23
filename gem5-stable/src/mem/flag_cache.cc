@@ -72,9 +72,9 @@ FlagCache::FlagCache(const Params* p) :
     // Create flag array
     fa_size = p->flagarr_size;
     if (fa_size < 1) fa_size = 1;
-    flag_array = new bool[fa_size];
+    flag_array = new char[fa_size];
     for (int i = 0; i < fa_size; ++i){
-        flag_array[i] = false;
+        flag_array[i] = 0;
     }
     
     // Create bloom filter
@@ -93,6 +93,7 @@ FlagCache::FlagCache(const Params* p) :
     cache_array = new cacheLine[fc_size];
     for(int i = 0; i < fc_size; ++i){
         cache_array[i].tags = new Addr[num_ways];
+        cache_array[i].values = new char[num_ways];
         cache_array[i].num_valid = 0;
         cache_array[i].aliased = false;
     }
@@ -198,8 +199,8 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
             } else if (read_addr == FC_GET_FLAG_A){
                 if (addr >= 0 && addr < fa_size){
                     // Lookup flag
-                    send_data = (flag_array[addr])? 1 : 0;
-                    DPRINTF(FlagCache, "Flag array lookup @ %x: value? %d\n", addr, send_data);
+                    send_data = flag_array[addr];
+                    DPRINTF(FlagCache, "Flag array lookup @ %x: value = %d\n", addr, send_data);
                     numRegLoads++;
                 }
             // Read from flag cache
@@ -212,18 +213,18 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                 // Get cache line
                 cacheLine * cL = &cache_array[cA];
                 // Associative lookup
-                bool found = false;
+                char value = 0;
                 for (unsigned i = 0; i < cL->num_valid; ++i){
                     if (cL->tags[i] == addr){
-                        found = true;
+                        value = cL->values[i];
                     }
                 }
-                send_data = (cL->aliased || found);
+                send_data = (cL->aliased)? FC_MAXVAL : value;
                 if (cL->aliased && curTick() != last_access) {
                     num_aliased++;
                     last_access = curTick();
                 }
-                DPRINTF(FlagCache, "Flag cache lookup @ %x -> %x: found? %d, aliased? %d, num_aliased = %d\n", addr, cA, found, cL->aliased, num_aliased.value());
+                DPRINTF(FlagCache, "Flag cache lookup @ %x -> %x: aliased? %d, value = %d, num_aliased = %d\n", addr, cA, cL->aliased, (char)send_data, num_aliased.value());
                 numCacheLoads++;
             } else if (read_addr == FC_ALIASED) {
                 send_data = num_aliased.value();
@@ -248,17 +249,18 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                 DPRINTF(FlagCache, "Set flag cache address = %x\n", addr);
             // Set flag
             } else if (write_addr == FC_SET_FLAG) {
+                warn_once("Using FC_SET_FLAG is depricated. Use the new FlagCache interface.\n");
                 // Set in flag array
-                if (get_data == 0) {
+                if (get_data == FC_ARRAY) {
                     if(addr >= 0 && addr < fa_size){
-                        flag_array[addr] = true;
+                        flag_array[addr] = FC_MAXVAL;
                         DPRINTF(FlagCache, "Flag array set @ %x\n", addr);
                         numRegStores++;
                     } else {
                         DPRINTF(FlagCache, "Flag array not set @ %x\n", addr);
                     }
                 // Set in flag cache
-                } else if (get_data == 1) {
+                } else if (get_data == FC_CACHE) {
                     // Set bloom filter with address
                     // counting_bloom_add(bloom, (const char *)&addr, sizeof(addr));
                     // DPRINTF(FlagCache, "Bloom filter set @ %x\n", addr);
@@ -272,6 +274,7 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                         for (unsigned i = 0; i < cL->num_valid; ++i){
                             if (cL->tags[i] == addr){
                                 found = true;
+                                cL->values[i] = FC_MAXVAL;
                             }
                         }
                         // Set cache line
@@ -279,6 +282,7 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                             // Cache has space
                             if (cL->num_valid < num_ways){
                                 cL->tags[cL->num_valid] = addr;
+                                cL->values[cL->num_valid] = FC_MAXVAL;
                                 DPRINTF(FlagCache, "Flag cache set @ %x -> %x: tag set at way %d as %x\n", addr, cA, cL->num_valid, cL->tags[cL->num_valid]);
                             } else {
                                 cL->aliased = true;
@@ -286,26 +290,27 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                             }
                             cL->num_valid++;
                         } else {
-                            DPRINTF(FlagCache, "Flag cache set @ %x -> %x: tag already exists\n", addr, cA);
+                            DPRINTF(FlagCache, "Flag cache set @ %x -> %x: tag exists\n", addr, cA);
                         }
                     } else {
-                        DPRINTF(FlagCache, "Flag set @ %x -> %x: cache is already aliased\n", addr, cA);
+                        DPRINTF(FlagCache, "Flag set @ %x -> %x: cache is aliased\n", addr, cA);
                     }
                     numCacheStores++;
                 }
             // Clear flag
             } else if (write_addr == FC_CLEAR_FLAG) {
+                warn_once("Using FC_CLEAR_FLAG is depricated. Use the new FlagCache interface.\n");
                 // Clear in flag array
-                if (get_data == 0) {
+                if (get_data == FC_ARRAY) {
                     if(addr >= 0 && addr < fa_size){
-                        flag_array[addr] = false;
+                        flag_array[addr] = 0;
                         DPRINTF(FlagCache, "Flag array clear @ %x\n", addr);
                         numRegStores++;
                     } else {
                         DPRINTF(FlagCache, "Flag array not cleared @ %x\n", addr);
                     }
                 // Clear in flag cache
-                } else if (get_data == 1) {
+                } else if (get_data == FC_CACHE) {
                     // Clear bloom filter with address
                     // counting_bloom_remove(bloom, (const char *)&addr, sizeof(addr));
                     // DPRINTF(FlagCache, "Bloom filter clear @ %x\n", addr);
@@ -320,6 +325,7 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                             // Shift items back
                             if (found){
                                 cL->tags[i-1] = cL->tags[i];
+                                cL->values[i-1] = cL->values[i];
                             }
                             // Found tag
                             if (cL->tags[i] == addr){
@@ -338,6 +344,77 @@ FlagCache::doFunctionalAccess(PacketPtr pkt)
                     }
                     numCacheStores++;
                 }
+            } else if (write_addr == FC_SET_ARRAY) {
+                // Set array value to the value set in get_data
+                if(addr >= 0 && addr < fa_size){
+                    flag_array[addr] = (get_data > FC_MAXVAL)? FC_MAXVAL : get_data;
+                    DPRINTF(FlagCache, "Flag array set value %d @ %x\n", flag_array[addr], addr);
+                    numRegStores++;
+                } else {
+                    DPRINTF(FlagCache, "Flag array not set @ %x\n", addr);
+                }
+            } else if (write_addr == FC_SET_CACHE) {
+                // Set cache value to the value set in get_data
+                Addr cA = cacheAddr(addr);
+                // Get cache line
+                cacheLine * cL = &cache_array[cA];
+                // Cache isn't aliased
+                if (cL->num_valid <= num_ways) {
+                    // Perform clear operation - remove entry
+                    if (get_data == 0){
+                        bool found = false;
+                        // Associative lookup
+                        for (unsigned i = 0; i < cL->num_valid; ++i){
+                            // Shift items back
+                            if (found){
+                                cL->tags[i-1] = cL->tags[i];
+                                cL->values[i-1] = cL->values[i];
+                            }
+                            // Found tag
+                            if (cL->tags[i] == addr){
+                                found = true;
+                                DPRINTF(FlagCache, "Flag cache set value 0 @ %x -> %x: remove tag at %d\n", addr, cA, i);
+                            }
+                        }
+                        // Decrement number of valids
+                        if (found){
+                            cL->num_valid--;
+                        } else {
+                            DPRINTF(FlagCache, "Flag cache set value 0 @ %x -> %x: did not find tag\n", addr, cA);
+                        }
+                    // Write data to cache - update existing or add new
+                    } else {
+                        bool found = false;
+                        // Make sure value does not exceed set maximum
+                        char store_value = (get_data > FC_MAXVAL)? FC_MAXVAL : get_data;
+                        // Associative lookup
+                        for (unsigned i = 0; i < cL->num_valid; ++i){
+                            // Update existing
+                            if (cL->tags[i] == addr){
+                                found = true;
+                                cL->values[i] = store_value;
+                            }
+                        }
+                        // Add new entry line
+                        if (!found){
+                            // Cache has space
+                            if (cL->num_valid < num_ways){
+                                cL->tags[cL->num_valid] = addr;
+                                cL->values[cL->num_valid] = store_value;
+                                DPRINTF(FlagCache, "Flag cache set value %d @ %x -> %x: add new tag at %d\n", store_value, addr, cA, cL->num_valid);
+                            } else {
+                                cL->aliased = true;
+                                DPRINTF(FlagCache, "Flag cache set value %d @ %x -> %x: cache is now aliased\n", store_value, addr, cA);
+                            }
+                            cL->num_valid++;
+                        } else {
+                            DPRINTF(FlagCache, "Flag cache set value %d @ %x -> %x: update at existing tag\n", store_value, addr, cA);
+                        }
+                    }
+                } else {
+                    DPRINTF(FlagCache, "Flag cache set @ %x -> %x: cache is aliased\n", addr, cA);
+                }
+                numCacheStores++;
             } else {
               warn("Unknown address written to flag cache.");
             }

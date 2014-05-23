@@ -67,15 +67,23 @@ extern "C" {
 
 // write registers
 #define FC_SET_ADDR            (FLAG_CACHE_ADDR + 0x00)
-#define FC_SET_FLAG            (FLAG_CACHE_ADDR + 0x04)
-#define FC_CLEAR_FLAG          (FLAG_CACHE_ADDR + 0x08)
+#define FC_SET_FLAG            (FLAG_CACHE_ADDR + 0x04) //Depricated: Use either FC_SET_ARRAY or FC_SET_CACHE with appropriate value
+#define FC_CLEAR_FLAG          (FLAG_CACHE_ADDR + 0x08) //Depricated: Use either FC_SET_ARRAY or FC_SET_CACHE with appropriate value
 #define FC_CACHE_REVALIDATE    (FLAG_CACHE_ADDR + 0x0c)
 #define FC_ARRAY_REVALIDATE    (FLAG_CACHE_ADDR + 0x10)
 #define FC_CACHE_INVALIDATE    (FLAG_CACHE_ADDR + 0x14)
 #define FC_ARRAY_INVALIDATE    (FLAG_CACHE_ADDR + 0x18)
+#define FC_SET_ARRAY           (FLAG_CACHE_ADDR + 0x1c)
+#define FC_SET_CACHE           (FLAG_CACHE_ADDR + 0x20)
 // type for specifying write to cache or register file
-#define FC_REGFILE 0
+#define FC_ARRAY 0
 #define FC_CACHE 1
+// used to define how many effective bits the cache has
+// we use the log of the number of bits to prevent alignment issues in the cache
+// 0 <= FC_LOGBITS < 4
+#define FC_LOGBITS 1
+#define FC_NUMBITS (1<<FC_LOGBITS)
+#define FC_MAXVAL ((1<<FC_NUMBITS)-1)
 
 /**
  * The simple memory is a basic multi-ported memory with an infinite
@@ -90,6 +98,7 @@ class FlagCache : public AbstractMemory
     // Single cache line
     typedef struct{
         Addr * tags;                   // address tags in the line
+        char * values;                 // values at cache line
         unsigned num_valid;            // the number of ways that are valid
         bool aliased;                  // the line is aliased
     } cacheLine;
@@ -152,7 +161,7 @@ class FlagCache : public AbstractMemory
     unsigned fc_size;
     unsigned num_ways;
     // Flag Array
-    bool * flag_array;
+    char * flag_array;
     unsigned fa_size;
     // Address Register
     Addr addr;
