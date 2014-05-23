@@ -27,6 +27,7 @@ char metadata[METADATA_ADDRESSES];
 
 int main(int argc, char *argv[]) {
   register int temp;
+  register int idx;
   volatile register int error;
 
   // Set up monitoring
@@ -40,28 +41,27 @@ int main(int argc, char *argv[]) {
     POP_FIFO;
     // Store
     if (temp = READ_FIFO_STORE) {
-        // Write metadata
-        //printf("st [0x%x:0x%x]\n", READ_FIFO_MEMADDR, READ_FIFO_MEMEND);
-        register int memend = (READ_FIFO_MEMEND >> 2);
-        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
-          // We use masks to store at bit locations based on last three bits
-          metadata[temp >> 3] = metadata[temp >> 3] | (1<<(temp&0x7));
-          // Revalidate in flag cache
-          FC_CACHE_REVALIDATE(temp);
-        }
+      // Write metadata, we don't differentiate between settag and regular operations
+      //printf("st [0x%x:0x%x]\n", READ_FIFO_MEMADDR, READ_FIFO_MEMEND);
+      register int memend = (READ_FIFO_MEMEND >> 2);
+      for (idx = (READ_FIFO_MEMADDR >> 2); idx <= memend; ++idx) {
+        // We use masks to store at bit locations based on last three bits
+        metadata[idx >> 3] = metadata[idx >> 3] | (1 << (idx & 0x7));
+        // Revalidate in flag cache
+        FC_CACHE_REVALIDATE(idx);
+      }
     // Load
-    } else {
-        //printf("ld [0x%x:0x%x]\n", READ_FIFO_MEMADDR, READ_FIFO_MEMEND);
-        register int memend = (READ_FIFO_MEMEND >> 2);
-        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp){
-          // We use masks to get value at bit location
-          if ((metadata[temp >> 3] & (1<<(temp&0x7))) == 0) {
-              error = 1;
-              //printf("UMC error: pc = %x, m[0x%x] = %d\n", READ_FIFO_PC, READ_FIFO_MEMADDR, READ_FIFO_DATA);
-              // Exit if UMC error
-              //return 1;
-          }
-        }
+    } else if (temp = READ_FIFO_LOAD) {
+      idx = READ_FIFO_MEMADDR >> 2;
+      if (metadata[idx >> 3] & (1 << (idx & 0x7)) == 0) {
+        error = 1;
+      }
+    } else if ((READ_FIFO_SETTAG) && (READ_FIFO_SYSCALLNBYTES > 0)) {
+      // syscall read instruction
+      for (idx = (READ_FIFO_SYSCALLBUFPTR >> 2); idx < (READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES) >> 2; ++idx) {
+        // We use masks to store at bit locations based on last three bits
+        metadata[idx >> 3] = metadata[idx >> 3] | (1 << (idx & 0x7));
+      }
     }
 
   } // while (1)

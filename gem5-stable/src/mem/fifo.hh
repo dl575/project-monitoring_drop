@@ -80,6 +80,8 @@
 #define FIFO_MEMSIZE       (FIFO_ADDR + 0x54)       // size of memory access
 #define FIFO_OPCODE        (FIFO_ADDR + 0x58)       // alu opcode
 #define FIFO_SETTAG        (FIFO_ADDR + 0x5c)       // manually set the tag
+#define FIFO_SYSCALLBUFPTR (FIFO_ADDR + 0x60)       // syscall read buffer pointer
+#define FIFO_SYSCALLNBYTES (FIFO_ADDR + 0x64)       // syscall read n_bytes
 
 // Fifo registers
 #define FIFO_REG_START (FIFO_ADDR + 0x1000) 

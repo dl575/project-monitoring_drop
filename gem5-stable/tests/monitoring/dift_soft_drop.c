@@ -38,11 +38,10 @@ int main(int argc, char *argv[]) {
   register unsigned int temp;
   register unsigned int rd;
   register unsigned int rs;
+  volatile register int error;
 
   // Set up monitoring
   INIT_MONITOR;
-  // Set up timer
-  INIT_TIMER;
   // Set up interface to flag cache
   INIT_FC;
 
@@ -54,13 +53,11 @@ int main(int argc, char *argv[]) {
 
     // Store
     if (READ_FIFO_STORE) {
-      // bool settag = READ_FIFO_SETTAG;
-      // register bool settag = false; // FIXME: Allow setting tag from software
-      // Get source register
-      rs = READ_FIFO_RS1;
-      // Propagate to destination memory addresses
-      register unsigned int memend = (READ_FIFO_MEMEND >> 2);
-      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
+      if (!(READ_FIFO_SETTAG)) {
+        // Get source register
+        rs = READ_FIFO_RS1;
+        // Propagate to destination memory addresses
+        temp = (READ_FIFO_MEMADDR >> 2);
         if (tagrf[rs] == 1) {
           // Bit mask to set taint
           tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
@@ -70,6 +67,15 @@ int main(int argc, char *argv[]) {
         }
         // Revalidate in invalidation cache
         FC_CACHE_REVALIDATE(temp);
+      } else {
+        // settag operation
+        register int memend = (READ_FIFO_MEMEND >> 2);
+        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
+          // Bit mask to set taint
+          tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
+          // Revalidate in invalidation cache
+          FC_CACHE_REVALIDATE(temp);
+        }
       }
     // Load
     } else if (READ_FIFO_LOAD) {
@@ -77,13 +83,11 @@ int main(int argc, char *argv[]) {
       // Get destination register
       rd = READ_FIFO_RD;
       // Propagate from memory addresses
-      register unsigned int memend = (READ_FIFO_MEMEND >> 2);
       register bool tresult = false;
-      for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
-        // Pull out correct bit in memory to store int tag register file
-        if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
-          tresult = true;
-        } 
+      temp = READ_FIFO_MEMADDR >> 2;
+      // Pull out correct bit in memory to store int tag register file
+      if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
+        tresult = true;
       }
       tagrf[rd] = tresult;
       // Revalidate in invalidation register file
@@ -93,11 +97,12 @@ int main(int argc, char *argv[]) {
       rs = READ_FIFO_RS1;
       // on indirect jump, check tag taint
       if (tagrf[rs]) {
-        printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
-        return -1;
+        // printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
+        // return -1;
+        error = 1;
       }
     // integer ALU
-    } else { 
+    } else if (READ_FIFO_INTALU) {
       // on ALU instructions, propagate tag between registers
       // Read source tags and determine taint of destination
       register bool tresult = false;
@@ -112,10 +117,16 @@ int main(int argc, char *argv[]) {
       // Destination register
       rd = READ_FIFO_RD;
       // Set destination taint
-      if (rd < NUM_REGS) { // FIXME: remove hardcoded value
+      if (rd < NUM_REGS) {
         tagrf[rd] = tresult;
         // Revalidate in invalidation register file
         FC_ARRAY_REVALIDATE(rd);
+      }
+    } else if ((READ_FIFO_SETTAG) && (READ_FIFO_SYSCALLNBYTES > 0)) {
+      // syscall read instruction
+      for (temp = (READ_FIFO_SYSCALLBUFPTR >> 2); temp < (READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES) >> 2; ++temp) {
+        // We use masks to store at bit locations based on last three bits
+        tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp & 0x7));
       }
     } // inst type
     

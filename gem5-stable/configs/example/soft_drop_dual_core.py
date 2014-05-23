@@ -314,6 +314,7 @@ elif options.monitor == "bc":
   DropCPUClass.check_store = True
   DropCPUClass.check_indctrl = False
 elif options.monitor == "hb":
+  monitor_bin = "hb_soft_drop"
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
