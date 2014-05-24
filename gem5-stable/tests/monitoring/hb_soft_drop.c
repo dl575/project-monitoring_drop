@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
 
@@ -18,7 +19,10 @@
 #include "monitoring_wcet.h"
 #include "flagcache.h"
 
-#define METADATA_ADDRESSES 1024*1024*64
+/* 1GB tag space, 4kB pages */
+#define PAGE_OFFSET_BITS  12
+#define PAGE_SIZE (1 << PAGE_OFFSET_BITS)
+#define NUM_PAGES 256*1024
 
 #define ISA_ARM
 
@@ -32,11 +36,75 @@
 
 typedef unsigned long long int HBTag;
 
-HBTag tagmem[METADATA_ADDRESSES];
+void *pagetable[NUM_PAGES];
+
 HBTag tagrf[NUM_REGS];
 
 #define toBoundTag(t) ((int)(t >> 32))
 #define toBaseTag(t)  (t & 0xffffffff)
+
+/**
+ * Convert address to page index
+ */
+inline unsigned getPageIndex(unsigned addr) {
+  return addr >> PAGE_OFFSET_BITS;
+}
+
+/**
+ * Convert address to page offset
+ */
+inline unsigned getPageOffset(unsigned addr) {
+  return addr & (PAGE_SIZE - 1);
+}
+
+/**
+ * Whether an address in allocated in page table
+ */
+inline bool allocated(unsigned addr) {
+  return pagetable[getPageIndex(addr)] != NULL;
+}
+
+/**
+ * Allocate a page
+ */
+void* allocatePage(unsigned addr)
+{
+  void *page = malloc(PAGE_SIZE);
+  if (page == NULL) {
+    printf("Failed to allocate page for tag memory!\n");
+    return NULL;
+  }
+  /* clear page */
+  memset(page, 0, PAGE_SIZE);
+  pagetable[getPageIndex(addr)] = page;
+  return page;
+}
+
+inline HBTag readTag(unsigned physAddr)
+{
+  char *page;
+  unsigned tagAddr = physAddr << 1;
+  if (allocated(tagAddr)) {
+    page = pagetable[getPageIndex(tagAddr)];
+  } else {
+    /* allocate page */
+    page = allocatePage(tagAddr);
+  }
+  return *((HBTag*)&(page[getPageOffset(tagAddr)]));
+}
+
+inline void writeTag(unsigned physAddr, HBTag tag)
+{
+  char *page;
+  unsigned tagAddr = physAddr << 1;
+  if (allocated(tagAddr)) {
+    page = pagetable[getPageIndex(tagAddr)];
+  } else {
+    /* allocate page */
+    page = allocatePage(tagAddr);
+  }
+  *((HBTag*)&(page[getPageOffset(tagAddr)])) = tag;
+}
 
 int main(int argc, char *argv[]) {
   register unsigned int temp;
@@ -125,7 +193,7 @@ int main(int argc, char *argv[]) {
             error = 1;
           // update destination pointer tag
           if (READ_FIFO_MEMSIZE == 4) {
-            tagmem[READ_FIFO_PHYSADDR >> 2] = trs1;
+            writeTag(READ_FIFO_PHYSADDR, trs1);
           }
           // revalidate memory tags
           FC_CACHE_REVALIDATE(temp >> 2);
@@ -139,7 +207,7 @@ int main(int argc, char *argv[]) {
         } else if (size == 1) {
           // set bound address
           setTagData = setTagData | (((HBTag)READ_FIFO_DATA) << 32);
-          tagmem[READ_FIFO_PHYSADDR >> 2] = setTagData;
+          writeTag(READ_FIFO_PHYSADDR, setTagData);
           FC_CACHE_REVALIDATE(READ_FIFO_MEMADDR >> 2);
         }
       }
@@ -152,7 +220,7 @@ int main(int argc, char *argv[]) {
           error = 1;
         if (READ_FIFO_MEMSIZE == 4) {
           rd = READ_FIFO_RD;
-          tagrf[rd] = tagmem[READ_FIFO_PHYSADDR >> 2];
+          tagrf[rd] = readTag(READ_FIFO_PHYSADDR);
           FC_ARRAY_REVALIDATE(rd);
         }
       }
