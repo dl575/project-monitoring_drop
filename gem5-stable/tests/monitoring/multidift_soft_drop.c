@@ -18,10 +18,10 @@
 #include "monitoring_wcet.h"
 #include "flagcache.h"
 
-/* 1GB tag space, 4kB pages */
+/* 4GB tag space, 4kB pages */
 #define PAGE_OFFSET_BITS  12
 #define PAGE_SIZE (1 << PAGE_OFFSET_BITS)
-#define NUM_PAGES 256*1024
+#define NUM_PAGES 1024*1024
 
 #define ISA_ARM
 
