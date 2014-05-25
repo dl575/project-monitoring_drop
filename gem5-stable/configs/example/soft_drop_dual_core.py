@@ -294,8 +294,25 @@ if options.monitor == "umc":
   DropCPUClass.check_load = True
   DropCPUClass.check_store = False
   DropCPUClass.check_indctrl = False
-elif options.monitor == "dift" or options.monitor == "multidift":
+elif options.monitor == "dift":
   monitor_bin = "dift_soft_drop"
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_indctrl = True
+  if options.invalidation:
+    # Load the invalidation file
+    DropCPUClass.invalidation_file = table_dir + "dift_invalidation.txt"
+    DropCPUClass.filter_file_1 = table_dir + "dift_filter1.txt"
+    DropCPUClass.filter_file_2 = table_dir + "dift_filter2.txt"
+    DropCPUClass.filter_ptr_file = table_dir + "dift_filter_ptrs.txt"
+    # Set coverage check flags
+    DropCPUClass.check_load = False
+    DropCPUClass.check_store = False
+    DropCPUClass.check_indctrl = True
+elif options.monitor == "multidift":
+  monitor_bin = "multidift_soft_drop"
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
@@ -364,8 +381,8 @@ elif options.monitor == "lrc":
   # Set coverage check flags
   #DropCPUClass.check_ret = True
 elif options.monitor == "none":
-  # Set up monitoring filter
-  pass
+  # FIXME: need an empty monitor
+  monitor_bin = "umc_soft_drop"
 else:
   raise Exception("Monitor not recognized: %s" % monitor)
 
