@@ -431,9 +431,28 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
           // Clean up
           delete p;
         } else if (addr == FC_CACHE_INVALIDATE) {
-          panic("Invalidation unimplemented. Please implement.");
+          // Create request
+          Request *req = &monitor_req;
+          req->setPhys(DROP_SET_CACHE, sizeof(fed.data), ArmISA::TLB::AllowUnaligned, dataMasterId());
+          // Create packet
+          PacketPtr p = new Packet(req, MemCmd::WriteReq);
+          p->dataStatic(&fed.data);
+          // Send packet
+          monitorPort.sendFunctional(p);
+          // Clean up
+          delete p;
         } else if (addr == FC_ARRAY_INVALIDATE) {
-          panic("Invalidation unimplemented. Please implement.");
+          // Create request
+          Request *req = &monitor_req;
+          req->setPhys(DROP_SET_ARRAY, sizeof(fed.data), ArmISA::TLB::AllowUnaligned, dataMasterId());
+          // Create packet
+          PacketPtr p = new Packet(req, MemCmd::WriteReq);
+          p->dataStatic(&fed.data);
+          // Send packet
+          monitorPort.sendFunctional(p);
+          // Clean up
+          delete p;
+
         }
 
         return NoFault;
