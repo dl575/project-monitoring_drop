@@ -277,7 +277,7 @@ if options.monitor == "umc":
   DropCPUClass.check_store = False
   DropCPUClass.check_indctrl = False
 elif options.monitor == "dift" or options.monitor == "multidift":
-  monitor_bin = "dift_soft_drop"
+  monitor_bin = "multidift_soft_drop"
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
