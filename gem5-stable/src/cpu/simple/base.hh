@@ -576,7 +576,7 @@ class BaseSimpleCPU : public BaseCPU
     // Port for accessing flag cache
     CpuPort fcPort;
     // Invalidation table object
-    static const int it_add_size = 4;
+    static const int it_add_size = 6;
     InvalidationTable <it_add_size> invtab;
     // Filtering tables
     InvalidationTable <> filtertab1;

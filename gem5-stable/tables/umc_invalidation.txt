@@ -1,7 +1,7 @@
 //opcode    sel1      sel2    op       c    action
 
-  LOAD      MEMADDR   c       shftr    2    HW_set_cache
-  STORE     MEMADDR   c       shftr    2    HW_set_cache
+  LOAD      -         -       -        -    HW_nop
+  STORE     MEMADDR   c       shftr    2    HW_set_cache_b01
 
 //idx       sel1      sel2    op       c    action
 

@@ -33,5 +33,9 @@ volatile unsigned int *flagcache;
 #define FC_CACHE_INVALIDATE(addr)  *(flagcache + 5) = addr;
 // Invalidate specified register
 #define FC_ARRAY_INVALIDATE(reg)   *(flagcache + 6) = reg;
+// Set the array to the specified value
+#define FC_SET_ARRAY_VALUE(value)  *(flagcache + 7) = value;
+// Set the cache to the specified value
+#define FC_SET_CACHE_VALUE(value)  *(flagcache + 8) = value;
 
 #endif // __FLAGCACHE_H__

@@ -1,17 +1,20 @@
 //opcode    sel1      sel2    op       c    action
 
-  LOAD      RD        c       add      0    HW_set_array_b11
-  STORE     MEMADDR   c       shftr    2    HW_set_cache_b11
-  INTALU    RD        c       add      0    HW_set_array_b11
+  LOAD      RD        c       add      0    HW_set_array_b01
+  STORE     MEMADDR   c       shftr    2    HW_set_cache_b01
+  INTALU    RD        c       add      0    HW_set_array_b01
   INDCTRL   -         -       -        -    HW_nop
-  SETTAG    MEMADDR   c       shftr    2    HW_set_cache_b11
+  SETTAG    MEMADDR   c       shftr    2    HW_set_cache_b01
 
 //idx       sel1      sel2    op       c    action
 
 // If invalid memory tag, invalidate load location
 // If ALU operands are invalid, invalidate destination
-  1         RD        c       add      0    HW_set_array_b11
+  1         RD        c       add      0    HW_set_array_b01
 // If invalid indctrl, skip
   2         -         -       -        -    HW_nop
 // If invalid source, invalidate store location
-  3         MEMADDR   c       shftr    2    HW_set_cache_b11
+  3         MEMADDR   c       shftr    2    HW_set_cache_b01
+// For FADE filtering, we propagate the FADE but keep valid
+  4         RD        c       add      0    HW_set_array_b00
+  5         MEMADDR   c       shftr    2    HW_set_cache_b00
