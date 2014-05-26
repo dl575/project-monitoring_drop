@@ -1,17 +1,17 @@
 //opcode    sel1      sel2    op       c    action
 
-  LOAD      RD        c       add      0    HW_set_array
-  STORE     MEMADDR   c       shftr    2    HW_set_cache
-  INTALU    RD        c       add      0    HW_set_array
+  LOAD      RD        c       add      0    HW_set_array_b11
+  STORE     MEMADDR   c       shftr    2    HW_set_cache_b11
+  INTALU    RD        c       add      0    HW_set_array_b11
   INDCTRL   -         -       -        -    HW_nop
-  SETTAG    MEMADDR   c       shftr    2    HW_set_cache
+  SETTAG    MEMADDR   c       shftr    2    HW_set_cache_b11
 
 //idx       sel1      sel2    op       c    action
 
 // If invalid memory tag, invalidate load location
 // If ALU operands are invalid, invalidate destination
-  1         RD        c       add      0    HW_set_array
+  1         RD        c       add      0    HW_set_array_b11
 // If invalid indctrl, skip
   2         -         -       -        -    HW_nop
 // If invalid source, invalidate store location
-  3         MEMADDR   c       shftr    2    HW_set_cache
+  3         MEMADDR   c       shftr    2    HW_set_cache_b11

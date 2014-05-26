@@ -391,6 +391,21 @@ BaseSimpleCPU::regStats()
         filterstats.subname(i, instTypeToString(i));
     }
 
+    filterdetailed
+        .init(num_inst_types, FilterPtrTable::size)
+        .name(name() + ".filtered_detailed")
+        .desc("Number of fifo packets that were filtered (detailed)")
+        .flags(total)
+        ;
+    for (int i = 0; i < num_inst_types; i++) {
+        filterdetailed.subname(i, instTypeToString(i));
+    }
+    for (int i = 0; i < FilterPtrTable::size; i++) {
+        bitset<2*FC_NUMBITS> ptrbits(i);
+        string name = "b" + ptrbits.to_string();
+        filterdetailed.ysubname(i, name);
+    }
+
     coveragedropstats
         .init(num_inst_types)
         .name(name() + ".coverage_drops")
@@ -1145,6 +1160,26 @@ BaseSimpleCPU::performInvalidation(unsigned idx, instType itp)
         DPRINTF(Invalidation, "Clearing array\n");
         unsigned type = 0;
         fault = writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+    } else if (invtab.action[idx].compare(0,14,"HW_set_array_b") == 0) {
+        // Get set value from action string
+        unsigned value = strtol(invtab.action[idx].substr(14).c_str(), NULL, 2);
+        if (value > FC_MAXVAL) value = FC_MAXVAL;
+        fault = writeToFlagCache(FC_SET_ARRAY, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (invtab.action[idx].compare(0,14,"HW_set_array_d") == 0) {
+        // Get set value from action string
+        unsigned value = strtol(invtab.action[idx].substr(14).c_str(), NULL, 10);
+        if (value > FC_MAXVAL) value = FC_MAXVAL;
+        fault = writeToFlagCache(FC_SET_ARRAY, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (invtab.action[idx].compare(0,14,"HW_set_cache_b") == 0) {
+        // Get set value from action string
+        unsigned value = strtol(invtab.action[idx].substr(14).c_str(), NULL, 2);
+        if (value > FC_MAXVAL) value = FC_MAXVAL;
+        fault = writeToFlagCache(FC_SET_CACHE, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
+    } else if (invtab.action[idx].compare(0,14,"HW_set_cache_d") == 0) {
+        // Get set value from action string
+        unsigned value = strtol(invtab.action[idx].substr(14).c_str(), NULL, 10);
+        if (value > FC_MAXVAL) value = FC_MAXVAL;
+        fault = writeToFlagCache(FC_SET_CACHE, (uint8_t *)&value, sizeof(value), ArmISA::TLB::AllowUnaligned);
     // These commands will also set/clear the thread register file. This is used for DIFT-RF
     // to keep invalidaiton flags for coverage statistics.
     } else if (invtab.action[idx] == "HW_clear_array_set_reg") {
@@ -1406,48 +1441,47 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
             && (filtertab1.initialized || filtertab2.initialized))
         {
             DPRINTF(Invalidation, "Begin filtering\n");
-            int select = 0;
+            uint8_t select1 = 0;
+            uint8_t select2 = 0;
             // Save address
             Addr saved_addr = 0;
             readFromFlagCache(FC_GET_ADDR, (uint8_t *)&saved_addr, sizeof(saved_addr), ArmISA::TLB::AllowUnaligned);
             // Read first flag from flag cache
             if (filtertab1.initialized){
-                bool flag = false;
                 if (filtertab1.action[itp].size()){
                     setFlagCacheAddrFromTable(filtertab1, itp);
                     if (filtertab1.action[itp] == "cache"){
-                        result = readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                        result = readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&select1, sizeof(select1), ArmISA::TLB::AllowUnaligned);
                     } else if (filtertab1.action[itp] == "array"){
-                        result = readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                        result = readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&select1, sizeof(select1), ArmISA::TLB::AllowUnaligned);
                     }
-                    if (result != NoFault){ warn("Read from flag cache failed @ %llx\n", curTick()); flag = false; }
+                    if (result != NoFault){ warn("Read from flag cache failed @ %llx\n", curTick()); }
                     // Write back original address
                     writeToFlagCache(FC_SET_ADDR, (uint8_t *)&saved_addr, sizeof(saved_addr), ArmISA::TLB::AllowUnaligned);
                 }
-                if (flag) { select += 2; }
             }
             // Read second flag from flag cache
             if (filtertab2.initialized){
-                bool flag = false;
                 if (filtertab2.action[itp].size()){
                     setFlagCacheAddrFromTable(filtertab2, itp);
                     if (filtertab2.action[itp] == "cache"){
-                        result = readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                        result = readFromFlagCache(FC_GET_FLAG_C, (uint8_t *)&select2, sizeof(select2), ArmISA::TLB::AllowUnaligned);
                     } else if (filtertab2.action[itp] == "array"){
-                        result = readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&flag, sizeof(flag), ArmISA::TLB::AllowUnaligned);
+                        result = readFromFlagCache(FC_GET_FLAG_A, (uint8_t *)&select2, sizeof(select2), ArmISA::TLB::AllowUnaligned);
                     }
-                    if (result != NoFault){ warn("Read from flag cache failed @ %llx\n", curTick()); flag = false; }
+                    if (result != NoFault){ warn("Read from flag cache failed @ %llx\n", curTick()); }
                     // Write back original address
                     writeToFlagCache(FC_SET_ADDR, (uint8_t *)&saved_addr, sizeof(saved_addr), ArmISA::TLB::AllowUnaligned);
                 }
-                if (flag) { select += 1; }
             }
+            uint16_t select = (select1 << FC_NUMBITS) | select2;
             // Get index from filter pointer table
             unsigned itidx = fptab.table[itp][select];
-            DPRINTF(Invalidation, "Filter table select %d @ %d points to %d\n", select, itp, itidx);
+            DPRINTF(Invalidation, "Filter table select {%d,%d} -> %d @ %d points to %d\n", select1, select2, select, itp, itidx);
             // Perform filtering operation if one exists
             if (invtab.action[itidx].size()){
                 filterstats[itp]++;
+                filterdetailed[itp][select]++;
                 DPRINTF(Invalidation, "Filtering fifo entry: num_filtered: %d\n", filterstats.total());
                 // Filtering is enabled
                 if (!emulate_filtering){
@@ -1981,7 +2015,7 @@ bool
 BaseSimpleCPU::FilterPtrTable::initTable(const char * file_name)
 {
     const int MAX_CHARS_PER_LINE = 512;
-    const int MAX_TOKENS_PER_LINE = 5; // Number of columns
+    const int MAX_TOKENS_PER_LINE = 1 + size; // Number of columns
     const char* const DELIMITER = " ";
     
     if (it_add_size < 1){
@@ -2040,13 +2074,26 @@ BaseSimpleCPU::FilterPtrTable::initTable(const char * file_name)
     return true;
 }
 
+
+
 void
 BaseSimpleCPU::FilterPtrTable::printTable()
 {
     printf("%s:\n", table_name.data());
-    printf("%3s %3s %3s %3s %3s\n", "idx", "00", "01", "10", "11");
+    char fmt_s[10];
+    char fmt_d[10];
+    sprintf (fmt_s, " %%%ds", 1+2*FC_NUMBITS);
+    sprintf (fmt_d, " %%%dd", 1+2*FC_NUMBITS);
+    printf("%3s", "idx");
+    for (int i = 0; i < size; ++i){
+        bitset<2*FC_NUMBITS> i_bits(i);
+        printf(fmt_s, i_bits.to_string().c_str());
+    }
+    printf("\n");
     for (int i = 0; i < num_inst_types; ++i){
-        printf("%2d: %3d %3d %3d %3d\n", i, table[i][0], table[i][1], table[i][2], table[i][3]);
+         printf("%2d:", i); 
+         for (int j = 0; j < size; ++j) { printf(fmt_d, table[i][j]); }
+         printf("\n");
     }
 }
 
