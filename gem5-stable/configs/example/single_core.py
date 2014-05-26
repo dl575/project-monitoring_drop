@@ -318,7 +318,4 @@ options.num_cpus = 1
 
 # Run simulation
 root = Root(full_system = False, system = system)
-if options.fastforward_insts == 0:
-    Simulation.run(options, root, system, FutureClass)
-else:
-    Simulation.run_ff(options, root, system, cpu_list)
+Simulation.run(options, root, system, FutureClass)
