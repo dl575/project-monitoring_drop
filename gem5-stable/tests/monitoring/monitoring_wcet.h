@@ -69,6 +69,11 @@ struct monitoring_packet {
   int load;
   int intalu;
   int indctrl;
+  int virtAddr;
+  int physAddr;
+  int memSize;
+  int opcode;
+  int settag;
 };
 
 // Read from fifo into x (which should be struct monitoring_packet)
@@ -93,6 +98,13 @@ struct monitoring_packet {
 #define READ_FIFO_LOAD        *(fifo + 16)
 #define READ_FIFO_INTALU      *(fifo + 17)
 #define READ_FIFO_INDCTRL     *(fifo + 18)
+#define READ_FIFO_VIRTADDR    *(fifo + 19)
+#define READ_FIFO_PHYSADDR    *(fifo + 20)
+#define READ_FIFO_MEMSIZE     *(fifo + 21)
+#define READ_FIFO_OPCODE      *(fifo + 22)
+#define READ_FIFO_SETTAG      *(fifo + 23)
+#define READ_FIFO_SYSCALLBUFPTR *(fifo + 24)
+#define READ_FIFO_SYSCALLNBYTES *(fifo + 25)
 
 // Fifo flags
 #define READ_FIFO_FULL    *(fifo + 0x400)
@@ -103,6 +115,12 @@ inline void set_tag_base(unsigned addr, unsigned value);
 inline void set_tag_bound(unsigned addr, unsigned value);
 
 void init_section_tags();
+
+/* ALU Opcodes */
+#define ALUMov  0x0d
+#define ALUAdd1 0x04
+#define ALUAdd2 0x05
+#define ALUSub  0x02
 
 #endif // __MONITORING_H__
 

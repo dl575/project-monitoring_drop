@@ -1,12 +1,11 @@
-#ifdef DIFT_FULL
+#ifdef MULTIDIFT_FULL
 /*
- * dift.c
+ * multidift_soft_drop.c
  *
- * Dynamic information flow tracking on monitoring core.
- * 
- * This version is meant to be used with the core-based
- * monitor. It is similar to dift_full.c but also
- * performs revalidation of metadata.
+ * Multiple-bit Dynamic information flow tracking on monitoring core.
+ * Tag size is 32-bit.
+ *
+ * This version is meant to be used with the core-based monitor.
  *
  */
 
@@ -19,7 +18,10 @@
 #include "monitoring_wcet.h"
 #include "flagcache.h"
 
-#define METADATA_ADDRESSES 1024*1024*128
+/* 4GB tag space, 4kB pages */
+#define PAGE_OFFSET_BITS  12
+#define PAGE_SIZE (1 << PAGE_OFFSET_BITS)
+#define NUM_PAGES 1024*1024
 
 #define ISA_ARM
 
@@ -29,10 +31,76 @@
   #define NUM_REGS 32
 #endif
 
-#define MONITOR "[DIFT] "
+#define MONITOR "[MULTIDIFT] "
 
-char tagmem[METADATA_ADDRESSES];
-bool tagrf[NUM_REGS];
+typedef unsigned long int DIFTTag;
+
+void *pagetable[NUM_PAGES];
+
+DIFTTag tagrf[NUM_REGS];
+
+/**
+ * Convert address to page index
+ */
+inline unsigned getPageIndex(unsigned addr) {
+  return addr >> PAGE_OFFSET_BITS;
+}
+
+/**
+ * Convert address to page offset
+ */
+inline unsigned getPageOffset(unsigned addr) {
+  return addr & (PAGE_SIZE - 1);
+}
+
+/**
+ * Whether an address in allocated in page table
+ */
+inline bool allocated(unsigned addr) {
+  return pagetable[getPageIndex(addr)] != NULL;
+}
+
+/**
+ * Allocate a page
+ */
+void* allocatePage(unsigned addr)
+{
+  void *page = malloc(PAGE_SIZE);
+  if (page == NULL) {
+    printf("Failed to allocate page for tag memory!\n");
+    return NULL;
+  }
+  /* clear page */
+  memset(page, 0, PAGE_SIZE);
+  pagetable[getPageIndex(addr)] = page;
+  return page;
+}
+
+inline DIFTTag readTag(unsigned physAddr)
+{
+  char *page;
+  unsigned tagAddr = physAddr;
+  if (allocated(tagAddr)) {
+    page = pagetable[getPageIndex(tagAddr)];
+  } else {
+    /* allocate page */
+    page = allocatePage(tagAddr);
+  }
+  return *((DIFTTag*)&(page[getPageOffset(tagAddr)]));
+}
+
+inline void writeTag(unsigned physAddr, DIFTTag tag)
+{
+  char *page;
+  unsigned tagAddr = physAddr;
+  if (allocated(tagAddr)) {
+    page = pagetable[getPageIndex(tagAddr)];
+  } else {
+    /* allocate page */
+    page = allocatePage(tagAddr);
+  }
+  *((DIFTTag*)&(page[getPageOffset(tagAddr)])) = tag;
+}
 
 int main(int argc, char *argv[]) {
   register unsigned int temp;
@@ -57,24 +125,18 @@ int main(int argc, char *argv[]) {
         // Get source register
         rs = READ_FIFO_RS1;
         // Propagate to destination memory addresses
-        temp = (READ_FIFO_MEMADDR >> 2);
-        if (tagrf[rs] == 1) {
-          // Bit mask to set taint
-          tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
-        } else {
-          // Bit mask to clear tag
-          tagmem[temp >> 3] = tagmem[temp >> 3] & ~(1 << (temp&0x07));
-        }
+        temp = READ_FIFO_MEMADDR;
+        writeTag(temp, tagrf[rs]);
         // Revalidate in invalidation cache
-        FC_CACHE_REVALIDATE(temp);
+        FC_CACHE_REVALIDATE(temp >> 2);
       } else {
         // settag operation
-        register int memend = (READ_FIFO_MEMEND >> 2);
-        for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
+        register int memend = READ_FIFO_MEMEND;
+        for (temp = READ_FIFO_MEMADDR; temp <= memend; temp+=4) {
           // Bit mask to set taint
-          tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
+          writeTag(temp, 1);
           // Revalidate in invalidation cache
-          FC_CACHE_REVALIDATE(temp);
+          FC_CACHE_REVALIDATE(temp >> 2);
         }
       }
     // Load
@@ -83,13 +145,7 @@ int main(int argc, char *argv[]) {
       // Get destination register
       rd = READ_FIFO_RD;
       // Propagate from memory addresses
-      register bool tresult = false;
-      temp = READ_FIFO_MEMADDR >> 2;
-      // Pull out correct bit in memory to store int tag register file
-      if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
-        tresult = true;
-      }
-      tagrf[rd] = tresult;
+      tagrf[rd] = readTag(READ_FIFO_MEMADDR);
       // Revalidate in invalidation register file
       FC_ARRAY_REVALIDATE(rd);
     // Indirect control
@@ -105,7 +161,7 @@ int main(int argc, char *argv[]) {
     } else if (READ_FIFO_INTALU) {
       // on ALU instructions, propagate tag between registers
       // Read source tags and determine taint of destination
-      register bool tresult = false;
+      unsigned int tresult = 0;
       rs = READ_FIFO_RS1;
       if (rs < NUM_REGS){
         tresult |= tagrf[rs];
@@ -124,12 +180,11 @@ int main(int argc, char *argv[]) {
       }
     } else if ((READ_FIFO_SETTAG) && (READ_FIFO_SYSCALLNBYTES > 0)) {
       // syscall read instruction
-      for (temp = (READ_FIFO_SYSCALLBUFPTR >> 2); temp < (READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES) >> 2; ++temp) {
-        // We use masks to store at bit locations based on last three bits
-        tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp & 0x7));
+      for (temp = READ_FIFO_SYSCALLBUFPTR; temp < READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES; temp+=4) {
+        writeTag(temp, 1);
       }
     } // inst type
-    
+
   } // while(1)
 
   return 1;

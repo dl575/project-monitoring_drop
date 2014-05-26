@@ -192,214 +192,18 @@ if (options.simulatestalls and options.cpu_type == 'atomic'):
     # Simulate cache stalls in atomic
     MainCPUClass.simulate_inst_stalls = True
     MainCPUClass.simulate_data_stalls = True
-
-# Create new CPU type for monitoring core
-# if options.cpu_type == 'atomic':
-#   (MonCPUClass, test_mem_mode, FutureClass) = (AtomicSimpleMonitor, test_mem_mode, None)
-# elif options.cpu_type == 'timing':
-#   (MonCPUClass, test_mem_mode, FutureClass) = (TimingSimpleMonitor, test_mem_mode, None)
-#   #(MonCPUClass, test_mem_mode, FutureClass) = (AtomicSimpleMonitor, test_mem_mode, None)
-# else:
-#   raise Exception("Unknown what drop core to use for cpu_type %s" % options.cpu_type)
-# MonCPUClass.clock = options.monfreq
-# Core-based monitor
-(MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
-MonCPUClass.clock = options.clock
-MonCPUClass.numThreads = numThreads;
-# Has port to access fifo, but does not enqueue monitoring events
-MonCPUClass.fifo_enabled = True
-MonCPUClass.monitoring_enabled = False
-MonCPUClass.monitor_type = available_monitors[options.monitor]
-# Enable slack timer so it can read from it
-MonCPUClass.timer_enabled = True
-# Monitoring core can access flagcache for revalidation
-MonCPUClass.flagcache_enabled = True
-#MonCPUClass.monitor_type = available_monitors[options.monitor]
-if (options.simulatestalls and options.cpu_type == 'atomic'):
-    # Simulate d cache stalls
-    MonCPUClass.simulate_data_stalls = True
-if options.source_propagation:
-  MonCPUClass.source_propagation = True
-
-# Create drop core
-prev_cpu_type = options.cpu_type
-if options.cpu_type == 'atomic':
-  options.cpu_type = 'drop'
-elif options.cpu_type == 'timing':
-  options.cpu_type = 'drop_timing'
-else:
-  raise Exception("Unknown what drop core to use for cpu_type %s" % options.cpu_type)
-(DropCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
-options.cpu_type = prev_cpu_type
-DropCPUClass.numThreads = numThreads;
-# Has port to access fifo, but does not enqueue monitoring events
-DropCPUClass.fifo_enabled = True
-DropCPUClass.monitoring_enabled = False
-DropCPUClass.monitor_type = available_monitors[options.monitor]
-if options.invalidation:
-    # Enable slack timer so it can read from it
-    DropCPUClass.timer_enabled = True
-    # Need flag cache for monitoring core
-    DropCPUClass.flagcache_enabled = True
-if (options.simulatestalls) and options.cpu_type == 'atomic':
-    # Simulate d cache stalls
-    DropCPUClass.simulate_data_stalls = True
-
-DropCPUClass.clock = MainCPUClass.clock
-DropCPUClass.full_clock = MonCPUClass.clock
-# Enable output to second fifo
-DropCPUClass.forward_fifo_enabled = True
-# Emulate filtering set
-DropCPUClass.emulate_filtering = options.emulate_filtering
-# Backtrack
-DropCPUClass.backtrack = options.backtrack
-DropCPUClass.backtrack_read_table = options.backtrack_read_table
-DropCPUClass.backtrack_write_table = options.backtrack_write_table
-DropCPUClass.backtrack_table_dir = options.backtrack_table_dir
-DropCPUClass.ipt_impl = ipt_impl[options.ipt_impl]
-DropCPUClass.ipt_tagged = not options.ipt_tagless
-DropCPUClass.ipt_false_positive_rate = options.ipt_fpr
-DropCPUClass.ipt_size = options.ipt_size
-DropCPUClass.ipt_entry_size = options.ipt_entry_size
-DropCPUClass.mpt_size = options.mpt_size
-# Coverage options
-DropCPUClass.target_coverage = options.coverage
-DropCPUClass.check_frequency = options.coverage_adjust
-if options.probabilistic_drop:
-  DropCPUClass.print_checkid = True
-DropCPUClass.print_static_coverage = options.static_coverage
-if options.source_dropping:
-  DropCPUClass.source_dropping = True
-if options.source_propagation:
-  DropCPUClass.source_propagation = True
-
-if options.source_propagation:
-  table_dir = os.environ["GEM5"] + "/tables/source_propagation/"
-else:
-  table_dir = os.environ["GEM5"] + "/tables/"
-if options.monitor == "umc":
-  monitor_bin = "umc_soft_drop"
-  # Set up monitoring filter
-  MainCPUClass.monitoring_filter_load = True
-  MainCPUClass.monitoring_filter_store = True
-  if options.source_dropping:
-    # Mark stores at set tag operations for the purpose of source dropping
-    MainCPUClass.settag_store = True
-  if options.invalidation:
-    # Load the invalidation file
-    DropCPUClass.invalidation_file = table_dir + "umc_invalidation.txt"
-    DropCPUClass.filter_file_1 = table_dir + "umc_filter.txt"
-    DropCPUClass.filter_ptr_file = table_dir + "umc_filter_ptrs.txt"
-  # Set coverage check flags
-  DropCPUClass.check_load = True
-  DropCPUClass.check_store = False
-  DropCPUClass.check_indctrl = False
-elif options.monitor == "dift":
-  monitor_bin = "dift_soft_drop"
-  # Set up monitoring filter
-  MainCPUClass.monitoring_filter_load = True
-  MainCPUClass.monitoring_filter_store = True
-  MainCPUClass.monitoring_filter_intalu = True
-  MainCPUClass.monitoring_filter_indctrl = True
-  if options.invalidation:
-    # Load the invalidation file
-    DropCPUClass.invalidation_file = table_dir + "dift_invalidation.txt"
-    DropCPUClass.filter_file_1 = table_dir + "dift_filter1.txt"
-    DropCPUClass.filter_file_2 = table_dir + "dift_filter2.txt"
-    DropCPUClass.filter_ptr_file = table_dir + "dift_filter_ptrs.txt"
-    # Set coverage check flags
-    DropCPUClass.check_load = False
-    DropCPUClass.check_store = False
-    DropCPUClass.check_indctrl = True
-elif options.monitor == "multidift":
-  monitor_bin = "multidift_soft_drop"
-  # Set up monitoring filter
-  MainCPUClass.monitoring_filter_load = True
-  MainCPUClass.monitoring_filter_store = True
-  MainCPUClass.monitoring_filter_intalu = True
-  MainCPUClass.monitoring_filter_indctrl = True
-  if options.invalidation:
-    # Load the invalidation file
-    DropCPUClass.invalidation_file = table_dir + "dift_invalidation.txt"
-    DropCPUClass.filter_file_1 = table_dir + "dift_filter1.txt"
-    DropCPUClass.filter_file_2 = table_dir + "dift_filter2.txt"
-    DropCPUClass.filter_ptr_file = table_dir + "dift_filter_ptrs.txt"
-    # Set coverage check flags
-    DropCPUClass.check_load = False
-    DropCPUClass.check_store = False
-    DropCPUClass.check_indctrl = True
-elif options.monitor == "bc":
-  # Set up monitoring filter
-  MainCPUClass.monitoring_filter_load = True
-  MainCPUClass.monitoring_filter_store = True
-  #MainCPUClass.monitoring_filter_intalu = True
-  MainCPUClass.monitoring_filter_intand = True
-  MainCPUClass.monitoring_filter_intmov = True
-  MainCPUClass.monitoring_filter_intadd = True
-  MainCPUClass.monitoring_filter_intsub = True
-  MainCPUClass.monitoring_filter_intmul = True
-  if options.invalidation:
-    # Load the invalidation file
-    DropCPUClass.invalidation_file = table_dir + "dift_invalidation.txt"
-    DropCPUClass.filter_file_1 = table_dir + "dift_filter1.txt"
-    DropCPUClass.filter_file_2 = table_dir + "dift_filter2.txt"
-    DropCPUClass.filter_ptr_file = table_dir + "dift_filter_ptrs.txt"
-  # Set coverage check flags
-  DropCPUClass.check_load = True
-  DropCPUClass.check_store = True
-  DropCPUClass.check_indctrl = False
-elif options.monitor == "hb":
-  monitor_bin = "hb_soft_drop"
-  # Set up monitoring filter
-  MainCPUClass.monitoring_filter_load = True
-  MainCPUClass.monitoring_filter_store = True
-  # MainCPUClass.monitoring_filter_intalu = True
-  MainCPUClass.monitoring_filter_intand = True
-  MainCPUClass.monitoring_filter_intmov = True
-  MainCPUClass.monitoring_filter_intadd = True
-  MainCPUClass.monitoring_filter_intsub = True
-  MainCPUClass.monitoring_filter_intmul = True
-  if options.invalidation:
-    # Load the invalidation file
-    DropCPUClass.invalidation_file = table_dir + "dift_invalidation.txt"
-    DropCPUClass.filter_file_1 = table_dir + "dift_filter1.txt"
-    DropCPUClass.filter_file_2 = table_dir + "dift_filter2.txt"
-    DropCPUClass.filter_ptr_file = table_dir + "dift_filter_ptrs.txt"
-  # Set coverage check flags
-  DropCPUClass.check_load = True
-  DropCPUClass.check_store = True
-  DropCPUClass.check_indctrl = False
-elif options.monitor == "lrc":
-  # Set up monitoring filter
-  MainCPUClass.monitoring_filter_call = True
-  MainCPUClass.monitoring_filter_ret = True
-  if options.invalidation:
-    # Load the invalidation file
-    DropCPUClass.invalidation_file = table_dir + "lrc_invalidation.txt"
-    DropCPUClass.filter_file_1 = table_dir + "lrc_filter.txt"
-    DropCPUClass.filter_ptr_file = table_dir + "lrc_filter_ptrs.txt"
-  # Set coverage check flags
-  #DropCPUClass.check_ret = True
-elif options.monitor == "none":
-  # FIXME: need an empty monitor
-  monitor_bin = "umc_soft_drop"
-else:
-  raise Exception("Monitor not recognized: %s" % monitor)
-
+    
 # Create system, CPUs, bus, and memory
-system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1), DropCPUClass(cpu_id=2)],
+system = System(cpu = [MainCPUClass(cpu_id=0)],
                 physmem = SimpleMemory(range=AddrRange("1GB"), latency='30ns'),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
 # Save a list of the CPU classes. These will be used in fast-forwarding
 # to create a replica CPU set that runs after fast-forward.
-cpu_list = [MainCPUClass, MonCPUClass, DropCPUClass]
-
-# Connect port between drop and monitoring cpu
-system.cpu[1].monitor_port = system.cpu[2].monitor_port
+cpu_list = [MainCPUClass]
 
 # Number of CPUs
-options.num_cpus = 3
+options.num_cpus = 1
 
 # Addresses for peripherals
 PERIPHERAL_ADDR_BASE = 0x50000000
@@ -447,12 +251,6 @@ system.flagcache = flagcache
 # Connect CPU to fifo
 if system.cpu[0].fifo_enabled:
   system.cpu[0].fifo_port = system.fifo_main_to_dc.port
-if system.cpu[1].fifo_enabled:
-  system.cpu[1].fifo_port = system.fifo_dc_to_mon.port
-if system.cpu[2].fifo_enabled:
-  system.cpu[2].fifo_port = system.fifo_main_to_dc.port
-if system.cpu[2].forward_fifo_enabled:
-  system.cpu[2].forward_fifo_port = system.fifo_dc_to_mon.port
 
 for i in range(options.num_cpus):
   # Connect CPU to timer
@@ -475,25 +273,12 @@ else:
   process0.cmd = ""
 system.cpu[0].workload = process0
 
-process1 = LiveProcess()
-# load a dummy executable file to avoid polluting tag memory space
-# process1.executable = os.environ["GEM5"] + "/tests/test-progs/dummy/dummy.arm"
-# process1.cmd = ""
-process1.executable = os.environ["GEM5"] + ("/tests/monitoring/%s.arm" % monitor_bin)
-process1.cmd = ""
-system.cpu[1].workload = process1
-
-process2 = LiveProcess()
-process2.executable = os.environ["GEM5"] + "/tests/test-progs/dummy/dummy.arm"
-process2.cmd = ""
-system.cpu[2].workload = process2
-
 options.l1i_latency = '1ps'
 options.l1d_latency = '1ps'
 # Remove drop core for connecting up caches
-options.num_cpus = 2
+options.num_cpus = 1
 if options.ruby:
-  options.num_cpus = 3
+  options.num_cpus = 1
   options.use_map = True
   Ruby.create_system(options, system)
   assert(options.num_cpus == len(system.ruby._cpu_ruby_ports))
@@ -528,18 +313,9 @@ else:
                        assoc = options.l1d_assoc,
                        block_size=16,
                        latency = options.l1d_latency)
-      system.cpu[2].addPrivateSplitL1Caches(icache, dcache)
-  system.cpu[2].createInterruptController()
-  if options.l2cache:
-      system.cpu[2].connectAllPorts(system.tol2bus, system.membus)
-  else:
-      system.cpu[2].connectAllPorts(system.membus)
 # Reinclude drop core for switching CPU count in Simulation.run
-options.num_cpus = 3
+options.num_cpus = 1
 
 # Run simulation
 root = Root(full_system = False, system = system)
-if options.fastforward_insts == 0:
-    Simulation.run(options, root, system, FutureClass)
-else:
-    Simulation.run_ff(options, root, system, cpu_list)
+Simulation.run(options, root, system, FutureClass)

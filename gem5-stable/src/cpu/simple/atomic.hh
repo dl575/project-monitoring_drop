@@ -104,6 +104,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 
     // Port for sending invalidation/revalidation information to dropping core
     CpuPort monitorPort;
+    // Whether the CPU is main core
+    bool main_core;
 
     bool fastmem;
     Request ifetch_req;
@@ -159,10 +161,9 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     Tick timer_latency;
 
   public:
+    static SimpleThread* main_thread;
     // Function to setup monitoring for read syscall
     void monitorSyscallRead(Addr bufPtr, int nbytes);
 };
-
-extern SimpleThread* main_thread;
 
 #endif // __CPU_SIMPLE_ATOMIC_HH__

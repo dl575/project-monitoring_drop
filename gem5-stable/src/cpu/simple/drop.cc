@@ -168,20 +168,6 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
 {
     _status = Idle;    
 
-    // monitoring extension type
-    switch(p->monitor_type) {
-        case MONITOR_NONE: monitorExt = MONITOR_NONE; break;
-        case MONITOR_UMC: monitorExt = MONITOR_UMC; break;
-        case MONITOR_DIFT: monitorExt = MONITOR_DIFT; break;
-        case MONITOR_BC: monitorExt = MONITOR_BC; break;
-        case MONITOR_SEC: monitorExt = MONITOR_SEC; break;
-        case MONITOR_HB: monitorExt = MONITOR_HB; break;
-        // Multi-bit DIFT has same flow behavior as DIFT
-        case MONITOR_MULTIDIFT: monitorExt = MONITOR_DIFT; break;
-        case MONITOR_LRC: monitorExt = MONITOR_LRC; break;
-        default: panic("Invalid monitor type\n");
-    }
-
     // IPT implementation
     switch(p->ipt_impl) {
         case TABLE: ipt_impl = TABLE; break;
