@@ -214,7 +214,7 @@ int main(int argc, char *argv[]) {
     } else if (READ_FIFO_LOAD) {
       rs1 = READ_FIFO_RS1;
       rs2 = READ_FIFO_RS2;
-      if ((rs1 < NUM_REGS) && (rs2 < NUM_REGS)) {
+      if ((rs1 < NUM_REGS) && (rs2 >= NUM_REGS)) {
         trs1 = tagrf[rs1];
         if (!((trs1 == 0) || (temp >= toBaseTag(trs1)) && (temp < toBoundTag(trs1))))
           error = 1;
