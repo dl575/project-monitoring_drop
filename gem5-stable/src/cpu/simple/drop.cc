@@ -1419,24 +1419,37 @@ DropSimpleCPU::MonitorPort::recvFunctional(PacketPtr pkt)
     if (!queue.checkFunctional(pkt)) {
         if (pkt->cmd == MemCmd::WriteReq) {
             uint8_t type;
-            bool set = false; // set flag if true, clear if false
             switch (pkt->getAddr()){
-                case DROP_CLEAR_ARRAY: type = 0; break;
-                case DROP_CLEAR_CACHE: type = 1; break;
-                case DROP_FC_SET_ADDR: type = 2; break;
-                case DROP_SET_ARRAY:   type = 0; set = true; break;
-                case DROP_SET_CACHE:   type = 1; set = true; break;
-                default: panic ("Unimplemented port request");
-            }
-            if (cpu->flagcache_enabled){
-                cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
-                if (type == 0 || type == 1) {
-                  if (set) {
-                    cpu->writeToFlagCache(FC_SET_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
-                  } else {
+                case DROP_CLEAR_ARRAY:
+                    cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    type = FC_ARRAY;
                     cpu->writeToFlagCache(FC_CLEAR_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
-                  }
-                }
+                    break;
+                case DROP_CLEAR_CACHE: 
+                    cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    type = FC_CACHE;
+                    cpu->writeToFlagCache(FC_CLEAR_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                    break;
+                case DROP_SET_ARRAY:
+                    cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    type = FC_ARRAY;
+                    cpu->writeToFlagCache(FC_SET_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                    break;
+                case DROP_SET_CACHE:
+                    cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    type = FC_CACHE;
+                    cpu->writeToFlagCache(FC_CLEAR_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                    break;
+                case DROP_FC_SET_ADDR:
+                    cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    break;
+                case DROP_SET_ARRAY_VALUE:
+                    cpu->writeToFlagCache(FC_SET_ARRAY, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    break;
+                case DROP_SET_CACHE_VALUE:
+                    cpu->writeToFlagCache(FC_SET_CACHE, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    break;
+                default: panic ("Unimplemented port request");
             }
         } else {
             panic ("Unimplemented port request");
