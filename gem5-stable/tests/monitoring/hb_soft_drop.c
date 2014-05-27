@@ -259,7 +259,9 @@ int main(int argc, char *argv[]) {
         rd = READ_FIFO_RD;
         if (isISAReg(rd)) {
             tagrf[rd] = 0;
-            FC_ARRAY_REVALIDATE(rd);
+            FC_SET_ADDR(rd);
+            FC_SET_ARRAY_VALUE(2);
+            //FC_ARRAY_REVALIDATE(rd);
         }
       }
     }
