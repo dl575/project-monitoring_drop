@@ -20,14 +20,15 @@
 #include "monitoring_wcet.h"
 #include "flagcache.h"
 
-#define METADATA_ADDRESSES 1024*1024*128
+#define METADATA_ADDRESSES 1024*1024*512
+
+typedef unsigned char uint8_t;
 
 // flags for whether memory was initialized
 char metadata[METADATA_ADDRESSES];
 
 int main(int argc, char *argv[]) {
-  register int temp;
-  register int idx;
+  register unsigned idx;
   volatile register int error;
 
   // Set up monitoring
@@ -40,7 +41,7 @@ int main(int argc, char *argv[]) {
   
     POP_FIFO;
     // Store
-    if (temp = READ_FIFO_STORE) {
+    if (READ_FIFO_STORE) {
       // Write metadata, we don't differentiate between settag and regular operations
       //printf("st [0x%x:0x%x]\n", READ_FIFO_MEMADDR, READ_FIFO_MEMEND);
       register int memend = READ_FIFO_MEMEND;
@@ -68,7 +69,7 @@ int main(int argc, char *argv[]) {
         }
       }
     // Load
-    } else if (temp = READ_FIFO_LOAD) {
+    } else if (READ_FIFO_LOAD) {
       idx = READ_FIFO_MEMADDR;
       if (metadata[idx >> 3] & (1 << (idx & 0x7)) == 0) {
         error = 1;
