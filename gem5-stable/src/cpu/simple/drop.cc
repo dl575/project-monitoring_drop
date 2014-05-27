@@ -959,6 +959,31 @@ DropSimpleCPU::forwardFifoPacket() {
   return success;
 }
 
+/*
+ * Return whether the forwardFifo (drop core to monitor core) is full.
+ */
+bool
+DropSimpleCPU::forwardFifoPortFull()
+{
+  // Create new request
+  Request *req = &data_read_req;
+  // Full flag
+  bool full;
+  // set physical address
+  req->setPhys((Addr)FIFO_FULL, sizeof(full), ArmISA::TLB::AllowUnaligned, dataMasterId());
+  // Create read packet
+  PacketPtr fifopkt = new Packet(req, MemCmd::ReadReq);
+  // Set data
+  fifopkt->dataStatic(&full);
+  // Send request
+  forwardFifoPort.sendFunctional(fifopkt);
+  // Clean up
+  delete fifopkt;
+
+  return full;
+}
+
+
 bool DropSimpleCPU::getInstructionPriority(Addr addr)
 {
     if (ipt_impl == TABLE) {
@@ -1260,10 +1285,11 @@ DropSimpleCPU::tick()
         // If succesful, then clear the monitoring packet
         if (forward_successful){
             mp.init();
-        }
+        } 
     }
     
-    if (forward_successful){
+    // If we're not currently trying to send a FIFO packet and FIFO is not already full
+    if (forward_successful && !forwardFifoPortFull()){
         bool drop = false;
         Fault fault = ReExecFault;
         // If invalidation is enabled

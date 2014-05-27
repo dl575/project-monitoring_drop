@@ -209,6 +209,8 @@ class DropSimpleCPU : public BaseSimpleCPU
     unsigned getCacheFlags(size_t size);
     // forward the fifo packet to monitoring core
     bool forwardFifoPacket();
+    // Check if fifo to monitoring core is full
+    bool forwardFifoPortFull();
     
     bool forward_fifo_enabled;
     // Port for monitoring fifo

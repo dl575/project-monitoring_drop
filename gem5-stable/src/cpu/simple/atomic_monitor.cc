@@ -1316,6 +1316,7 @@ AtomicSimpleMonitor::postExecute()
 void
 AtomicSimpleMonitor::UMCExecute()
 {
+    // Load instruction
     if (mp.load) {
         DPRINTF(Monitor, "UMC: Load instruction mem[0x%x]\n", mp.memAddr);
         numLoadInsts++;
@@ -1324,6 +1325,7 @@ AtomicSimpleMonitor::UMCExecute()
             DPRINTF(Monitor, "UMC Error: reading uinitialized memory, VA=0x%x\n", (unsigned)mp.memAddr);
             numUMCErrors++;
         }
+    // Store instruction
     } else if (mp.store && !mp.settag) {
         DPRINTF(Monitor, "UMC: Store instruction mem[0x%x:0x%x]\n", mp.memAddr, mp.memEnd);
         numStoreInsts++;
@@ -1334,6 +1336,7 @@ AtomicSimpleMonitor::UMCExecute()
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
             revalidateMemTag(pbyte);
         }
+    // Set tag instruction
     } else if (mp.store && mp.settag) {
         DPRINTF(Monitor, "UMC: Initializing mem[0x%x:0x%x]\n", mp.memAddr, mp.memEnd);
         numMonitorInsts++;
@@ -1343,6 +1346,7 @@ AtomicSimpleMonitor::UMCExecute()
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
             revalidateMemTag(pbyte);
         }
+    // Read syscall
     } else if (mp.settag && mp.syscallReadNbytes > 0) {
       DPRINTF(Monitor, "UMC: Syscall read instruction\n");
       // Set tags for syscall read
@@ -1357,6 +1361,7 @@ AtomicSimpleMonitor::UMCExecute()
         */
         setTagProxy(gen.addr(), gen.size(), true);
       }
+    // Unhandled instruction type
     } else {
         warn("Unknown instruction PC = %x\n", mp.instAddr);
         numMonitorInsts++;
@@ -1817,6 +1822,7 @@ AtomicSimpleMonitor::SECExecute()
 void
 AtomicSimpleMonitor::HBExecute()
 {
+    // ALU operation
     if (mp.intalu) {
         // integer ALU operation
         DPRINTF(Monitor, "HardBound: Integer ALU instruction\n");
@@ -1874,6 +1880,7 @@ AtomicSimpleMonitor::HBExecute()
 
         numIntegerInsts++;
         numMonitorInsts++;
+    // Load instruction
     } else if (mp.load) {
         DPRINTF(Monitor, "HardBound: Load instruction, vaddr=0x%x\n", mp.memAddr);
 
@@ -1907,10 +1914,12 @@ AtomicSimpleMonitor::HBExecute()
 
         numLoadInsts++;
         numMonitorInsts++;
+    // Store instruction
     } else if (mp.store && !mp.settag) {
         DPRINTF(Monitor, "HardBound: Store instruction, vaddr=0x%x\n", mp.memAddr);
 
         if (TheISA::isISAReg(mp.rs1) && TheISA::isISAReg(mp.rs2)) {
+
             HBTag tsrc = (HBTag)thread->readIntReg(mp.rs1);
             HBTag tptr = (HBTag)thread->readIntReg(mp.rs2);
             DPRINTF(Monitor, "  m[%lx <= %lx <= %lx]\n", toBaseTag(tptr), mp.memAddr, toBoundTag(tptr));
@@ -1940,6 +1949,7 @@ AtomicSimpleMonitor::HBExecute()
 
         numStoreInsts++;
         numMonitorInsts++;
+    // SETTAG instruction
     } else if (mp.store && mp.settag) {
         if (mp.size == 0) {
             // set base address

@@ -27,9 +27,10 @@
 #define ISA_ARM
 
 #ifdef ISA_ARM
-  #define NUM_REGS 32
+  // Registers range from 1 to 36
+  #define NUM_REGS 37
 #else
-  #define NUM_REGS 32
+  #define NUM_REGS 37
 #endif
 
 #define MONITOR "[HB] "
@@ -42,6 +43,10 @@ HBTag tagrf[NUM_REGS];
 
 #define toBoundTag(t) ((int)(t >> 32))
 #define toBaseTag(t)  (t & 0xffffffff)
+
+// Exclude register 33 which is the constant zero register
+#define ZERO_REG 33
+#define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
 
 /**
  * Convert address to page index
@@ -134,15 +139,16 @@ int main(int argc, char *argv[]) {
       opcode = READ_FIFO_OPCODE;
       if (opcode == ALUMov) {
         rs1 = READ_FIFO_RS1;
-        if (rs1 < NUM_REGS) {
-          if (rd < NUM_REGS) {
-            rd = READ_FIFO_RD;
+        if (isISAReg(rs1)) {
+          rd = READ_FIFO_RD;
+          if (isISAReg(rd)) {
             tagrf[rd] = tagrf[rs1];
             FC_ARRAY_REVALIDATE(rd);
           }
         } else {
+          rd = READ_FIFO_RD;
           // mov immediate
-          if (rd < NUM_REGS) {
+          if (isISAReg(rd)) {
             tagrf[rd] = 0;
             FC_ARRAY_REVALIDATE(rd);
           }
@@ -151,7 +157,7 @@ int main(int argc, char *argv[]) {
         tresult = 0;
         rs1 = READ_FIFO_RS1;
         rs2 = READ_FIFO_RS2;
-        if ((rs1 < NUM_REGS) && (rs2 <NUM_REGS)) {
+        if (isISAReg(rs1) && isISAReg(rs2)) {
           trs1 = tagrf[rs1];
           trs2 = tagrf[rs2];
           if (toBoundTag(trs1)) {
@@ -160,15 +166,15 @@ int main(int argc, char *argv[]) {
             tresult = trs2;
           }
           rd = READ_FIFO_RD;
-          if (rd < NUM_REGS) {
+          if (isISAreg(rd)) {
             tagrf[rd] = tresult;
             FC_ARRAY_REVALIDATE(rd);
           }
-        } else if (rs1 < NUM_REGS) {
+        } else if isISAReg(rs1) {
           // add immediate
           trs1 = tagrf[rs1];
           rd = READ_FIFO_RD;
-          if (rd < NUM_REGS) {
+          if (isISAReg(rd)) {
             tagrf[rd] = trs1;
             FC_ARRAY_REVALIDATE(rd);
           }
@@ -176,7 +182,7 @@ int main(int argc, char *argv[]) {
       } else {
         // other ALU operations
         rd = READ_FIFO_RD;
-        if (rd < NUM_REGS) {
+        if (isISAReg(rd)) {
           tagrf[rd] = trs1;
           FC_ARRAY_REVALIDATE(rd);
         }
@@ -185,12 +191,13 @@ int main(int argc, char *argv[]) {
       if (!READ_FIFO_SETTAG) {
         rs1 = READ_FIFO_RS1;
         rs2 = READ_FIFO_RS2;
-        if ((rs1 < NUM_REGS) && (rs2 < NUM_REGS)) {
+        if (isISAReg(rs1) && isISAReg(rs2)) {
           trs1 = tagrf[rs1];
           trs2 = tagrf[rs2];
           temp = READ_FIFO_MEMADDR;
-          if (!((trs2 == 0) || (temp >= toBaseTag(trs2)) && (temp < toBoundTag(trs2))))
+          if (!((trs2 == 0) || (temp >= toBaseTag(trs2)) && (temp < toBoundTag(trs2)))) {
             error = 1;
+          }
           // update destination pointer tag
           if (READ_FIFO_MEMSIZE == 4) {
             writeTag(READ_FIFO_PHYSADDR, trs1);
@@ -214,7 +221,7 @@ int main(int argc, char *argv[]) {
     } else if (READ_FIFO_LOAD) {
       rs1 = READ_FIFO_RS1;
       rs2 = READ_FIFO_RS2;
-      if ((rs1 < NUM_REGS) && (rs2 < NUM_REGS)) {
+      if (isISAReg(rs1) && !isISAReg(rs2)) {
         trs1 = tagrf[rs1];
         if (!((trs1 == 0) || (temp >= toBaseTag(trs1)) && (temp < toBoundTag(trs1))))
           error = 1;
@@ -222,6 +229,14 @@ int main(int argc, char *argv[]) {
           rd = READ_FIFO_RD;
           tagrf[rd] = readTag(READ_FIFO_PHYSADDR);
           FC_ARRAY_REVALIDATE(rd);
+        }
+      } else {
+        // should not reach here
+        // if we reach here for some reason, conservatively clear dest reg tag
+        rd = READ_FIFO_RD;
+        if (isISAReg(rd)) {
+            tagrf[rd] = 0;
+            FC_ARRAY_REVALIDATE(rd);
         }
       }
     }

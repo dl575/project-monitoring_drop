@@ -183,6 +183,7 @@ MainCPUClass.fifo_enabled = True
 MainCPUClass.main_core = True
 # Monitoring will be enabled by software after startup
 MainCPUClass.monitoring_enabled = False
+MainCPUClass.monitor_type = available_monitors[options.monitor]
 # Enable slack timer so it can write to it
 MainCPUClass.timer_enabled = True
 # Don't need flag cache for main core
@@ -207,6 +208,7 @@ MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True
 MonCPUClass.monitoring_enabled = False
+MonCPUClass.monitor_type = available_monitors[options.monitor]
 # Enable slack timer so it can read from it
 MonCPUClass.timer_enabled = True
 # Need flag cache for monitoring core
@@ -390,7 +392,7 @@ fifo_main_to_dc.fifo_size = options.fifo_size
 system.fifo_main_to_dc = fifo_main_to_dc
 # Create a second fifo
 fifo_dc_to_mon = Fifo(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FIFO_DC_TO_MON_OFFSET, size="64kB"))
-fifo_dc_to_mon.fifo_size = 3
+fifo_dc_to_mon.fifo_size = 2
 system.fifo_dc_to_mon = fifo_dc_to_mon
 # Create timer
 timer = PerformanceTimer(range=AddrRange(start=PERIPHERAL_ADDR_BASE + TIMER_OFFSET, size="64kB"))

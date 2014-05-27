@@ -413,7 +413,7 @@ fifo_main_to_dc.fifo_size = options.fifo_size
 system.fifo_main_to_dc = fifo_main_to_dc
 # Create a second fifo
 fifo_dc_to_mon = Fifo(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FIFO_DC_TO_MON_OFFSET, size="64kB"))
-fifo_dc_to_mon.fifo_size = 3
+fifo_dc_to_mon.fifo_size = 2 
 system.fifo_dc_to_mon = fifo_dc_to_mon
 # Create timer
 timer = PerformanceTimer(range=AddrRange(start=PERIPHERAL_ADDR_BASE + TIMER_OFFSET, size="64kB"))
