@@ -479,7 +479,7 @@ process1 = LiveProcess()
 # load a dummy executable file to avoid polluting tag memory space
 # process1.executable = os.environ["GEM5"] + "/tests/test-progs/dummy/dummy.arm"
 # process1.cmd = ""
-process1.executable = os.environ["GEM5"] + ("/tests/monitoring/%s.arm" % monitor_bin)
+process1.executable = os.environ["GEM5"] + ("/tests/monitoring/%s%s.arm" % (monitor_bin, "" if options.invalidation else "_full"))
 process1.cmd = ""
 system.cpu[1].workload = process1
 
