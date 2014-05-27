@@ -142,10 +142,11 @@ int main(int argc, char *argv[]) {
         if (isISAReg(rs1)) {
           rd = READ_FIFO_RD;
           if (isISAReg(rd)) {
-            tagrf[rd] = tagrf[rs1];
+            HBTag trs1 = tagrf[rs1];
+            tagrf[rd] = trs1;
             // Revalidate in invalidation cache and update FADE flag
             FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(2);
+            FC_SET_ARRAY_VALUE(trs1 ? 2 : 0);
             //FC_ARRAY_REVALIDATE(rd);
           }
         } else {
@@ -155,7 +156,7 @@ int main(int argc, char *argv[]) {
             tagrf[rd] = 0;
             // Revalidate in invalidation cache and update FADE flag
             FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(2);
+            FC_SET_ARRAY_VALUE(0);
             //FC_ARRAY_REVALIDATE(rd);
           }
         }
@@ -176,7 +177,7 @@ int main(int argc, char *argv[]) {
             tagrf[rd] = tresult;
             // Revalidate in invalidation cache and update FADE flag
             FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(2);
+            FC_SET_ARRAY_VALUE(tresult ? 2 : 0);
             //FC_ARRAY_REVALIDATE(rd);
           }
         } else if isISAReg(rs1) {
@@ -187,7 +188,7 @@ int main(int argc, char *argv[]) {
             tagrf[rd] = trs1;
             // Revalidate in invalidation cache and update FADE flag
             FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(2);
+            FC_SET_ARRAY_VALUE(trs1 ? 2 : 0);
             //FC_ARRAY_REVALIDATE(rd);
           }
         }
@@ -198,7 +199,7 @@ int main(int argc, char *argv[]) {
           tagrf[rd] = trs1;
           // Revalidate in invalidation cache and update FADE flag
           FC_SET_ADDR(rd);
-          FC_SET_ARRAY_VALUE(2);
+          FC_SET_ARRAY_VALUE(0);
           //FC_ARRAY_REVALIDATE(rd);
         }
       }
@@ -219,7 +220,7 @@ int main(int argc, char *argv[]) {
           }
           // Revalidate in invalidation cache and update FADE flag
           FC_SET_ADDR(temp >> 2);
-          FC_SET_CACHE_VALUE(2);
+          FC_SET_CACHE_VALUE(trs1 ? 2 : 0);
           //FC_CACHE_REVALIDATE(temp >> 2);
         }
       } else {
@@ -247,10 +248,11 @@ int main(int argc, char *argv[]) {
           error = 1;
         if (READ_FIFO_MEMSIZE == 4) {
           rd = READ_FIFO_RD;
-          tagrf[rd] = readTag(READ_FIFO_PHYSADDR);
+          HBTag tmem = readTag(READ_FIFO_PHYSADDR);
+          tagrf[rd] = tmem;
           // Revalidate in invalidation cache and update FADE flag
           FC_SET_ADDR(rd);
-          FC_SET_ARRAY_VALUE(2);
+          FC_SET_ARRAY_VALUE(tmem ? 2 : 0);
           //FC_ARRAY_REVALIDATE(rd);
         }
       } else {
@@ -260,7 +262,7 @@ int main(int argc, char *argv[]) {
         if (isISAReg(rd)) {
             tagrf[rd] = 0;
             FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(2);
+            FC_SET_ARRAY_VALUE(0);
             //FC_ARRAY_REVALIDATE(rd);
         }
       }

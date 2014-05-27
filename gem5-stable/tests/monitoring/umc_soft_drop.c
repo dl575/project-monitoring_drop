@@ -57,12 +57,12 @@ int main(int argc, char *argv[]) {
           if (word_tag == 0xF) {
             // Revalidate in invalidation RF and update FADE flag
             FC_SET_ADDR(idx >> 2);
-            FC_SET_ARRAY_VALUE(2);
+            FC_SET_CACHE_VALUE(2);
           // Not all the bits are set
           } else {
             // Revalidate in invalidation RF and clear FADE flag
             FC_SET_ADDR(idx >> 2);
-            FC_SET_ARRAY_VALUE(0);
+            FC_SET_CACHE_VALUE(0);
           }
           // Revalidate in flag cache
           // FC_CACHE_REVALIDATE(idx);
@@ -88,12 +88,12 @@ int main(int argc, char *argv[]) {
           if (word_tag == 0xF) {
             // Revalidate in invalidation RF and update FADE flag
             FC_SET_ADDR(idx >> 2);
-            FC_SET_ARRAY_VALUE(2);
+            FC_SET_CACHE_VALUE(2);
           // Not all the bits are set
           } else {
             // Revalidate in invalidation RF and clear FADE flag
             FC_SET_ADDR(idx >> 2);
-            FC_SET_ARRAY_VALUE(0);
+            FC_SET_CACHE_VALUE(0);
           }
           // Revalidate in flag cache
           // FC_CACHE_REVALIDATE(idx);

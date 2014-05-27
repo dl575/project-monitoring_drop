@@ -131,10 +131,11 @@ int main(int argc, char *argv[]) {
         rs = READ_FIFO_RS1;
         // Propagate to destination memory addresses
         temp = READ_FIFO_MEMADDR;
-        writeTag(temp, tagrf[rs]);
+        DIFTTag tsrc = tagrf[rs];
+        writeTag(temp, tsrc);
         // Revalidate in invalidation cache and update FADE flag
         FC_SET_ADDR(temp >> 2);
-        FC_SET_CACHE_VALUE(2);
+        FC_SET_CACHE_VALUE(tsrc ? 2 : 0);
         //FC_CACHE_REVALIDATE(temp >> 2);
       } else {
         // settag operation
@@ -155,10 +156,11 @@ int main(int argc, char *argv[]) {
       // Get destination register
       rd = READ_FIFO_RD;
       // Propagate from memory addresses
-      tagrf[rd] = readTag(READ_FIFO_MEMADDR);
+      DIFTTag tresult = readTag(READ_FIFO_MEMADDR);
+      tagrf[rd] = tresult;
       // Revalidate in invalidation RF and update FADE flag
       FC_SET_ADDR(rd);
-      FC_SET_ARRAY_VALUE(2);
+      FC_SET_ARRAY_VALUE(tresult ? 2 : 0);
       //FC_ARRAY_REVALIDATE(rd);
     // Indirect control
     } else if (READ_FIFO_INDCTRL) {
@@ -189,7 +191,7 @@ int main(int argc, char *argv[]) {
         tagrf[rd] = tresult;
         // Revalidate in invalidation RF and update FADE flag
         FC_SET_ADDR(rd);
-        FC_SET_ARRAY_VALUE(2);
+        FC_SET_ARRAY_VALUE(tresult ? 2 : 0);
         //FC_ARRAY_REVALIDATE(rd);
       }
     } else if ((READ_FIFO_SETTAG) && (READ_FIFO_SYSCALLNBYTES > 0)) {

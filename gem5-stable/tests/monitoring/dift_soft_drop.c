@@ -66,14 +66,16 @@ int main(int argc, char *argv[]) {
         if (tagrf[rs] == 1) {
           // Bit mask to set taint
           tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
+          // Revalidate in invalidation cache and update FADE flag
+          FC_SET_ADDR(temp);
+          FC_SET_CACHE_VALUE(2);
         } else {
           // Bit mask to clear tag
           tagmem[temp >> 3] = tagmem[temp >> 3] & ~(1 << (temp&0x07));
+          // Revalidate in invalidation cache and update FADE flag
+          FC_SET_ADDR(temp);
+          FC_SET_CACHE_VALUE(0);
         }
-        // Revalidate in invalidation cache and update FADE flag
-        FC_SET_ADDR(temp);
-        FC_SET_CACHE_VALUE(2);
-        //FC_CACHE_REVALIDATE(temp);
       } else {
         // settag operation
         register int memend = (READ_FIFO_MEMEND >> 2);
@@ -101,7 +103,7 @@ int main(int argc, char *argv[]) {
       tagrf[rd] = tresult;
       // Revalidate in invalidation cache and update FADE flag
       FC_SET_ADDR(rd);
-      FC_SET_ARRAY_VALUE(2);
+      FC_SET_ARRAY_VALUE(tresult ? 2 : 0);
       //FC_ARRAY_REVALIDATE(rd);
     // Indirect control
     } else if (READ_FIFO_INDCTRL) {
@@ -132,7 +134,7 @@ int main(int argc, char *argv[]) {
         tagrf[rd] = tresult;
         // Revalidate in invalidation cache and update FADE flag
         FC_SET_ADDR(rd);
-        FC_SET_ARRAY_VALUE(2);
+        FC_SET_ARRAY_VALUE(tresult ? 2 : 0);
         //FC_ARRAY_REVALIDATE(rd);
       }
     } else if ((READ_FIFO_SETTAG) && (READ_FIFO_SYSCALLNBYTES > 0)) {
