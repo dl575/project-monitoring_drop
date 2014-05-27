@@ -43,24 +43,60 @@ int main(int argc, char *argv[]) {
     if (temp = READ_FIFO_STORE) {
       // Write metadata, we don't differentiate between settag and regular operations
       //printf("st [0x%x:0x%x]\n", READ_FIFO_MEMADDR, READ_FIFO_MEMEND);
-      register int memend = (READ_FIFO_MEMEND >> 2);
-      for (idx = (READ_FIFO_MEMADDR >> 2); idx <= memend; ++idx) {
+      register int memend = READ_FIFO_MEMEND;
+      register int i = 0;
+      for (idx = READ_FIFO_MEMADDR; idx <= memend; ++idx) {
         // We use masks to store at bit locations based on last three bits
         metadata[idx >> 3] = metadata[idx >> 3] | (1 << (idx & 0x7));
-        // Revalidate in flag cache
-        FC_CACHE_REVALIDATE(idx);
+        // Only do once per word
+        if ((i++%4)==0){
+          // Get the four bits tags for the word
+          uint8_t word_tag = (uint8_t)metadata[idx >> 3] >> (idx & 4);
+          // All the bits are set
+          if (word_tag == 0xF) {
+            // Revalidate in invalidation RF and update FADE flag
+            FC_SET_ADDR(idx >> 2);
+            FC_SET_ARRAY_VALUE(2);
+          // Not all the bits are set
+          } else {
+            // Revalidate in invalidation RF and clear FADE flag
+            FC_SET_ADDR(idx >> 2);
+            FC_SET_ARRAY_VALUE(0);
+          }
+          // Revalidate in flag cache
+          // FC_CACHE_REVALIDATE(idx);
+        }
       }
     // Load
     } else if (temp = READ_FIFO_LOAD) {
-      idx = READ_FIFO_MEMADDR >> 2;
+      idx = READ_FIFO_MEMADDR;
       if (metadata[idx >> 3] & (1 << (idx & 0x7)) == 0) {
         error = 1;
       }
     } else if ((READ_FIFO_SETTAG) && (READ_FIFO_SYSCALLNBYTES > 0)) {
+      register int i = 0;
       // syscall read instruction
-      for (idx = (READ_FIFO_SYSCALLBUFPTR >> 2); idx < (READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES) >> 2; ++idx) {
+      for (idx = (READ_FIFO_SYSCALLBUFPTR); idx < (READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES); ++idx) {
         // We use masks to store at bit locations based on last three bits
         metadata[idx >> 3] = metadata[idx >> 3] | (1 << (idx & 0x7));
+        // Only do once per word
+        if ((i++%4)==0){
+          // Get the four bits tags for the word
+          uint8_t word_tag = (uint8_t)metadata[idx >> 3] >> (idx & 4);
+          // All the bits are set
+          if (word_tag == 0xF) {
+            // Revalidate in invalidation RF and update FADE flag
+            FC_SET_ADDR(idx >> 2);
+            FC_SET_ARRAY_VALUE(2);
+          // Not all the bits are set
+          } else {
+            // Revalidate in invalidation RF and clear FADE flag
+            FC_SET_ADDR(idx >> 2);
+            FC_SET_ARRAY_VALUE(0);
+          }
+          // Revalidate in flag cache
+          // FC_CACHE_REVALIDATE(idx);
+        }
       }
     }
 

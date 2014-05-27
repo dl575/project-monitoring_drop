@@ -805,7 +805,7 @@ BaseSimpleCPU::performMonitoring() {
         mp.valid = true;
         mp.instAddr = tc->instAddr(); // current PC
         mp.memAddr = fed.memAddr; // memory access instruction
-        mp.memEnd = fed.memAddr;
+        mp.memEnd = fed.memAddr + fed.dataSize - 1;
         mp.data = fed.data;       // memory access data
         mp.virtAddr = fed.dataVirtAddr;
         mp.physAddr = fed.dataPhysAddr;
