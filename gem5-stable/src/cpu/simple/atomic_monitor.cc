@@ -1081,7 +1081,7 @@ AtomicSimpleMonitor::revalidateRegTag(int idx)
       // Set register number in flag cache
       setFlagCacheAddr(idx);
       // Set register valid flag
-      unsigned type = FC_REGFILE;
+      unsigned type = FC_ARRAY;
       writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type),
           ArmISA::TLB::AllowUnaligned);
     // Invalidation is done on another core, send message
@@ -1104,7 +1104,7 @@ AtomicSimpleMonitor::revalidateRegTag(int idx)
       // Set register number in flag cache
       setFlagCacheAddr(idx);
       // Clear register invalidation flag
-      unsigned type = FC_REGFILE;
+      unsigned type = FC_ARRAY;
       writeToFlagCache(FC_CLEAR_FLAG, (uint8_t *)&type, sizeof(type),
           ArmISA::TLB::AllowUnaligned);
     // Invalidation is done on another core, send message
@@ -1135,7 +1135,7 @@ AtomicSimpleMonitor::invalidateRegTag(int idx)
       // Set register number in flag cache
       setFlagCacheAddr(idx);
       // Clear register invalidation flag
-      unsigned type = FC_REGFILE;
+      unsigned type = FC_ARRAY;
       writeToFlagCache(FC_SET_FLAG, (uint8_t *)&type, sizeof(type),
           ArmISA::TLB::AllowUnaligned);
     // Invalidation is done on another core, send message
@@ -1234,7 +1234,41 @@ AtomicSimpleMonitor::invalidateMemTag(Addr addr)
     }
 }
 
+void
+AtomicSimpleMonitor::setDropRegTag(int idx, unsigned fadeTag, unsigned invalidTag)
+{
+    setFlagCacheAddr(idx << 2);
+    // calculate combined tag
+    unsigned combined_tag = (fadeTag << 1) | invalidTag;
+    // create request
+    Request *req = &monitor_req;
+    req->setPhys(DROP_SET_ARRAY_VALUE, sizeof(unsigned), ArmISA::TLB::AllowUnaligned, dataMasterId());
+    // create packet
+    PacketPtr p = new Packet(req, MemCmd::WriteReq);
+    p->dataStatic(&combined_tag);
+    // send packet
+    monitorPort.sendFunctional(p);
+    // clean up
+    delete p;
+}
 
+void
+AtomicSimpleMonitor::setDropMemTag(Addr addr, unsigned fadeTag, unsigned invalidTag)
+{
+    setFlagCacheAddr(addr);
+    // calculate combined tag
+    unsigned combined_tag = (fadeTag << 1) | invalidTag;
+    // create request
+    Request *req = &monitor_req;
+    req->setPhys(DROP_SET_CACHE_VALUE, sizeof(unsigned), ArmISA::TLB::AllowUnaligned, dataMasterId());
+    // create packet
+    PacketPtr p = new Packet(req, MemCmd::WriteReq);
+    p->dataStatic(&combined_tag);
+    // send packet
+    monitorPort.sendFunctional(p);
+    // clean up
+    delete p;
+}
 
 // Set current address in flag cache without setting/clearing flags
 void
@@ -1334,7 +1368,7 @@ AtomicSimpleMonitor::UMCExecute()
             writeBitTag(pbyte, 1);
         }
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
-            revalidateMemTag(pbyte);
+            setDropMemTag(pbyte, 1, 0);
         }
     // Set tag instruction
     } else if (mp.store && mp.settag) {
@@ -1344,7 +1378,7 @@ AtomicSimpleMonitor::UMCExecute()
             writeBitTag(pbyte, 1);
         }
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
-            revalidateMemTag(pbyte);
+            setDropMemTag(pbyte, 1, 0);
         }
     // Read syscall
     } else if (mp.settag && mp.syscallReadNbytes > 0) {
@@ -1390,7 +1424,7 @@ AtomicSimpleMonitor::DIFTExecute()
             tresult |= (DIFTTag)thread->readIntReg(mp.rs2);
         if (TheISA::isISAReg(mp.rd)) {
             thread->setIntReg((int)mp.rd, (uint64_t)tresult);
-            revalidateRegTag((int)mp.rd);
+            setDropRegTag((int)mp.rd, tresult ? 1 : 0, 0);
         }
 
         if (trd || tresult) {
@@ -1409,7 +1443,7 @@ AtomicSimpleMonitor::DIFTExecute()
         tresult |= (DIFTTag)readBitTag(mp.memAddr);
         if (TheISA::isISAReg(mp.rd)) {
             thread->setIntReg((int)mp.rd, (uint64_t)tresult);
-            revalidateRegTag((int)mp.rd);
+            setDropRegTag((int)mp.rd, tresult ? 1 : 0, 0);
         }
         
         if (trd || tresult) {
@@ -1428,7 +1462,7 @@ AtomicSimpleMonitor::DIFTExecute()
 
         tdest |= readTagFunctional(mp.memAddr);
         writeBitTag(mp.memAddr, tsrc);
-        revalidateMemTag(mp.memAddr);
+        setDropMemTag(mp.memAddr, tsrc ? 1 : 0, 0);
 
         if (tdest || tsrc) {
             numTaintedStoreInsts++;
@@ -1442,7 +1476,7 @@ AtomicSimpleMonitor::DIFTExecute()
             writeBitTag(pbyte, (bool)mp.data);
         }
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
-            revalidateMemTag(pbyte);
+            setDropMemTag(mp.memAddr, 1, 0);
         }
     // Indirect control instruction
     } else if (mp.indctrl) {
@@ -1599,7 +1633,7 @@ AtomicSimpleMonitor::MultiDIFTExecute()
             tresult |= (DIFTTag)thread->readIntReg(mp.rs1);
         if (TheISA::isISAReg(mp.rd)) {
             thread->setIntReg((int)mp.rd, (uint64_t)tresult);
-            revalidateRegTag((int)mp.rd);
+            setDropRegTag((int)mp.rd, tresult ? 1 : 0, 0);
         }
 
         if (trd || tresult) {
@@ -1619,7 +1653,7 @@ AtomicSimpleMonitor::MultiDIFTExecute()
         }
         if (TheISA::isISAReg(mp.rd)) {
             thread->setIntReg((int)mp.rd, (uint64_t)tresult);
-            revalidateRegTag((int)mp.rd);
+            setDropRegTag((int)mp.rd, tresult ? 1 : 0, 0);
         }
         
         if (trd || tresult) {
@@ -1640,7 +1674,7 @@ AtomicSimpleMonitor::MultiDIFTExecute()
             writeWordTag(pbyte, tsrc);
         }
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
-            revalidateMemTag(pbyte);
+            setDropMemTag(mp.memAddr, tsrc ? 1 : 0, 0);
         }
 
         if (tdest || tsrc) {
@@ -1654,7 +1688,7 @@ AtomicSimpleMonitor::MultiDIFTExecute()
             writeWordTag(pbyte, (bool)mp.data);
         }
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
-            revalidateMemTag(pbyte);
+            setDropMemTag(mp.memAddr, 1, 0);
         }
     } else if (mp.indctrl) {
         DPRINTF(Monitor, "Multi DIFT: Indirect control transfer instruction\n");
@@ -1690,13 +1724,13 @@ AtomicSimpleMonitor::BCExecute()
                 BCTag trs1 = (BCTag)thread->readIntReg(mp.rs1);
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, (uint64_t)trs1);
-                    revalidateRegTag((int)mp.rd);
+                    setDropRegTag((int)mp.rd, trs1 ? 1 : 0, 0);
                 }
             } else {
                 if (TheISA::isISAReg(mp.rd)) {
                     // mov immediate
                     thread->setIntReg((int)mp.rd, 0);
-                    revalidateRegTag((int)mp.rd);
+                    setDropRegTag((int)mp.rd, 0, 0);
                 }
             }
         } else if ((opcode == ALUAdd) || (opcode == ALUSub)) {
@@ -1713,14 +1747,14 @@ AtomicSimpleMonitor::BCExecute()
                     tresult = trs1 - trs2;
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, (uint64_t)tresult);
-                    revalidateRegTag((int)mp.rd);
+                    setDropRegTag((int)mp.rd, tresult ? 1 : 0, 0);
                 }
             } else if (TheISA::isISAReg(mp.rs1)) {
                 // register + imm operands
                 BCTag trs1 = (BCTag)thread->readIntReg(mp.rs1);
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, (uint64_t)trs1);
-                    revalidateRegTag((int)mp.rd);
+                    setDropRegTag((int)mp.rd, trs1 ? 1 : 0, 0);
                 }
             } else {
                 // we should never reach here
@@ -1730,7 +1764,7 @@ AtomicSimpleMonitor::BCExecute()
             if (TheISA::isISAReg(mp.rd)) {
                 // other ALU operations
                 thread->setIntReg((int)mp.rd, 0);
-                revalidateRegTag((int)mp.rd);
+                setDropRegTag((int)mp.rd, 0, 0);
             }
         }
 
@@ -1751,7 +1785,7 @@ AtomicSimpleMonitor::BCExecute()
             // update register tag
             if (TheISA::isISAReg(mp.rd)) {
                 thread->setIntReg((int)mp.rd, toPtrTag(tmem));
-                revalidateRegTag((int)mp.rd);
+                setDropRegTag((int)mp.rd, tmem ? 1 : 0, 0);
             }
             if (toPtrTag(tmem) != 0) {
                 DPRINTF(Monitor, "BC: write pointer tag %d to r%d\n", toMemTag(tmem), (int)mp.rd);
@@ -1761,7 +1795,7 @@ AtomicSimpleMonitor::BCExecute()
             // if we reach here for some reason, conservatively clear dest reg tag
             if (TheISA::isISAReg(mp.rd)) {
                 thread->setIntReg((int)mp.rd, 0);
-                revalidateRegTag((int)mp.rd);
+                setDropRegTag((int)mp.rd, 0, 0);
             }
         }
 
@@ -1782,13 +1816,13 @@ AtomicSimpleMonitor::BCExecute()
 
             // update destination pointer tag
             writeTag(mp.memAddr, mergeMemPtrTags(tmem, tsrc));
-            revalidateMemTag(mp.memAddr);
+            setDropMemTag(mp.memAddr, mergeMemPtrTags(tmem, tsrc) ? 1 : 0, 0);
         } else {
             // should not reach here
             // if we reach here for some reason, conservatively clear pointer tag
             BCTag tmem = readTagFunctional(mp.memAddr);
             writeTag(mp.memAddr, mergeMemPtrTags(tmem, 0));
-            revalidateMemTag(mp.memAddr);
+            setDropMemTag(mp.memAddr, mergeMemPtrTags(tmem, 0) ? 1 : 0, 0);
         }
 
         numStoreInsts++;
@@ -1799,7 +1833,7 @@ AtomicSimpleMonitor::BCExecute()
             writeTag(pbyte, (Tag)mp.data);
         }
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
-            revalidateMemTag(pbyte);
+            setDropMemTag(pbyte, 1, 0);
         }
     } else {
         warn("Unknown instruction PC = %x\n", mp.instAddr);
@@ -1833,14 +1867,14 @@ AtomicSimpleMonitor::HBExecute()
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, (uint64_t)trs1);
                     DPRINTF(Monitor, "  r[%d] = %lx\n", (int)mp.rd, (uint64_t)trs1);
-                    revalidateRegTag((int)mp.rd);
+                    setDropRegTag((int)mp.rd, trs1 ? 1 : 0, 0);
                 }
             } else {
                 // mov immediate
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, 0);
                     DPRINTF(Monitor, "  r[%d] = 0\n", (int)mp.rd);
-                    revalidateRegTag((int)mp.rd);
+                    setDropRegTag((int)mp.rd, 0, 0);
                 }
             }
         } else if ((opcode == ALUAdd) || (opcode == ALUSub)) {
@@ -1856,14 +1890,14 @@ AtomicSimpleMonitor::HBExecute()
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, (uint64_t)tresult);
                     DPRINTF(Monitor, "  r[%d] = %lx\n", (int)mp.rd, (uint64_t)tresult);
-                    revalidateRegTag((int)mp.rd);
+                    setDropRegTag((int)mp.rd, tresult ? 1 : 0, 0);
                 }
             } else if (TheISA::isISAReg(mp.rs1)) {
                 HBTag trs1 = (HBTag)thread->readIntReg(mp.rs1);
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, (uint64_t)trs1);
                     DPRINTF(Monitor, "  r[%d] = %lx\n", (int)mp.rd, (uint64_t)trs1);
-                    revalidateRegTag((int)mp.rd);
+                    setDropRegTag((int)mp.rd, trs1 ? 1 : 0, 0);
                 }
             } else {
                 // we should never reach here
@@ -1874,7 +1908,7 @@ AtomicSimpleMonitor::HBExecute()
             if (TheISA::isISAReg(mp.rd)) {
                 thread->setIntReg((int)mp.rd, 0);
                 DPRINTF(Monitor, "  r[%d] = 0\n", (int)mp.rd);
-                revalidateRegTag((int)mp.rd);
+                setDropRegTag((int)mp.rd, 0, 0);
             }
         }
 
@@ -1900,7 +1934,7 @@ AtomicSimpleMonitor::HBExecute()
                 HBTag tmem = readDWordTag(mp.physAddr);
                 if (TheISA::isISAReg(mp.rd)) {
                     thread->setIntReg((int)mp.rd, tmem);
-                    revalidateRegTag((int)mp.rd);
+                    setDropRegTag((int)mp.rd, tmem ? 1 : 0, 0);
                 }
             }
         } else {
@@ -1908,7 +1942,7 @@ AtomicSimpleMonitor::HBExecute()
             // if we reach here for some reason, conservatively clear dest reg tag
             if (TheISA::isISAReg(mp.rd)) {
                 thread->setIntReg((int)mp.rd, 0);
-                revalidateRegTag((int)mp.rd);
+                setDropRegTag((int)mp.rd, 0, 0);
             }
         }
 
@@ -1935,7 +1969,7 @@ AtomicSimpleMonitor::HBExecute()
                 writeDWordTag(mp.physAddr, tsrc);
             }
             for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
-                revalidateMemTag(pbyte);
+                setDropMemTag(pbyte, tsrc ? 1 : 0, 0);
             }
         } else {
             // should not reach here
@@ -1943,7 +1977,7 @@ AtomicSimpleMonitor::HBExecute()
             if (mp.size == 4)
                 writeDWordTag(mp.physAddr, 0);
             for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
-                revalidateMemTag(pbyte);
+                setDropMemTag(pbyte, 0, 0);
             }
         }
 
@@ -1959,7 +1993,7 @@ AtomicSimpleMonitor::HBExecute()
             setTagData = setTagData | (mp.data << 32);
             DPRINTF(Monitor, "HardBound: Set tag mem[0x%x]=%llx\n", mp.memAddr, setTagData);
             writeDWordTag(mp.physAddr, setTagData);
-            revalidateMemTag(mp.memAddr);
+            setDropMemTag(mp.physAddr, 1, 0);
         }
     } else {
         warn("Unknown instruction PC = %x\n", mp.instAddr);

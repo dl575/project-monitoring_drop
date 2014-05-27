@@ -852,24 +852,28 @@ DropSimpleCPU::readFromFlagCache(Addr addr, uint8_t * data,
     // On flag cache read
     if (addr == FC_GET_FLAG_C){
         DPRINTF(FlagCache, "Reading memory-backed cache\n");
-        uint8_t invalid_bits = 0;
+        uint8_t fc_flags = 0;
         // Get read address
         Addr fc_addr = 0;
         BaseSimpleCPU::readFromFlagCache(FC_GET_ADDR, (uint8_t *)&fc_addr, sizeof(fc_addr), ArmISA::TLB::AllowUnaligned);
         // Get aligned address
-        Addr cache_addr = roundDown(fc_addr, 8*sizeof(invalid_bits));
+        // We take the address and right shift it by at most 3 spaces.
+        Addr cache_addr = fc_addr >> (3-FC_LOGBITS);
         // Allocate page if it doesn't exist
         pageAllocate(cache_addr);
-        // Read byte address (with latency)
-        unsigned cache_flags = getCacheFlags(sizeof(invalid_bits));
-        fault = readMem(cache_addr, &invalid_bits, sizeof(invalid_bits), cache_flags);
-        // Bit mask read
-        invalid_bits &= (1 << (fc_addr&(8*sizeof(invalid_bits)-1)));
-        // Convert to flag
-        uint64_t value = (invalid_bits != 0);
+        // Read data at address (with latency)
+        unsigned cache_flags = getCacheFlags(sizeof(fc_flags));
+        fault = readMem(cache_addr, &fc_flags, sizeof(fc_flags), cache_flags);
+        // Find position address for the fc_flags, i.e. where in the fc_flags the relevant bits are
+        // Basically, we take the last (3-FC_LOGBITS) bits
+        // and we stride it using FC_NUMBITS
+        Addr position_addr = (fc_addr&((1<<(3-FC_LOGBITS))-1))*FC_NUMBITS;
+        // Now calculate the flag
+        // We use the maximum flag value to mask into the data at the position address and shift back
+        uint64_t value = ((fc_flags & (FC_MAXVAL << position_addr)) >> position_addr);
         // Copy back data
         memcpy(data, &value, size);
-        DPRINTF(FlagCache, "Flag cache read @ %x -> %x: %x -> %d\n", fc_addr, cache_addr, invalid_bits, value);
+        DPRINTF(FlagCache, "Flag cache read @ %x -> {%x,%x}: %x -> %d\n", fc_addr, cache_addr, position_addr, fc_flags, value);
         numCacheLoads++;
     } else {
         fault = BaseSimpleCPU::readFromFlagCache(addr, data, size, flags);
@@ -892,35 +896,72 @@ DropSimpleCPU::writeToFlagCache(Addr addr, uint8_t * data,
     // On flag cache write
     if ((addr == FC_SET_FLAG || addr == FC_CLEAR_FLAG) && get_data == 1){
         DPRINTF(FlagCache, "Setting memory-backed cache\n");
-        uint8_t invalid_bits = 0;
-        // Get write address
+        uint8_t fc_flags = 0;
+        // Get read address
         Addr fc_addr = 0;
         BaseSimpleCPU::readFromFlagCache(FC_GET_ADDR, (uint8_t *)&fc_addr, sizeof(fc_addr), ArmISA::TLB::AllowUnaligned);
         // Get aligned address
-        Addr cache_addr = roundDown(fc_addr, 8*sizeof(invalid_bits));
+        // We take the address and right shift it by at most 3 spaces. 
+        Addr cache_addr = fc_addr >> (3-FC_LOGBITS);
         // Allocate page if it doesn't exist
         pageAllocate(cache_addr);
-        // Read byte address (with latency)
-        unsigned cache_flags = getCacheFlags(sizeof(invalid_bits));
-        fault = readMem(cache_addr, &invalid_bits, sizeof(invalid_bits), cache_flags);
+        // Read data at address (with latency)
+        unsigned cache_flags = getCacheFlags(sizeof(fc_flags));
+        fault = readMem(cache_addr, &fc_flags, sizeof(fc_flags), cache_flags);
         if (fault != NoFault) { return fault; }
+        // Find position address for the fc_flags, i.e. where in the fc_flags the relevant bits are
+        // Basically, we take the last (3-FC_LOGBITS) bits
+        // and we stride it using FC_NUMBITS
+        Addr position_addr = (fc_addr&((1<<(3-FC_LOGBITS))-1))*FC_NUMBITS;
         // Bit mask write
-        uint8_t invalid_bits_new = 0;
-        uint8_t mask = (1 << (fc_addr&7));
+        uint8_t fc_flags_new = 0;
+        uint8_t mask = (FC_MAXVAL << position_addr);
         if (addr == FC_SET_FLAG) {
-            invalid_bits_new = invalid_bits | mask;
+            fc_flags_new = fc_flags | mask;
         } else if (addr == FC_CLEAR_FLAG) {
-            invalid_bits_new = invalid_bits & ~mask;
+            fc_flags_new = fc_flags & ~mask;
         }
         // Write back byte (functional)
-        fault = writeMemFunctional(&invalid_bits_new, sizeof(invalid_bits_new), cache_addr, cache_flags, NULL);
+        fault = writeMemFunctional(&fc_flags_new, sizeof(fc_flags_new), cache_addr, cache_flags, NULL);
         
         if (addr == FC_SET_FLAG) {
-            DPRINTF(FlagCache, "Flag cache set @ %x -> %x: invalid bits are %x -> %x\n", fc_addr, cache_addr, invalid_bits, invalid_bits_new);
+            warn_once("Using FC_SET_FLAG is depricated. Use the new FlagCache interface.\n");
+            DPRINTF(FlagCache, "Flag cache set @ %x -> {%x,%x}: flag bits are %x -> %x\n", fc_addr, cache_addr, position_addr, fc_flags, fc_flags_new);
         } else if (addr == FC_CLEAR_FLAG) {
-            DPRINTF(FlagCache, "Flag cache clear @ %x -> %x: invalid bits are %x -> %x\n", fc_addr, cache_addr, invalid_bits, invalid_bits_new);
+            warn_once("Using FC_CLEAR_FLAG is depricated. Use the new FlagCache interface.\n");
+            DPRINTF(FlagCache, "Flag cache clear @ %x -> {%x,%x}: flag bits are %x -> %x\n", fc_addr, cache_addr, position_addr, fc_flags, fc_flags_new);
         }
-        
+        numCacheStores++;
+    // Write a value to flag cache
+    } else if (addr == FC_SET_CACHE) {
+        DPRINTF(FlagCache, "Setting memory-backed cache\n");
+        uint8_t fc_flags = 0;
+        // Get read address
+        Addr fc_addr = 0;
+        BaseSimpleCPU::readFromFlagCache(FC_GET_ADDR, (uint8_t *)&fc_addr, sizeof(fc_addr), ArmISA::TLB::AllowUnaligned);
+        // Get aligned address
+        // We take the address and right shift it by at most 3 spaces. 
+        Addr cache_addr = fc_addr >> (3-FC_LOGBITS);
+        // Allocate page if it doesn't exist
+        pageAllocate(cache_addr);
+        // Read data at address (with latency)
+        unsigned cache_flags = getCacheFlags(sizeof(fc_flags));
+        fault = readMem(cache_addr, &fc_flags, sizeof(fc_flags), cache_flags);
+        if (fault != NoFault) { return fault; }
+        // Find position address for the fc_flags, i.e. where in the fc_flags the relevant bits are
+        // Basically, we take the last (3-FC_LOGBITS) bits
+        // and we stride it using FC_NUMBITS
+        Addr position_addr = (fc_addr&((1<<(3-FC_LOGBITS))-1))*FC_NUMBITS;
+        // Bit mask write
+        // Make sure data does not exceed maximum value
+        uint8_t write_data = (get_data > FC_MAXVAL)? FC_MAXVAL : get_data;
+        // Create mask to clear out existing data
+        uint8_t clear_mask = ~(FC_MAXVAL << position_addr);
+        // Clear existing data and OR new data shifted to correct position
+        uint8_t fc_flags_new = (fc_flags & clear_mask) | (write_data << position_addr);
+        // Write back byte (functional)
+        fault = writeMemFunctional(&fc_flags_new, sizeof(fc_flags_new), cache_addr, cache_flags, NULL);
+        DPRINTF(FlagCache, "Flag cache set value %d @ %x -> {%x,%x}: flag bits are %x -> %x\n", write_data, fc_addr, cache_addr, position_addr, fc_flags, fc_flags_new);
         numCacheStores++;
     // Write to flag array (register file)
     } else {
@@ -1390,24 +1431,37 @@ DropSimpleCPU::MonitorPort::recvFunctional(PacketPtr pkt)
     if (!queue.checkFunctional(pkt)) {
         if (pkt->cmd == MemCmd::WriteReq) {
             uint8_t type;
-            bool set = false; // set flag if true, clear if false
             switch (pkt->getAddr()){
-                case DROP_CLEAR_ARRAY: type = 0; break;
-                case DROP_CLEAR_CACHE: type = 1; break;
-                case DROP_FC_SET_ADDR: type = 2; break;
-                case DROP_SET_ARRAY:   type = 0; set = true; break;
-                case DROP_SET_CACHE:   type = 1; set = true; break;
-                default: panic ("Unimplemented port request");
-            }
-            if (cpu->flagcache_enabled){
-                cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
-                if (type == 0 || type == 1) {
-                  if (set) {
-                    cpu->writeToFlagCache(FC_SET_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
-                  } else {
+                case DROP_CLEAR_ARRAY:
+                    cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    type = FC_ARRAY;
                     cpu->writeToFlagCache(FC_CLEAR_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
-                  }
-                }
+                    break;
+                case DROP_CLEAR_CACHE: 
+                    cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    type = FC_CACHE;
+                    cpu->writeToFlagCache(FC_CLEAR_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                    break;
+                case DROP_SET_ARRAY:
+                    cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    type = FC_ARRAY;
+                    cpu->writeToFlagCache(FC_SET_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                    break;
+                case DROP_SET_CACHE:
+                    cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    type = FC_CACHE;
+                    cpu->writeToFlagCache(FC_CLEAR_FLAG, &type, sizeof(type), ArmISA::TLB::AllowUnaligned);
+                    break;
+                case DROP_FC_SET_ADDR:
+                    cpu->writeToFlagCache(FC_SET_ADDR, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    break;
+                case DROP_SET_ARRAY_VALUE:
+                    cpu->writeToFlagCache(FC_SET_ARRAY, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    break;
+                case DROP_SET_CACHE_VALUE:
+                    cpu->writeToFlagCache(FC_SET_CACHE, pkt->getPtr<uint8_t>(), pkt->getSize(), ArmISA::TLB::AllowUnaligned);
+                    break;
+                default: panic ("Unimplemented port request");
             }
         } else {
             panic ("Unimplemented port request");

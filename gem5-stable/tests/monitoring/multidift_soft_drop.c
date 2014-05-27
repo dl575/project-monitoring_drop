@@ -127,8 +127,10 @@ int main(int argc, char *argv[]) {
         // Propagate to destination memory addresses
         temp = READ_FIFO_MEMADDR;
         writeTag(temp, tagrf[rs]);
-        // Revalidate in invalidation cache
-        FC_CACHE_REVALIDATE(temp >> 2);
+        // Revalidate in invalidation cache and update FADE flag
+        FC_SET_ADDR(temp >> 2);
+        FC_SET_CACHE_VALUE(2);
+        //FC_CACHE_REVALIDATE(temp >> 2);
       } else {
         // settag operation
         register int memend = READ_FIFO_MEMEND;
@@ -136,7 +138,10 @@ int main(int argc, char *argv[]) {
           // Bit mask to set taint
           writeTag(temp, 1);
           // Revalidate in invalidation cache
-          FC_CACHE_REVALIDATE(temp >> 2);
+          // Revalidate in invalidation cache and update FADE flag
+          FC_SET_ADDR(temp >> 2);
+          FC_SET_CACHE_VALUE(2);
+          //FC_CACHE_REVALIDATE(temp >> 2);
         }
       }
     // Load
@@ -146,8 +151,10 @@ int main(int argc, char *argv[]) {
       rd = READ_FIFO_RD;
       // Propagate from memory addresses
       tagrf[rd] = readTag(READ_FIFO_MEMADDR);
-      // Revalidate in invalidation register file
-      FC_ARRAY_REVALIDATE(rd);
+      // Revalidate in invalidation RF and update FADE flag
+      FC_SET_ADDR(rd);
+      FC_SET_ARRAY_VALUE(2);
+      //FC_ARRAY_REVALIDATE(rd);
     // Indirect control
     } else if (READ_FIFO_INDCTRL) {
       rs = READ_FIFO_RS1;
@@ -175,8 +182,10 @@ int main(int argc, char *argv[]) {
       // Set destination taint
       if (rd < NUM_REGS) {
         tagrf[rd] = tresult;
-        // Revalidate in invalidation register file
-        FC_ARRAY_REVALIDATE(rd);
+        // Revalidate in invalidation RF and update FADE flag
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(2);
+        //FC_ARRAY_REVALIDATE(rd);
       }
     } else if ((READ_FIFO_SETTAG) && (READ_FIFO_SYSCALLNBYTES > 0)) {
       // syscall read instruction

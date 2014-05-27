@@ -295,6 +295,7 @@ class BaseSimpleCPU : public BaseCPU
     // drop statistics
     Stats::Vector dropstats;
     Stats::Vector filterstats;
+    Stats::Vector2d filterdetailed;
     Stats::Vector coveragedropstats;
     Stats::Vector fullstats;
 
@@ -540,7 +541,8 @@ class BaseSimpleCPU : public BaseCPU
         std::string table_name;
         
       public:
-        unsigned table[num_inst_types][4];
+        static const unsigned size = 1 << (2*FC_NUMBITS);
+        unsigned table[num_inst_types][size];
         
         FilterPtrTable(std::string name)
             : table(), initialized(false)
@@ -574,7 +576,7 @@ class BaseSimpleCPU : public BaseCPU
     // Port for accessing flag cache
     CpuPort fcPort;
     // Invalidation table object
-    static const int it_add_size = 4;
+    static const int it_add_size = 6;
     InvalidationTable <it_add_size> invtab;
     // Filtering tables
     InvalidationTable <> filtertab1;

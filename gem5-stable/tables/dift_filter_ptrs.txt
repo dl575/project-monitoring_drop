@@ -1,6 +1,14 @@
-//opcode    00  01  10  11
+//  opcode    00  01  10  11
 
-  LOAD       0   0   1   1
-  STORE      0   0   3   3
-  INDCTRL    0   0   2   2
-  INTALU     0   1   1   1 
+//  LOAD       0   0   1   1
+//  STORE      0   0   3   3
+//  INDCTRL    0   0   2   2
+//  INTALU     0   1   1   1 
+
+//Includes FADE filtering in MSB
+//Filter to NOP for both FADE and Invalids
+//opcode    0000  0001  0010  0011  0100  0101  0110  0111  1000  1001  1010  1011  1100  1101  1110  1111
+  LOAD         4     4     4     4     1     1     1     1     0     0     0     0     1     1     1     1
+  STORE        5     5     5     5     3     3     3     3     0     0     0     0     3     3     3     3
+  INDCTRL      2     2     2     2     2     2     2     2     0     0     0     0     2     2     2     2
+  INTALU       4     1     0     1     1     1     1     1     0     1     0     1     1     1     1     1

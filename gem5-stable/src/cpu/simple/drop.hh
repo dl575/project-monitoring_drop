@@ -50,11 +50,13 @@
 #include "mem/drop/ipt.hh"
 #include "mem/drop/ipt_bloom.hh"
 
-#define DROP_CLEAR_ARRAY 0
-#define DROP_CLEAR_CACHE 1
-#define DROP_FC_SET_ADDR 2
-#define DROP_SET_ARRAY   3
-#define DROP_SET_CACHE   4
+#define DROP_CLEAR_ARRAY     0
+#define DROP_CLEAR_CACHE     1
+#define DROP_FC_SET_ADDR     2
+#define DROP_SET_ARRAY       3
+#define DROP_SET_CACHE       4
+#define DROP_SET_ARRAY_VALUE 5
+#define DROP_SET_CACHE_VALUE 6
 
 class DropSimpleCPU : public BaseSimpleCPU
 {

@@ -402,58 +402,27 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size,
         return writeToFlagCache(addr, data, size, flags);
       // Invalidation is done on another core, send message
       } else {
-        if (addr == FC_SET_ADDR) {
-          panic("Unimplemented. Use REVALIDATE/INVALIDATE or implement.");
-        } else if (addr == FC_SET_FLAG) {
-          panic("Unimplemented. Use REVALIDATE/INVALIDATE or implement.");
-        } else if (addr == FC_CLEAR_FLAG) {
-          panic("Unimplemented. Use REVALIDATE/INVALIDATE or implement.");
-        } else if (addr == FC_CACHE_REVALIDATE) {
-          // Create request
-          Request *req = &monitor_req;
-          req->setPhys(DROP_CLEAR_CACHE, sizeof(fed.data), ArmISA::TLB::AllowUnaligned, dataMasterId());
-          // Create packet
-          PacketPtr p = new Packet(req, MemCmd::WriteReq);
-          p->dataStatic(&fed.data);
-          // Send packet
-          monitorPort.sendFunctional(p);
-          // Clean up
-          delete p;
-        } else if (addr == FC_ARRAY_REVALIDATE) {
-          // Create request
-          Request *req = &monitor_req;
-          req->setPhys(DROP_CLEAR_ARRAY, sizeof(fed.data), ArmISA::TLB::AllowUnaligned, dataMasterId());
-          // Create packet
-          PacketPtr p = new Packet(req, MemCmd::WriteReq);
-          p->dataStatic(&fed.data);
-          // Send packet
-          monitorPort.sendFunctional(p);
-          // Clean up
-          delete p;
-        } else if (addr == FC_CACHE_INVALIDATE) {
-          // Create request
-          Request *req = &monitor_req;
-          req->setPhys(DROP_SET_CACHE, sizeof(fed.data), ArmISA::TLB::AllowUnaligned, dataMasterId());
-          // Create packet
-          PacketPtr p = new Packet(req, MemCmd::WriteReq);
-          p->dataStatic(&fed.data);
-          // Send packet
-          monitorPort.sendFunctional(p);
-          // Clean up
-          delete p;
-        } else if (addr == FC_ARRAY_INVALIDATE) {
-          // Create request
-          Request *req = &monitor_req;
-          req->setPhys(DROP_SET_ARRAY, sizeof(fed.data), ArmISA::TLB::AllowUnaligned, dataMasterId());
-          // Create packet
-          PacketPtr p = new Packet(req, MemCmd::WriteReq);
-          p->dataStatic(&fed.data);
-          // Send packet
-          monitorPort.sendFunctional(p);
-          // Clean up
-          delete p;
-
-        }
+        // Create request
+        Request *req = &monitor_req;
+        Addr drop_addr = 0;
+        switch (addr) {
+            case FC_SET_ADDR: drop_addr = DROP_FC_SET_ADDR; break;
+            case FC_CACHE_REVALIDATE: drop_addr = DROP_CLEAR_CACHE; break;
+            case FC_ARRAY_REVALIDATE: drop_addr = DROP_CLEAR_ARRAY; break;
+            case FC_CACHE_INVALIDATE: drop_addr = DROP_SET_CACHE; break;
+            case FC_ARRAY_INVALIDATE: drop_addr = DROP_SET_ARRAY; break;
+            case FC_SET_ARRAY: drop_addr = DROP_SET_ARRAY_VALUE; break;
+            case FC_SET_CACHE: drop_addr = DROP_SET_CACHE_VALUE; break;
+            default: panic("Unimplemented Flag Cache Operation %x\n", addr);
+        }          
+        req->setPhys(drop_addr, sizeof(fed.data), ArmISA::TLB::AllowUnaligned, dataMasterId());
+        // Create packet
+        PacketPtr p = new Packet(req, MemCmd::WriteReq);
+        p->dataStatic(&fed.data);
+        // Send packet
+        monitorPort.sendFunctional(p);
+        // Clean up
+        delete p;
 
         return NoFault;
       }
