@@ -138,6 +138,8 @@ parser.add_option("--source_propagation", action="store_true")
 
 # Configuration for WCET bound mode
 parser.add_option("--wcet", action="store_true")
+# Set non-drop probability
+parser.add_option("--non_drop_probability", type="float", default=1.0)
 
 available_monitors = {
   "none" : 0,
@@ -414,6 +416,8 @@ timer.increment_important_only = options.increment_important_only
 timer.slack_multiplier_interval = options.slack_multiplier_interval
 timer.read_slack_multiplier = options.read_slack_multiplier
 timer.persistence_dir = options.backtrack_table_dir
+# Non-drop probability
+timer.not_drop_prob = options.non_drop_probability
 # We can also set a probabilistic range
 if options.probabilistic_drop:
   timer.seed = random.randint(-2**30,2**30)
