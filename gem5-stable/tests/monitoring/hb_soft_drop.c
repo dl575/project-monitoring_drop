@@ -29,8 +29,12 @@
 #ifdef ISA_ARM
   // Registers range from 1 to 36
   #define NUM_REGS 37
+  // Exclude register 33 which is the constant zero register
+  #define ZERO_REG 33
+  #define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
 #else
-  #define NUM_REGS 37
+  #define NUM_REGS 32
+  #define isISAReg(x) (x < NUM_REGS)
 #endif
 
 #define MONITOR "[HB] "
@@ -43,10 +47,6 @@ HBTag tagrf[NUM_REGS];
 
 #define toBoundTag(t) ((int)(t >> 32))
 #define toBaseTag(t)  (t & 0xffffffff)
-
-// Exclude register 33 which is the constant zero register
-#define ZERO_REG 33
-#define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
 
 /**
  * Convert address to page index

@@ -24,9 +24,14 @@
 #define ISA_ARM
 
 #ifdef ISA_ARM
-  #define NUM_REGS 32
+  // Registers range from 1 to 36
+  #define NUM_REGS 37
+  // Exclude register 33 which is the constant zero register
+  #define ZERO_REG 33
+  #define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
 #else
   #define NUM_REGS 32
+  #define isISAReg(x) (x < NUM_REGS)
 #endif
 
 #define MONITOR "[DIFT] "
@@ -113,17 +118,17 @@ int main(int argc, char *argv[]) {
       // Read source tags and determine taint of destination
       register bool tresult = false;
       rs = READ_FIFO_RS1;
-      if (rs < NUM_REGS){
+      if (isISAReg(rs)) {
         tresult |= tagrf[rs];
       }
       rs = READ_FIFO_RS2;
-      if (rs < NUM_REGS){
+      if (isISAReg(rs)){
         tresult |= tagrf[rs];
       }
       // Destination register
       rd = READ_FIFO_RD;
       // Set destination taint
-      if (rd < NUM_REGS) {
+      if (isISAReg(rd)) {
         tagrf[rd] = tresult;
         // Revalidate in invalidation cache and update FADE flag
         FC_SET_ADDR(rd);
@@ -135,6 +140,8 @@ int main(int argc, char *argv[]) {
       for (temp = (READ_FIFO_SYSCALLBUFPTR >> 2); temp < (READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES) >> 2; ++temp) {
         // We use masks to store at bit locations based on last three bits
         tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp & 0x7));
+        FC_SET_ADDR(temp);
+        FC_SET_CACHE_VALUE(2);
       }
     } // inst type
     

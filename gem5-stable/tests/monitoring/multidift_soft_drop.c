@@ -26,9 +26,14 @@
 #define ISA_ARM
 
 #ifdef ISA_ARM
-  #define NUM_REGS 32
+  // Registers range from 1 to 36
+  #define NUM_REGS 37
+  // Exclude register 33 which is the constant zero register
+  #define ZERO_REG 33
+  #define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
 #else
   #define NUM_REGS 32
+  #define isISAReg(x) (x < NUM_REGS)
 #endif
 
 #define MONITOR "[MULTIDIFT] "
@@ -170,17 +175,17 @@ int main(int argc, char *argv[]) {
       // Read source tags and determine taint of destination
       unsigned int tresult = 0;
       rs = READ_FIFO_RS1;
-      if (rs < NUM_REGS){
+      if (isISAReg(rs)){
         tresult |= tagrf[rs];
       }
       rs = READ_FIFO_RS2;
-      if (rs < NUM_REGS){
+      if (isISAReg(rs)){
         tresult |= tagrf[rs];
       }
       // Destination register
       rd = READ_FIFO_RD;
       // Set destination taint
-      if (rd < NUM_REGS) {
+      if (isISAReg(rd)) {
         tagrf[rd] = tresult;
         // Revalidate in invalidation RF and update FADE flag
         FC_SET_ADDR(rd);
@@ -191,6 +196,8 @@ int main(int argc, char *argv[]) {
       // syscall read instruction
       for (temp = READ_FIFO_SYSCALLBUFPTR; temp < READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES; temp+=4) {
         writeTag(temp, 1);
+        FC_SET_ADDR(temp >> 2);
+        FC_SET_CACHE_VALUE(2);
       }
     } // inst type
 
