@@ -1055,16 +1055,16 @@ AtomicSimpleMonitor::setTagProxy(Addr addr, int nbytes, uint8_t tag)
             // being 1 bit of tag per byte of memory.
             writeDWordTag(gen.addr() >> 4, tag ? 0xffffffffffffffff : 0);
             DPRINTF(Monitor, "writeDWordTag 0x%llx\n", gen.addr());
-            // Revalidate corresponding flags
+            // Revalidate corresponding flags and set FADE tags
             for (i = 0; i < gen.size(); ++i) {
-              revalidateMemTag(gen.addr()+i);
+                setDropMemTag(gen.addr()+i, 1, 0);
             }
         } else {
             for (i = 0; i < gen.size(); ++i) {
                 writeBitTag(gen.addr()+i, (bool)tag);
                 DPRINTF(Monitor, "writeBitTag 0x%llx\n", gen.addr() + i);
-                // Revalidate corresopnding flags
-                revalidateMemTag(gen.addr()+i);
+                // Revalidate corresopnding flags and set FADE tags
+                setDropMemTag(gen.addr()+i, 1, 0);
             }
         }
     }
@@ -1703,6 +1703,14 @@ AtomicSimpleMonitor::MultiDIFTExecute()
         }
         numIndirectCtrlInsts++;
         numMonitorInsts++;
+    // Read syscall
+    } else if (mp.settag && mp.syscallReadNbytes > 0) {
+      DPRINTF(Monitor, "Multi DIFT: Syscall read instruction\n");
+      // Set tags for read syscall
+      for (Addr addr = mp.syscallReadBufPtr; addr < mp.syscallReadBufPtr + mp.syscallReadNbytes; addr+=4) {
+        writeWordTag(addr, 1);
+        setDropMemTag(addr, 1, 0);
+      }
     } else {
         warn("Unknown instruction PC = %x\n", mp.instAddr);
         numMonitorInsts++;
