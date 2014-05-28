@@ -117,9 +117,12 @@ inline void set_tag_bound(unsigned addr, unsigned value);
 void init_section_tags();
 
 /* ALU Opcodes */
+#define ALUAnd  0x00
 #define ALUMov  0x0d
 #define ALUAdd1 0x04
 #define ALUAdd2 0x05
+#define ALUAdduop1 0x06
+#define ALUAdduop2 0x0c
 #define ALUSub  0x02
 
 #endif // __MONITORING_H__
