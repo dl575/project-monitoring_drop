@@ -53,6 +53,7 @@ class PerformanceTimer(AbstractMemory):
     use_start_ticks = Param.Bool(False, "Use param based start ticks")
     slack_lo = Param.Int(0, "Low slack range for probabilistic dropping")
     slack_hi = Param.Int(0, "High slack range for probabilistic dropping")
+    not_drop_prob = Param.Float(1, "Percent not drop rate for instructions with enough slack")
     important_policy = Param.Int(0, "Policy for forwarding important instructions")
     important_slack = Param.Int(0, "Additional slack for important instructions")
     important_percent = Param.Float(0, "Additional slack for important instructions as percent of total cycles")

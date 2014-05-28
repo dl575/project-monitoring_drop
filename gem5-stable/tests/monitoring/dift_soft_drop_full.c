@@ -17,21 +17,15 @@
 
 #include "timer.h"
 #include "monitoring_wcet.h"
-#include "flagcache.h"
 
 #define METADATA_ADDRESSES 1024*1024*128
 
 #define ISA_ARM
 
 #ifdef ISA_ARM
-  // Registers range from 1 to 36
-  #define NUM_REGS 37
-  // Exclude register 33 which is the constant zero register
-  #define ZERO_REG 33
-  #define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
+  #define NUM_REGS 32
 #else
   #define NUM_REGS 32
-  #define isISAReg(x) (x < NUM_REGS)
 #endif
 
 #define MONITOR "[DIFT] "
@@ -47,8 +41,6 @@ int main(int argc, char *argv[]) {
 
   // Set up monitoring
   INIT_MONITOR;
-  // Set up interface to flag cache
-  INIT_FC;
 
   // Main loop, loop until main core signals done
   while(1) {
@@ -66,15 +58,9 @@ int main(int argc, char *argv[]) {
         if (tagrf[rs] == 1) {
           // Bit mask to set taint
           tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(temp);
-          FC_SET_CACHE_VALUE(2);
         } else {
           // Bit mask to clear tag
           tagmem[temp >> 3] = tagmem[temp >> 3] & ~(1 << (temp&0x07));
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(temp);
-          FC_SET_CACHE_VALUE(0);
         }
       } else {
         // settag operation
@@ -82,10 +68,6 @@ int main(int argc, char *argv[]) {
         for (temp = (READ_FIFO_MEMADDR >> 2); temp <= memend; ++temp) {
           // Bit mask to set taint
           tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(temp);
-          FC_SET_CACHE_VALUE(2);
-          //FC_CACHE_REVALIDATE(temp);
         }
       }
     // Load
@@ -101,10 +83,6 @@ int main(int argc, char *argv[]) {
         tresult = true;
       }
       tagrf[rd] = tresult;
-      // Revalidate in invalidation cache and update FADE flag
-      FC_SET_ADDR(rd);
-      FC_SET_ARRAY_VALUE(tresult ? 2 : 0);
-      //FC_ARRAY_REVALIDATE(rd);
     // Indirect control
     } else if (READ_FIFO_INDCTRL) {
       rs = READ_FIFO_RS1;
@@ -120,30 +98,24 @@ int main(int argc, char *argv[]) {
       // Read source tags and determine taint of destination
       register bool tresult = false;
       rs = READ_FIFO_RS1;
-      if (isISAReg(rs)) {
+      if (rs < NUM_REGS){
         tresult |= tagrf[rs];
       }
       rs = READ_FIFO_RS2;
-      if (isISAReg(rs)){
+      if (rs < NUM_REGS){
         tresult |= tagrf[rs];
       }
       // Destination register
       rd = READ_FIFO_RD;
       // Set destination taint
-      if (isISAReg(rd)) {
+      if (rd < NUM_REGS) {
         tagrf[rd] = tresult;
-        // Revalidate in invalidation cache and update FADE flag
-        FC_SET_ADDR(rd);
-        FC_SET_ARRAY_VALUE(tresult ? 2 : 0);
-        //FC_ARRAY_REVALIDATE(rd);
       }
     } else if ((READ_FIFO_SETTAG) && (READ_FIFO_SYSCALLNBYTES > 0)) {
       // syscall read instruction
       for (temp = (READ_FIFO_SYSCALLBUFPTR >> 2); temp < (READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES) >> 2; ++temp) {
         // We use masks to store at bit locations based on last three bits
         tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp & 0x7));
-        FC_SET_ADDR(temp);
-        FC_SET_CACHE_VALUE(2);
       }
     } // inst type
     

@@ -17,7 +17,6 @@
 
 #include "timer.h"
 #include "monitoring_wcet.h"
-#include "flagcache.h"
 
 /* 1GB tag space, 4kB pages */
 #define PAGE_OFFSET_BITS  12
@@ -29,12 +28,8 @@
 #ifdef ISA_ARM
   // Registers range from 1 to 36
   #define NUM_REGS 37
-  // Exclude register 33 which is the constant zero register
-  #define ZERO_REG 33
-  #define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
 #else
-  #define NUM_REGS 32
-  #define isISAReg(x) (x < NUM_REGS)
+  #define NUM_REGS 37
 #endif
 
 #define MONITOR "[HB] "
@@ -47,6 +42,10 @@ HBTag tagrf[NUM_REGS];
 
 #define toBoundTag(t) ((int)(t >> 32))
 #define toBaseTag(t)  (t & 0xffffffff)
+
+// Exclude register 33 which is the constant zero register
+#define ZERO_REG 33
+#define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
 
 /**
  * Convert address to page index
@@ -125,8 +124,6 @@ int main(int argc, char *argv[]) {
 
   // Set up monitoring
   INIT_MONITOR;
-  // Set up interface to flag cache
-  INIT_FC;
 
   // Main loop, loop until main core signals done
   while(1) {
@@ -142,22 +139,13 @@ int main(int argc, char *argv[]) {
         if (isISAReg(rs1)) {
           rd = READ_FIFO_RD;
           if (isISAReg(rd)) {
-            HBTag trs1 = tagrf[rs1];
-            tagrf[rd] = trs1;
-            // Revalidate in invalidation cache and update FADE flag
-            FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(trs1 ? 2 : 0);
-            //FC_ARRAY_REVALIDATE(rd);
+            tagrf[rd] = tagrf[rs1];
           }
         } else {
           rd = READ_FIFO_RD;
           // mov immediate
           if (isISAReg(rd)) {
             tagrf[rd] = 0;
-            // Revalidate in invalidation cache and update FADE flag
-            FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(0);
-            //FC_ARRAY_REVALIDATE(rd);
           }
         }
       } else if ((opcode == ALUAdd1) && (opcode == ALUAdd2) && (opcode == ALUSub)) {
@@ -175,10 +163,6 @@ int main(int argc, char *argv[]) {
           rd = READ_FIFO_RD;
           if (isISAreg(rd)) {
             tagrf[rd] = tresult;
-            // Revalidate in invalidation cache and update FADE flag
-            FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(tresult ? 2 : 0);
-            //FC_ARRAY_REVALIDATE(rd);
           }
         } else if isISAReg(rs1) {
           // add immediate
@@ -186,10 +170,6 @@ int main(int argc, char *argv[]) {
           rd = READ_FIFO_RD;
           if (isISAReg(rd)) {
             tagrf[rd] = trs1;
-            // Revalidate in invalidation cache and update FADE flag
-            FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(trs1 ? 2 : 0);
-            //FC_ARRAY_REVALIDATE(rd);
           }
         }
       } else {
@@ -197,10 +177,6 @@ int main(int argc, char *argv[]) {
         rd = READ_FIFO_RD;
         if (isISAReg(rd)) {
           tagrf[rd] = trs1;
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(rd);
-          FC_SET_ARRAY_VALUE(0);
-          //FC_ARRAY_REVALIDATE(rd);
         }
       }
     } else if (READ_FIFO_STORE) {
@@ -218,10 +194,6 @@ int main(int argc, char *argv[]) {
           if (READ_FIFO_MEMSIZE == 4) {
             writeTag(READ_FIFO_PHYSADDR, trs1);
           }
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(temp >> 2);
-          FC_SET_CACHE_VALUE(trs1 ? 2 : 0);
-          //FC_CACHE_REVALIDATE(temp >> 2);
         }
       } else {
         // settag operations
@@ -233,10 +205,6 @@ int main(int argc, char *argv[]) {
           // set bound address
           setTagData = setTagData | (((HBTag)READ_FIFO_DATA) << 32);
           writeTag(READ_FIFO_PHYSADDR, setTagData);
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(READ_FIFO_MEMADDR >> 2);
-          FC_SET_CACHE_VALUE(2);
-          //FC_CACHE_REVALIDATE(READ_FIFO_MEMADDR >> 2);
         }
       }
     } else if (READ_FIFO_LOAD) {
@@ -248,12 +216,7 @@ int main(int argc, char *argv[]) {
           error = 1;
         if (READ_FIFO_MEMSIZE == 4) {
           rd = READ_FIFO_RD;
-          HBTag tmem = readTag(READ_FIFO_PHYSADDR);
-          tagrf[rd] = tmem;
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(rd);
-          FC_SET_ARRAY_VALUE(tmem ? 2 : 0);
-          //FC_ARRAY_REVALIDATE(rd);
+          tagrf[rd] = readTag(READ_FIFO_PHYSADDR);
         }
       } else {
         // should not reach here
@@ -261,9 +224,6 @@ int main(int argc, char *argv[]) {
         rd = READ_FIFO_RD;
         if (isISAReg(rd)) {
             tagrf[rd] = 0;
-            FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(0);
-            //FC_ARRAY_REVALIDATE(rd);
         }
       }
     }
