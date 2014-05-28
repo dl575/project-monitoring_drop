@@ -155,6 +155,8 @@ typedef struct {
   int MIT_exist;
   // Memory backed invalidation cache
   int MIC_exist;
+  // Bit-width of flags
+  int flag_width;
   // Cache parameters
 	double mcache_config[20];
 	int buffer_sizes[20];

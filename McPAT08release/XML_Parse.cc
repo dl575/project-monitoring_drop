@@ -585,6 +585,7 @@ void ParseXML::parse(char* filepath)
 							{ //get all items of param in system.core0.MIM--MIM
                 if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"MIT_exist")==0) {sys.core[i].MIM.MIT_exist=atoi(xNode4.getChildNode("param",k).getAttribute("value"));continue;}
                 if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"MIC_exist")==0) {sys.core[i].MIM.MIC_exist=atoi(xNode4.getChildNode("param",k).getAttribute("value"));continue;}
+                if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"flag_width")==0) {sys.core[i].MIM.flag_width=atoi(xNode4.getChildNode("param",k).getAttribute("value"));continue;}
 								if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"mcache_config")==0)
 								{
 									strtmp.assign(xNode4.getChildNode("param",k).getAttribute("value"));
@@ -1745,6 +1746,8 @@ void ParseXML::initialize() //Initialize all
 		sys.core[i].BTB.read_misses=1;
 		sys.core[i].BTB.write_misses=1;
 		sys.core[i].BTB.replacements=1;
+    // Metadata Invalidation Module
+    sys.core[i].MIM.flag_width = 1;
 	}
 
 	//system_L1directory

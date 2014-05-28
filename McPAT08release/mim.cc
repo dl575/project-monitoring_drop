@@ -306,11 +306,11 @@ MIM_ConfigTable::MIM_ConfigTable(ParseXML* XML_interface, int ithCore_, InputPar
     32  // 32-bit constant
     + coredynp.opcode_length // ALU opcode
     + 1 // 1-bit RF/Cache select
-    + 1 // 1-bit write value
+    + XML->sys.core[ithCore].MIM.flag_width // n-bit write value
     + 1 // 1 bit NOP/valid (do nothing for this case)
     + 2*5; // 2x 5-bit mux selects
   // Table is indexed by opcode 
-  int table_input_width = coredynp.opcode_length + 2; // 2 bits for up to 4 different filtering operations
+  int table_input_width = coredynp.opcode_length + 3; // 3 bits for up to 8 different filtering operations
   int num_entries = 1 << table_input_width;
 
 	interface_ip.is_cache            = false;
@@ -410,9 +410,9 @@ MFM_FilterLookupTable::MFM_FilterLookupTable(ParseXML* XML_interface, int ithCor
 
   // Output of config table 
   int table_output_width = 
-    2; // 2 bit index into invalidation config table
-  // Table is indexed by opcode and 2 1-bit invalidation flags
-  int table_input_width = coredynp.opcode_length + 2;
+    3; // 3 bit index into invalidation config table (up to 8 possible filtering operations)
+  // Table is indexed by opcode and 2 n-bit flags
+  int table_input_width = coredynp.opcode_length + 2*XML->sys.core[ithCore].MIM.flag_width;
   int num_entries = 1 << table_input_width;
 
 	interface_ip.is_cache            = false;
@@ -931,7 +931,7 @@ MIM_RegFU::MIM_RegFU(ParseXML* XML_interface, int ithCore_, InputParameter* inte
  coredynp(dyn_p_),
  IRF (0),
  exist(exist_)
- {
+{
 	/*
 	 * processors have separate architectural register files for each thread.
 	 * therefore, the bypass buses need to travel across all the register files.
@@ -943,7 +943,7 @@ MIM_RegFU::MIM_RegFU(ParseXML* XML_interface, int ithCore_, InputParameter* inte
 	executionTime = coredynp.executionTime;
 	//**********************************IRF***************************************
 	//data							 = coredynp.int_data_width;
-  data = 1; // Data width
+  data = XML->sys.core[ithCore].MIM.flag_width; // Data width in bits
 	interface_ip.is_cache			 = false;
 	interface_ip.pure_cam            = false;
 	interface_ip.pure_ram            = true;
@@ -984,7 +984,7 @@ MIM_RegFU::MIM_RegFU(ParseXML* XML_interface, int ithCore_, InputParameter* inte
 
 	int_regfile_height= IRF->local_result.cache_ht*number_hardware_threads*sqrt(cdb_overhead);
  
- }
+}
 
 
 void MIM_RegFU::computeEnergy(bool is_tdp)
@@ -1825,7 +1825,6 @@ MIM::MIM(ParseXML* XML_interface, int ithCore_, InputParameter *interface_ip_, c
   }
   // no idea what FU_height is
   fu_height = alu->FU_height + mfm_alu->FU_height;
-
 }
 
 void MIM::computeEnergy(bool is_tdp)
@@ -2019,8 +2018,8 @@ MIM_FunctionalUnit::MIM_FunctionalUnit(ParseXML *XML_interface, int ithCore_, In
  coredynp(dyn_p_),
  fu_type(fu_type_)
 {
-    double area_t;//, leakage, gate_leakage;
-    double pmos_to_nmos_sizing_r = pmos_to_nmos_sz_ratio();
+  double area_t;//, leakage, gate_leakage;
+  double pmos_to_nmos_sizing_r = pmos_to_nmos_sz_ratio();
 	clockRate = coredynp.clockRate;
 	executionTime = coredynp.executionTime;
 
