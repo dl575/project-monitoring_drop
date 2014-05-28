@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
       register bool tresult = false;
       temp = READ_FIFO_MEMADDR >> 2;
       // Pull out correct bit in memory to store int tag register file
-      if ((tagmem[temp >> 3]) & (1 >> (temp&0x7))) {
+      if ((tagmem[temp >> 3]) & (1 << (temp&0x7))) {
         tresult = true;
       }
       tagrf[rd] = tresult;
