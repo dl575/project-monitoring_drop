@@ -20,16 +20,185 @@
 #include "monitoring_wcet.h"
 #include "flagcache.h"
 
-#define METADATA_ADDRESSES 1024*1024*512
+/* 512MB tag space, 4kB pages */
+#define PAGE_OFFSET_BITS  12
+#define PAGE_SIZE (1 << PAGE_OFFSET_BITS)
+#define NUM_PAGES 1024*128
 
 typedef unsigned char uint8_t;
 
-// flags for whether memory was initialized
-char metadata[METADATA_ADDRESSES];
+void *pagetable[NUM_PAGES];
+
+/**
+ * Convert address to page index
+ */
+inline unsigned getPageIndex(unsigned addr) {
+  return addr >> PAGE_OFFSET_BITS;
+}
+
+/**
+ * Convert address to page offset
+ */
+inline unsigned getPageOffset(unsigned addr) {
+  return addr & (PAGE_SIZE - 1);
+}
+
+/**
+ * Whether an address in allocated in page table
+ */
+inline bool allocated(unsigned addr) {
+  return pagetable[getPageIndex(addr)] != NULL;
+}
+
+/**
+ * Allocate a page
+ */
+void* allocatePage(unsigned addr)
+{
+  void *page = malloc(PAGE_SIZE);
+  if (page == NULL) {
+    printf("Failed to allocate page for tag memory!\n");
+    return NULL;
+  }
+  /* clear page */
+  memset(page, 0, PAGE_SIZE);
+  pagetable[getPageIndex(addr)] = page;
+  return page;
+}
+
+/*
+ * Read tag for a word (4 bytes).
+ */
+inline uint8_t readWordTag(unsigned addr) {
+  uint8_t *page;
+  unsigned tagAddr = addr >> 3;
+  if (allocated(tagAddr)) {
+    page = pagetable[getPageIndex(tagAddr)];
+  } else {
+    /* allocate page */
+    page = allocatePage(tagAddr);
+  }
+  uint8_t octet = page[getPageOffset(tagAddr)];
+  // return (addr & 0x4) ? (octet >> 4) : (octet & 0xf);
+  // this might be more efficient
+  return (octet >> (addr & 0x4)) & 0xf;
+}
+
+/*
+ * Read tag for a half word (2 bytes).
+ */
+inline uint8_t readHalfWordTag(unsigned addr) {
+  uint8_t *page;
+  unsigned tagAddr = addr >> 3;
+  if (allocated(tagAddr)) {
+    page = pagetable[getPageIndex(tagAddr)];
+  } else {
+    /* allocate page */
+    page = allocatePage(tagAddr);
+  }
+  uint8_t octet = page[getPageOffset(tagAddr)];
+  return (octet >> (addr & 0x6)) & 0x3;
+}
+
+/*
+ * Read tag for a byte.
+ */
+inline bool readByteTag(unsigned addr) {
+  uint8_t *page;
+  unsigned tagAddr = addr >> 3;
+  if (allocated(tagAddr)) {
+    page = pagetable[getPageIndex(tagAddr)];
+  } else {
+    /* allocate page */
+    page = allocatePage(tagAddr);
+  }
+  uint8_t octet = page[getPageOffset(tagAddr)];
+  return (octet >> (addr & 0x7)) & 0x1;
+}
+
+/*
+ * Read tag.
+ * @param size Size should be less or equal to 4.
+ */
+inline uint8_t readTag(unsigned addr, unsigned size) {
+  uint8_t *page;
+  unsigned tagAddr = addr >> 3;
+  if (allocated(tagAddr)) {
+    page = pagetable[getPageIndex(tagAddr)];
+  } else {
+    /* allocate page */
+    page = allocatePage(tagAddr);
+  }
+  uint8_t octet = page[getPageOffset(tagAddr)];
+  return (octet >> (addr & (0x8-size))) & ((1 << size)-1);
+}
+
+/*
+ * Write tag for a word (4 bytes).
+ * @param tag Tag is stored in LSB bits.
+ */
+inline void writeWordTag(unsigned addr, uint8_t tag) {
+  uint8_t *page;
+  unsigned tagAddr = addr >> 3;
+  if (allocated(tagAddr)) {
+    page = pagetable[getPageIndex(tagAddr)];
+  } else {
+    /* allocate page */
+    page = allocatePage(tagAddr);
+  }
+  uint8_t octet = page[getPageOffset(tagAddr)];
+  // tag to be stored
+  //   tag << (addr & 0x4)
+  // the other 4 bits
+  //   octet & (0xf0 >> (addr & 0x4));
+  page[getPageOffset(tagAddr)] = (tag << (addr & 0x4)) | (octet & (0xf0 >> (addr & 0x4)));
+}
+
+/*
+ * Write tag for a half word (2 bytes).
+ * @param tag Tag is stored in LSB bits.
+ */
+inline void writeHalfWordTag(unsigned addr, uint8_t tag) {
+  uint8_t *page;
+  unsigned tagAddr = addr >> 3;
+  if (allocated(tagAddr)) {
+    page = pagetable[getPageIndex(tagAddr)];
+  } else {
+    /* allocate page */
+    page = allocatePage(tagAddr);
+  }
+  uint8_t octet = page[getPageOffset(tagAddr)];
+  // tag to be stored
+  //   tag << (addr & 0x6)
+  // the other 6 bits
+  //   octet & ~(0x03 << (addr & 0x6));
+  page[getPageOffset(tagAddr)] = (tag << (addr & 0x6)) | (octet & ~(0x03 << (addr & 0x6)));
+}
+
+/*
+ * Write tag for a byte.
+ * @param tag Tag is a bool value.
+ */
+inline void writeByteTag(unsigned addr, bool tag) {
+  uint8_t *page;
+  unsigned tagAddr = addr >> 3;
+  if (allocated(tagAddr)) {
+    page = pagetable[getPageIndex(tagAddr)];
+  } else {
+    /* allocate page */
+    page = allocatePage(tagAddr);
+  }
+  uint8_t octet = page[getPageOffset(tagAddr)];
+  // tag to be stored
+  //   tag << (addr & 0x7)
+  // the other 6 bits
+  //   octet & ~(0x01 << (addr & 0x7));
+  page[getPageOffset(tagAddr)] = (tag << (addr & 0x7)) | (octet & ~(0x01 << (addr & 0x7)));
+}
 
 int main(int argc, char *argv[]) {
   register unsigned idx;
-  volatile register int error;
+  volatile uint8_t error;
 
   // Set up monitoring
   INIT_MONITOR;
@@ -42,65 +211,70 @@ int main(int argc, char *argv[]) {
     POP_FIFO;
     // Store
     if (READ_FIFO_STORE) {
-      // Write metadata, we don't differentiate between settag and regular operations
-      //printf("st [0x%x:0x%x]\n", READ_FIFO_MEMADDR, READ_FIFO_MEMEND);
-      register int memend = READ_FIFO_MEMEND;
-      register int i = 0;
-      for (idx = READ_FIFO_MEMADDR; idx <= memend; ++idx) {
-        // We use masks to store at bit locations based on last three bits
-        metadata[idx >> 3] = metadata[idx >> 3] | (1 << (idx & 0x7));
-        // Only do once per word
-        if ((i++%4)==0){
-          // Get the four bits tags for the word
-          uint8_t word_tag = (uint8_t)metadata[idx >> 3] >> (idx & 4);
-          // All the bits are set
-          if (word_tag == 0xF) {
-            // Revalidate in invalidation RF and update FADE flag
-            FC_SET_ADDR(idx >> 2);
+      if (!(READ_FIFO_SETTAG)) {
+        unsigned addr = READ_FIFO_MEMADDR;
+        unsigned size = READ_FIFO_MEMSIZE;
+        switch (size) {
+          case 4:
+            writeWordTag(addr, 0xf);
+            FC_SET_ADDR(addr >> 2);
             FC_SET_CACHE_VALUE(2);
-          // Not all the bits are set
-          } else {
-            // Revalidate in invalidation RF and clear FADE flag
-            FC_SET_ADDR(idx >> 2);
-            FC_SET_CACHE_VALUE(0);
-          }
-          // Revalidate in flag cache
-          // FC_CACHE_REVALIDATE(idx);
+            break;
+          case 2:
+            writeHalfWordTag(addr, 0x3);
+            if (addr & 0x3 == 0) {
+              if (readWordTag(addr) == 0xf) {
+                FC_SET_ADDR(addr >> 2);
+                FC_SET_CACHE_VALUE(2);
+              }
+            }
+            break;
+          case 1:
+            writeByteTag(addr, 0x1);
+            if (addr & 0x3 == 0) {
+              if (readWordTag(addr) == 0xf) {
+                FC_SET_ADDR(addr >> 2);
+                FC_SET_CACHE_VALUE(2);
+              }
+            }
+            break;
+        }
+      } else {
+        unsigned addr = READ_FIFO_MEMADDR;
+        unsigned memend = READ_FIFO_MEMEND;
+        // set tag are used for initialization of large chunks of data
+        for (; addr <= memend; addr+=4) {
+          writeWordTag(addr, 0xf);
+          FC_SET_ADDR(addr >> 2);
+          FC_SET_CACHE_VALUE(2);
         }
       }
     // Load
     } else if (READ_FIFO_LOAD) {
-      idx = READ_FIFO_MEMADDR;
-      if (metadata[idx >> 3] & (1 << (idx & 0x7)) == 0) {
-        error = 1;
+      unsigned addr = READ_FIFO_MEMADDR;
+      unsigned size = READ_FIFO_MEMSIZE;
+      switch (size) {
+        case 4:
+          error = readWordTag(addr);
+          break;
+        case 2:
+          error = readHalfWordTag(addr);
+          break;
+        case 1:
+          error = readByteTag(addr);
+          break;
       }
     } else if ((READ_FIFO_SETTAG) && (READ_FIFO_SYSCALLNBYTES > 0)) {
       register int i = 0;
       // syscall read instruction
-      for (idx = (READ_FIFO_SYSCALLBUFPTR); idx < (READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES); ++idx) {
-        // We use masks to store at bit locations based on last three bits
-        metadata[idx >> 3] = metadata[idx >> 3] | (1 << (idx & 0x7));
-        // Only do once per word
-        if ((i++%4)==0){
-          // Get the four bits tags for the word
-          uint8_t word_tag = (uint8_t)metadata[idx >> 3] >> (idx & 4);
-          // All the bits are set
-          if (word_tag == 0xF) {
-            // Revalidate in invalidation RF and update FADE flag
-            FC_SET_ADDR(idx >> 2);
-            FC_SET_CACHE_VALUE(2);
-          // Not all the bits are set
-          } else {
-            // Revalidate in invalidation RF and clear FADE flag
-            FC_SET_ADDR(idx >> 2);
-            FC_SET_CACHE_VALUE(0);
-          }
-          // Revalidate in flag cache
-          // FC_CACHE_REVALIDATE(idx);
-        }
+      unsigned addr = READ_FIFO_SYSCALLBUFPTR;
+      unsigned memend = READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES - 1;
+      for (; addr <= memend; addr+=4) {
+        writeWordTag(addr, 0xf);
+        FC_SET_ADDR(addr >> 2);
+        FC_SET_CACHE_VALUE(2);
       }
     }
-
   } // while (1)
 
   return 1;
