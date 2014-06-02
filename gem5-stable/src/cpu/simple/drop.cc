@@ -533,7 +533,7 @@ DropSimpleCPU::writeCheckSets()
         unsigned numEntries = imt.getNumEntries();
         unsigned entrySize = imt.getEntrySize();
         unsigned step = 1 << imt.getInstShiftAmt();
-        for (unsigned i = 0; i < numEntries * entrySize; i+=step) {
+        for (unsigned i = 0; i < numEntries * entrySize * step; i+=step) {
             os << std::hex << i;
             InstructionMetadata *metadata = imt.lookup(i);
             if (metadata != NULL) {
@@ -563,7 +563,7 @@ DropSimpleCPU::writeODT()
         unsigned numEntries = odt.getNumEntries();
         unsigned entrySize = odt.getEntrySize();
         unsigned step = 1 << odt.getInstShiftAmt();
-        for (unsigned i = 0; i < numEntries * entrySize; i+=step) {
+        for (unsigned i = 0; i < numEntries * entrySize * step; i+=step) {
             if (odt.lookup(i)) {
                 os << std::hex << i << std::endl;
                 numOptimalDroppingPoints++;
@@ -1545,6 +1545,9 @@ DropSimpleCPU::backtrace_metadata_umc()
         // update producer table
         Addr addr = mpkt.memAddr;
         mptb.update(addr, mpkt.instAddr);
+        // store instructions are always considered optimal dropping points in UMC
+        if (compute_optimal_dropping)
+            markOptimalDroppingPoint(mpkt.instAddr);
     }
 }
 
