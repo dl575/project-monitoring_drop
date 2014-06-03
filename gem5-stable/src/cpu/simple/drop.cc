@@ -150,6 +150,24 @@ DropSimpleCPU::init()
             warn("instruction priority table could not be opened.\n");
         is.close();
     }
+    // initialize structures for optimal dropping
+    odt.init();
+    if (read_optimal_dropping) {
+        ifstream is;
+        is.open(backtrack_table_dir + "/odp.txt", std::ios::in);
+        if (is.good()) {
+            std::string line;
+            while (std::getline(is, line)) {
+                std::stringstream ss;
+                unsigned inst_addr;
+                ss << std::hex << line;
+                ss >> inst_addr;
+                markOptimalDroppingPoint(inst_addr);
+            }
+        } else {
+            warn("Optimal dropping table could not be opened.\n");
+        }
+    }
 }
 
 DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
@@ -164,7 +182,9 @@ DropSimpleCPU::DropSimpleCPU(DropSimpleCPUParams *p)
       mptb(p->mpt_size, 30-floorLog2(p->mpt_size), 2),
       ipt_tagged(p->ipt_tagged),
       ipt(p->ipt_tagged, p->ipt_size/p->ipt_entry_size, p->ipt_entry_size, 30-floorLog2(p->ipt_size), 2),
-      ipt_bloom(p->ipt_size, p->ipt_false_positive_rate)
+      ipt_bloom(p->ipt_size, p->ipt_false_positive_rate),
+      read_optimal_dropping(p->read_optimal_dropping),
+      odt(p->ipt_tagged, p->ipt_size/p->ipt_entry_size, p->ipt_entry_size, 30-floorLog2(p->ipt_size), 2)
 {
     _status = Idle;    
 
@@ -1295,6 +1315,20 @@ void DropSimpleCPU::backtrack_inst_intalu(monitoringPacket &mpkt)
     } else {
         DPRINTF(Backtrack, "warning: cannot find producer of r%d, instAddr=0x%x\n", rs2, mpkt.instAddr);
     }
+}
+
+void
+DropSimpleCPU::markOptimalDroppingPoint(Addr inst_addr)
+{
+    odt.update(inst_addr, true);
+}
+
+bool
+DropSimpleCPU::inOptimalDroppingTable()
+{
+    monitoringPacket mpkt;
+    readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
+    return odt.lookup(mpkt.instAddr);
 }
 
 void

@@ -73,6 +73,7 @@ class BaseSimpleCPU(BaseCPU):
     backtrack_read_table = Param.Bool(False, "read backtrack table at start of simulation")
     backtrack_write_table = Param.Bool(False, "write backtrack table at end of simulation")
     backtrack_table_dir = Param.String("", "directory to read/write backtrack table")
+    optimal_dropping = Param.Bool(False, "Perform optimal dropping")
     # Perform dropping only on set tag operations
     source_dropping = Param.Bool(False, "perform dropping only on set tag operations")
     # Perform propagation only on flows that start with a set tag operation

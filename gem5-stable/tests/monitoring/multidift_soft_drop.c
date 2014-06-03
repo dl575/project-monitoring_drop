@@ -84,7 +84,7 @@ void* allocatePage(unsigned addr)
 inline DIFTTag readTag(unsigned physAddr)
 {
   char *page;
-  unsigned tagAddr = physAddr;
+  unsigned tagAddr = physAddr & 0xfffffffc;
   if (allocated(tagAddr)) {
     page = pagetable[getPageIndex(tagAddr)];
   } else {
@@ -97,7 +97,7 @@ inline DIFTTag readTag(unsigned physAddr)
 inline void writeTag(unsigned physAddr, DIFTTag tag)
 {
   char *page;
-  unsigned tagAddr = physAddr;
+  unsigned tagAddr = physAddr & 0xfffffffc;
   if (allocated(tagAddr)) {
     page = pagetable[getPageIndex(tagAddr)];
   } else {

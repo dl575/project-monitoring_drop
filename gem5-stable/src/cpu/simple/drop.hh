@@ -250,6 +250,18 @@ class DropSimpleCPU : public BaseSimpleCPU
     void backtrack_inst_store(monitoringPacket &mpkt);
     void backtrack_inst_intalu(monitoringPacket &mpkt);
 
+    /**
+     * Optimal dropping
+     */
+    bool read_optimal_dropping;
+    // reuse InvalidationPT for optimal dropping table
+    InvalidationPT odt;
+    /**
+     * Mark an instruction as an optimal dropping point
+     */
+    void markOptimalDroppingPoint(Addr inst_addr);
+    virtual bool inOptimalDroppingTable();
+
 };
 
 #endif // __CPU_SIMPLE_DROP_HH__

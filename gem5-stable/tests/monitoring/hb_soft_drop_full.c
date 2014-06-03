@@ -28,8 +28,12 @@
 #ifdef ISA_ARM
   // Registers range from 1 to 36
   #define NUM_REGS 37
+  // Exclude register 33 which is the constant zero register
+  #define ZERO_REG 33
+  #define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
 #else
-  #define NUM_REGS 37
+  #define NUM_REGS 32
+  #define isISAReg(x) (x < NUM_REGS)
 #endif
 
 #define MONITOR "[HB] "
@@ -42,10 +46,6 @@ HBTag tagrf[NUM_REGS];
 
 #define toBoundTag(t) ((int)(t >> 32))
 #define toBaseTag(t)  (t & 0xffffffff)
-
-// Exclude register 33 which is the constant zero register
-#define ZERO_REG 33
-#define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
 
 /**
  * Convert address to page index
@@ -87,7 +87,8 @@ void* allocatePage(unsigned addr)
 inline HBTag readTag(unsigned physAddr)
 {
   char *page;
-  unsigned tagAddr = physAddr << 1;
+  // keep double-word tag per memory word
+  unsigned tagAddr = (physAddr & 0xfffffffc) << 1;
   if (allocated(tagAddr)) {
     page = pagetable[getPageIndex(tagAddr)];
   } else {
@@ -100,7 +101,8 @@ inline HBTag readTag(unsigned physAddr)
 inline void writeTag(unsigned physAddr, HBTag tag)
 {
   char *page;
-  unsigned tagAddr = physAddr << 1;
+  // keep double-word tag per memory word
+  unsigned tagAddr = (physAddr & 0xfffffffc) << 1;
   if (allocated(tagAddr)) {
     page = pagetable[getPageIndex(tagAddr)];
   } else {
@@ -134,12 +136,13 @@ int main(int argc, char *argv[]) {
     // integer ALU
     if (READ_FIFO_INTALU) {
       opcode = READ_FIFO_OPCODE;
-      if (opcode == ALUMov) {
+      if ((opcode == ALUMov) || opcode == ALUAnd) {
         rs1 = READ_FIFO_RS1;
         if (isISAReg(rs1)) {
           rd = READ_FIFO_RD;
           if (isISAReg(rd)) {
-            tagrf[rd] = tagrf[rs1];
+            HBTag trs1 = tagrf[rs1];
+            tagrf[rd] = trs1;
           }
         } else {
           rd = READ_FIFO_RD;
@@ -148,7 +151,7 @@ int main(int argc, char *argv[]) {
             tagrf[rd] = 0;
           }
         }
-      } else if ((opcode == ALUAdd1) && (opcode == ALUAdd2) && (opcode == ALUSub)) {
+      } else if ((opcode == ALUAdd1) || (opcode == ALUAdd2) || (opcode == ALUSub) || (opcode == ALUAdduop1) || (opcode == ALUAdduop2)) {
         tresult = 0;
         rs1 = READ_FIFO_RS1;
         rs2 = READ_FIFO_RS2;
@@ -161,7 +164,7 @@ int main(int argc, char *argv[]) {
             tresult = trs2;
           }
           rd = READ_FIFO_RD;
-          if (isISAreg(rd)) {
+          if (isISAReg(rd)) {
             tagrf[rd] = tresult;
           }
         } else if isISAReg(rs1) {
@@ -209,14 +212,14 @@ int main(int argc, char *argv[]) {
       }
     } else if (READ_FIFO_LOAD) {
       rs1 = READ_FIFO_RS1;
-      rs2 = READ_FIFO_RS2;
-      if (isISAReg(rs1) && !isISAReg(rs2)) {
+      if (isISAReg(rs1)) {
         trs1 = tagrf[rs1];
         if (!((trs1 == 0) || (temp >= toBaseTag(trs1)) && (temp < toBoundTag(trs1))))
           error = 1;
         if (READ_FIFO_MEMSIZE == 4) {
           rd = READ_FIFO_RD;
-          tagrf[rd] = readTag(READ_FIFO_PHYSADDR);
+          HBTag tmem = readTag(READ_FIFO_PHYSADDR);
+          tagrf[rd] = tmem;
         }
       } else {
         // should not reach here

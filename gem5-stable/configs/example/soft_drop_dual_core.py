@@ -113,6 +113,10 @@ parser.add_option("--important_percent", type="float", default=0.0)
 parser.add_option("--increment_important_only", action="store_true")
 # Read slack multiplier from file
 parser.add_option("--read_slack_multiplier", action="store_true")
+# read optimal dropping points from file
+parser.add_option("--read_optimal_dropping", action="store_true")
+# perform optimal dropping
+parser.add_option("--optimal_dropping", action="store_true")
 # Number of instructions to fast-forward
 # During fast-forwarding, full monitoring is performed. Invalidation is enabled
 # after fast-forward period.
@@ -256,6 +260,8 @@ DropCPUClass.backtrack = options.backtrack
 DropCPUClass.backtrack_read_table = options.backtrack_read_table
 DropCPUClass.backtrack_write_table = options.backtrack_write_table
 DropCPUClass.backtrack_table_dir = options.backtrack_table_dir
+DropCPUClass.read_optimal_dropping = options.read_optimal_dropping
+DropCPUClass.optimal_dropping = options.optimal_dropping
 DropCPUClass.ipt_impl = ipt_impl[options.ipt_impl]
 DropCPUClass.ipt_tagged = not options.ipt_tagless
 DropCPUClass.ipt_false_positive_rate = options.ipt_fpr

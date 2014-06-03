@@ -745,6 +745,9 @@ class BaseSimpleCPU : public BaseCPU
     bool _backtrack;
     bool _important;
     virtual bool backtrack();
+    bool optimal_dropping;
+    // whether the current instruction is in optimal dropping table
+    virtual bool inOptimalDroppingTable();
 
     // Flag for whether to print out ID #s of checks that are monitored in full
     bool print_checkid;
