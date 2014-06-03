@@ -10,14 +10,12 @@ Functions:
   average(l)
   geomean(l)
   add_lists(l1, l2)
-  sub_lists(l1, l2)
   hamming_weight(i)
 
   normalize(data, baseline)
   list_to_csv(l)
   list_to_tex(l)
 
-  get_files(base_dir, findname, include, exclude)
   get_stats_files(base_dir, include, exclude)
   get_txt_files(base_dir, include, exclude)
   get_queueo_files(base_dir, include, exclude)
@@ -32,8 +30,6 @@ Functions:
   get_configs(stats_files)
   benchmark_from_path(paths)
   fullbenchmark_from_path(paths):
-
-  get_mcpat_stats(stats_files, module)
 """
 
 import os
@@ -84,12 +80,6 @@ def add_lists(l1, l2):
     return [ll1 + ll2 for (ll1, ll2) in zip(l1, l2)]
 
 """
-Subtract the two lists element-wise (l1 - l2) and return the result. 
-"""
-def sub_lists(l1, l2):
-  return [ll1 - ll2 for (ll1, ll2) in zip(l1, l2)]
-
-"""
 Divide the entries from the first passed list by the values in
 the second list. If any entry in the second list is 0, the returned entry is None.
 """
@@ -132,54 +122,52 @@ def list_to_tex(l):
   return ' & '.join(l2)
 
 """
-Find all files in the passed directory with findname in its filename.  Returns
-a list of the paths + file. exclude is a list of strings taht must not be in
-the path.  include is a list of strings that must be in the path. The returned
-list is sorted.
-"""
-def get_files(base_dir, findname, include = [], exclude = []):
-  assert os.path.exists(base_dir), "%s does not exist" % base_dir
-  stats_dirs = []
-  # For each directory
-  for root, dirnames, filenames in os.walk(base_dir):
-    # For each file
-    for filename in filenames:
-      # Check if findname is in filename
-      # Exclude .swp files created by vim
-      if ".swp" not in filename and findname in filename:
-        # Full path + filename
-        full_path = os.path.join(root, filename)
-        add = True
-        # Check exclude list
-        for e in exclude:
-          if e in full_path:
-            add = False
-            break
-        # Check include list
-        for i in include:
-          if i not in full_path:
-            add = False
-            break
-        # Pass all checks, add to list
-        if add:
-          stats_dirs.append(os.path.join(root, filename))
-  return sorted(stats_dirs)
-
-
-
-"""
 Return list of stats.txt in the passed directory. include is a list of strings
 that must be in the path. exclude is a list of strings that must not be in the
 path. The returned list is sorted.
 """
 def get_stats_files(base_dir, include = [], exclude = []):
-  return get_files(base_dir, "stats.txt", include, exclude)
+  assert os.path.exists(base_dir), "%s does not exist" % base_dir
+  stats_dirs = []
+  for root, dirnames, filenames in os.walk(base_dir):
+    for filename in filenames:
+      if filename == "stats.txt":
+        full_path = os.path.join(root, filename)
+        add = True
+        for e in exclude:
+          if e in full_path:
+            add = False
+            break
+        for i in include:
+          if i not in full_path:
+            add = False
+            break
+        if add:
+          stats_dirs.append(os.path.join(root, filename))
+  return sorted(stats_dirs)
 
 """
-Same as get_stats_files but returns any *.txt files.
+Same as get_stats_files but returns an *.txt files.
 """
 def get_txt_files(base_dir, include = [], exclude = []):
-  return get_files(base_dir, ".txt", include, exclude)
+  assert os.path.exists(base_dir), "%s does not exist" % base_dir
+  stats_dirs = []
+  for root, dirnames, filenames in os.walk(base_dir):
+    for filename in filenames:
+      if ".txt" in filename: 
+        full_path = os.path.join(root, filename)
+        add = True
+        for e in exclude:
+          if e in full_path:
+            add = False
+            break
+        for i in include:
+          if i not in full_path:
+            add = False
+            break
+        if add:
+          stats_dirs.append(os.path.join(root, filename))
+  return sorted(stats_dirs)
 
 """
 Return a list of queue*.o* files in the passed directory.
@@ -466,33 +454,4 @@ def fullbenchmark_from_path(paths):
   benchmarks = benchmarks
   return benchmarks
 
-"""
-Returns a list of statistics for all McPat result files passed. Statistics are
-grabbed for the module indicated. Each statistic in the return list is a list
-containing (area, peak power, runtime power).
-"""
-def get_mcpat_stats(stats_files, module):
-  stats = []
-  # For each stats file
-  for stats_file in stats_files:
-    f = open(stats_file, 'r')
-    # Parse through file
-    found = False
-    (area, total_peak, total_runtime) = (0, 0, 0)
-    for line in f:
-      # Once we reach module of interest, get area and power numbers
-      if found:
-        if "Area" in line:
-          area = float(line.split()[2])
-        elif "Total Peak" in line:
-          total_peak = float(line.split()[3])
-        elif "Total Runtime" in line:
-          total_runtime = float(line.split()[3])
-          break
-      # Wait until we reach the module of interest
-      elif module in line:
-        found = True
-    # Add to list of stats
-    stats.append([area, total_peak, total_runtime])
-  return stats
 
