@@ -84,8 +84,9 @@ out_file.write("Runtime: %f/%f = %f\n" % (metadata_total_runtime, core_total_run
 out_file.close()
 
 # Write out backtrack area/power
-out_file = open(backtrack_filename, 'a')
-out_file.write("Area: %f/%f = %f\n" % (backtrack_area, core_area, backtrack_area/core_area))
-out_file.write("Peak: %f/%f = %f\n" % (backtrack_total_peak, core_total_peak, backtrack_total_peak/core_total_peak))
-out_file.write("Runtime: %f/%f = %f\n" % (backtrack_total_runtime, core_total_runtime, backtrack_total_runtime/core_total_runtime))
-out_file.close
+if backtrack_filename:
+  out_file = open(backtrack_filename, 'a')
+  out_file.write("Area: %f/%f = %f\n" % (backtrack_area, core_area, backtrack_area/core_area))
+  out_file.write("Peak: %f/%f = %f\n" % (backtrack_total_peak, core_total_peak, backtrack_total_peak/core_total_peak))
+  out_file.write("Runtime: %f/%f = %f\n" % (backtrack_total_runtime, core_total_runtime, backtrack_total_runtime/core_total_runtime))
+  out_file.close

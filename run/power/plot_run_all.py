@@ -40,18 +40,18 @@ Returns average and standard deviation of area across all extensions
 and benchmarks for the passed cache_size.
 """
 def average_area(data, cache_size):
-  nums = numpy.array([data[e][cache_size][b][0] for (e, b) in itertools.product(data.keys(), data["dift"][cache_size].keys())])
+  nums = numpy.array([data[e][cache_size][b][0] for (e, b) in itertools.product(data.keys(), data["multidift"][cache_size].keys())])
   return (nums.mean(), nums.std())
 def average_absolute_area(data, cache_size):
-  nums = numpy.array([data[e][cache_size][b][3] for (e, b) in itertools.product(data.keys(), data["dift"][cache_size].keys())])
+  nums = numpy.array([data[e][cache_size][b][3] for (e, b) in itertools.product(data.keys(), data["multidift"][cache_size].keys())])
   return (nums.mean(), nums.std())
 
 def average_peak_power(data, cache_size):
-  nums = numpy.array([data[e][cache_size][b][1] for (e, b) in itertools.product(data.keys(), data["dift"][cache_size].keys())])
+  nums = numpy.array([data[e][cache_size][b][1] for (e, b) in itertools.product(data.keys(), data["multidift"][cache_size].keys())])
   return (nums.mean(), nums.std())
 
 def average_runtime_power(data, cache_size):
-  nums = numpy.array([data[e][cache_size][b][2] for (e, b) in itertools.product(data.keys(), data["dift"][cache_size].keys())])
+  nums = numpy.array([data[e][cache_size][b][2] for (e, b) in itertools.product(data.keys(), data["multidift"][cache_size].keys())])
   return (nums.mean(), nums.std())
 
 def average_extension(data, extension, cache_size, data_type):
@@ -114,14 +114,14 @@ print "  Area %.2f mm^2 std(%.1f)" % (baseline_area.mean(), baseline_area.std())
 print "  Peak Power %.1f mW std(%.1f)" % (baseline_peak.mean()*1000, baseline_peak.std()*1000)
 print "  Runtime power %.1f mW std(%.1f)" % (baseline_runtime.mean()*1000, baseline_runtime.std()*1000)
 
-print data["dift"]["1kB"].keys()
+print data["multidift"]["1kB"].keys()
 
 #for cache_size in ["512B", "1kB", "2kB", "4kB"]:
 for cache_size in ["1kB"]:
   print cache_size
   print "   Area (% mean, std) (absolute mean, std)"
   print "  ", average_area(data, cache_size), average_absolute_area(data, cache_size)
-  for extension in ["dift", "umc", "hb"]:
+  for extension in ["multidift", "umc", "hb"]:
     print "  ", extension
     print "     Peak Power (% mean, std) (absolute mean, std)"
     print "    ", average_extension_peak_power(data, extension, cache_size), average_extension_absolute_peak_power(data, extension, cache_size)
@@ -132,7 +132,7 @@ for cache_size in ["1kB"]:
 """
 fig = plot.figure()
 fig.suptitle("DIFT")
-plot_extension("dift")
+plot_extension("multidift")
 
 fig = plot.figure()
 fig.suptitle("UMC")
