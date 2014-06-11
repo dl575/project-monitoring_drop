@@ -669,6 +669,9 @@ BaseSimpleCPU::postExecute()
 
     if (perf_mon) {
       performMonitoring();
+      // Clear fed so we don't mistakenly read the same values
+      // in future instructions.
+      fed.clear();
     }
 }
 
@@ -688,6 +691,7 @@ BaseSimpleCPU::performMonitoring() {
       if (fifoStall) {
         stallFromFifo();
       }
+      return;
     }
     
     // Check if this instruction is predicated (true is executed, false is predicated false)
@@ -729,7 +733,7 @@ BaseSimpleCPU::performMonitoring() {
         if (fifoStall) {
             stallFromFifo();
         }
-        
+        return; 
     }
     // writing to FIFO_CUSTOM_DATA sends a packet to set tags
     // FIFO_END_CUSTOM is kept for backward compatibility
@@ -750,7 +754,7 @@ BaseSimpleCPU::performMonitoring() {
         if (fifoStall) {
             stallFromFifo();
         }
-        
+        return; 
     }
 
     /* Monitoring */
@@ -883,7 +887,7 @@ BaseSimpleCPU::performMonitoring() {
 
           delete pkt;
         }
-
+        return;
     }
 
     /* Stall for periodicity of task */
@@ -896,9 +900,6 @@ BaseSimpleCPU::performMonitoring() {
         endTask();
     }
 
-    // Clear fed so we don't mistakenly read the same values
-    // in future instructions.
-    fed.clear();
 }
 
 // Checks done flag in fifo
