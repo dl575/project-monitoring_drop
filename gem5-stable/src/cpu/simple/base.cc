@@ -723,9 +723,9 @@ BaseSimpleCPU::performMonitoring() {
         mp.instAddr = tc->instAddr();
         mp.memEnd = fed.data;
         mp.size = mp.memEnd - mp.memAddr + 1;
-        mp.store = true;
         mp.data = 1;
         mp.settag = true;
+        mp.store = false;
         
         // Send packet on fifo port, stall if not successful
         fifoStall = !sendFifoPacket();
@@ -743,8 +743,8 @@ BaseSimpleCPU::performMonitoring() {
         // Monitoring packet to be sent
         mp.instAddr = tc->instAddr();
         mp.data = fed.data;
-        mp.store = true;
         mp.settag = true;
+        mp.store = false;
         DPRINTF(Fifo, "Create custom packet at %d, PC=%x, Set tag[0x%x:0x%x]=0x%x\n", 
             curTick(), tc->instAddr(), mp.memAddr, mp.memAddr+mp.size-1, mp.data);        
         
@@ -817,16 +817,20 @@ BaseSimpleCPU::performMonitoring() {
         mp.data = fed.data;       // memory access data
         mp.virtAddr = fed.dataVirtAddr;
         mp.physAddr = fed.dataPhysAddr;
+        mp.lr      = tc->readIntReg(14); // Link register
+        mp.nextpc  = tc->nextInstAddr(); // Next program counter
         mp.size = fed.dataSize;
+        // String representation of assembly instruction
         strcpy(mp.inst_dis, inst_dis.c_str());
         
         unsigned numSrc = curStaticInst->numSrcRegs();
         bool isMicroOp = inst_dis.find("uop") != string::npos;
         bool isLoad = curStaticInst->isLoad();
         bool isStore = curStaticInst->isStore();
-        if (isStore && settag_store) {
-            mp.settag = true;
-        }
+
+        /////////////////////////////////////////
+        // Operands
+        /////////////////////////////////////////
         if (isLoad && !isMicroOp && numSrc == 5) {
             mp.rs1 = curStaticInst->srcRegIdx(0);
             mp.rs2 = 33;
@@ -847,22 +851,47 @@ BaseSimpleCPU::performMonitoring() {
             mp.rs2 = 33;  // rs2 register field
         }
         mp.rs3 = curStaticInst->srcRegIdx(0); // rs3 register field
-        mp.rd = (curStaticInst->numDestRegs())? curStaticInst->destRegIdx(0) : 33;  // rd register field
+        // Force source registers to be valid (use zero reg if not)
+        if (!(TheISA::isISAReg(mp.rs1))) {
+          mp.rs1 = 33;
+        }
+        if (!(TheISA::isISAReg(mp.rs2))) {
+          mp.rs2 = 33;
+        }
+        //mp.rd = (curStaticInst->numDestRegs())? curStaticInst->destRegIdx(0) : 33;  // rd register field
+        // Use zero reg (33) if no valid destination register
+        mp.rd = INTREG_ZERO;
+        // Otherwise, use first valid destination register
+        for (i = 0; mp.rd == INTREG_ZERO && i < curStaticInst->numDestRegs(); i++) {
+          if (TheISA::isISAReg(curStaticInst->destRegIdx(i))) {
+            mp.rd = curStaticInst->destRegIdx(i);
+          }
+        }
 
+        /////////////////////////////////////////
+        // Instruction Type
+        /////////////////////////////////////////
         // load/store flag
-        mp.store = curStaticInst->isStore() && mf.store;
-        mp.load = curStaticInst->isLoad() && mf.load;
+        if (isStore) {
+          // Mark stores as settag instructions if configured (UMC)
+          if (settag_store) {
+            mp.settag = true;
+            mp.store = false;
+          } else {
+            mp.store = true;
+            mp.settag = false;
+          }
+        }
+        mp.load = curStaticInst->isLoad();
         // Control instruction information
         mp.control = curStaticInst->isControl(); // control inst
-        mp.call    = curStaticInst->isCall() && mf.call;    // call inst
-        mp.ret     = curStaticInst->isReturn() && mf.ret;  // return inst
+        mp.call    = curStaticInst->isCall();    // call inst
+        mp.ret     = curStaticInst->isReturn();  // return inst
+        mp.indctrl = curStaticInst->isIndirectCtrl(); // indirect control
+        // Integer ALU instruction
         mp.intalu  = ((curStaticInst->opClass() == IntAluOp ||
               curStaticInst->opClass() == IntMultOp ||
-              curStaticInst->opClass() == IntDivOp)&& !curStaticInst->isIndirectCtrl()) && (mf.intalu || mf.intand || mf.intadd || mf.intsub || mf.intmul); // integer ALU inst
-        mp.indctrl = curStaticInst->isIndirectCtrl() && mf.indctrl; // indirect control
-        mp.lr      = tc->readIntReg(14); // Link register
-        mp.nextpc  = tc->nextInstAddr(); // Next program counter
-
+              curStaticInst->opClass() == IntDivOp) && !curStaticInst->isIndirectCtrl()); // integer ALU inst
         // ALU opcode
         mp.opcode = (uint8_t)curStaticInst->machInst.opcode;
 
