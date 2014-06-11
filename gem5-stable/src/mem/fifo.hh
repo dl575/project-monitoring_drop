@@ -163,7 +163,7 @@ class monitoringPacket {
 
     // Print out full monitoring packet information
     void print() {
-      printf("monitoringPacket {\n");
+      printf("monitoringPacket [%s] {\n", inst_dis);
       printf("  valid = %d\n", valid);
       printf("  instAddr = 0x%x\n", (int)instAddr);
       printf("  memAddr = 0x%x\n", (int)memAddr);
@@ -172,9 +172,6 @@ class monitoringPacket {
       printf("  physAddr = 0x%x\n", (int)physAddr);
       printf("  size = %d\n", (int)size);
       printf("  data = %d\n", (int)data);
-      printf("  store = %d\n", store);
-      printf("  load = %d\n", load);
-      printf("  done = %d\n", done);
       printf("  rs1 = %d\n", rs1);
       printf("  rs2 = %d\n", rs2);
       printf("  rs3 = %d\n", rs3);
@@ -182,8 +179,11 @@ class monitoringPacket {
       printf("  control = %d\n", control);
       printf("  call = %d\n", call);
       printf("  ret = %d\n", ret);
-      printf("  intalu = %d\n", intalu);
       printf("  indctrl = %d\n", indctrl);
+      printf("  intalu = %d\n", intalu);
+      printf("  store = %d\n", store);
+      printf("  load = %d\n", load);
+      printf("  done = %d\n", done);
       printf("  lr = 0x%x\n", (int)lr);
       printf("  nextpc = 0x%x\n", (int)nextpc);
       printf("  opcode = %d\n", opcode);

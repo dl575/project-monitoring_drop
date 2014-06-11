@@ -951,6 +951,27 @@ BaseSimpleCPU::isFifoEmpty() {
 // Send monitoring packet to fifo
 bool 
 BaseSimpleCPU::sendFifoPacket() {
+
+  /////////////////////////////////////////////////////////////
+  // Check packet properties before sending
+  /////////////////////////////////////////////////////////////
+  // Check that registers are always either valid or the zero reg
+  assert(TheISA::isISAReg(mp.rs1) || mp.rs1 == 33);
+  assert(TheISA::isISAReg(mp.rs2) || mp.rs2 == 33);
+  assert(TheISA::isISAReg(mp.rd) || mp.rd == 33);
+  // Check that load is not loading to zero reg
+  assert(!(mp.load && mp.rd == 33));
+  // Check that ALU has a valid destination reg
+  assert(!(mp.intalu && mp.rd == 33));
+  // Check that only one instruction type is marked
+  assert(mp.control + mp.intalu + mp.store + mp.load + mp.settag == 1);
+  // For DIFT, syscallread is the only settag
+  if (monitorExt == MONITOR_DIFT || monitorExt == MONITOR_MULTIDIFT) {
+    if (mp.settag) {
+      assert(mp.syscallReadNbytes);
+    }
+  }
+  
   // Create request
   Request *req = &data_write_req;
   // set physical address
