@@ -768,34 +768,37 @@ BaseSimpleCPU::performMonitoring() {
       }
     }
 
+    // Flags for echecking forwarding for specific instruction types
+    bool forwardDone = mp.done && curStaticInst->isStore();
+    bool forwardLoad = curStaticInst->isLoad() && mf.load;
+    bool forwardStore = curStaticInst->isStore() && mf.store;
+    bool forwardCall = curStaticInst->isCall() && mf.call;
+    bool forwardReturn = curStaticInst->isReturn() && mf.ret;
+    // integer ALU, not including control, memory barrier, thread sync, etc. instructions
+    // also checks that it writes to a valid destination register
+    bool forwardALU = curStaticInst->isInteger() && !curStaticInst->isControl() && ((inst_opclass == IntAluOp) || (inst_opclass == IntMultOp) || (inst_opclass = IntDivOp)) && destReg && mf.intalu;
+    bool forwardMov = (inst_dis.find("mov") != string::npos) && mf.intmov && !curStaticInst->isControl();
+    bool forwardAdd = (inst_dis.find("add") != string::npos) && mf.intadd;
+    bool forwardSub = (inst_dis.find("sub") != string::npos) && mf.intsub;
+    bool forwardAnd = (inst_dis.find("and") != string::npos) && mf.intand;
+    bool forwardMul = (inst_dis.find("mul") != string::npos) && mf.intmul;
+    bool forwardIndctrl = curStaticInst->isIndirectCtrl() && mf.indctrl;
+    bool fifoAccess = FIFO_ADDR_START <= fed.memAddr && fed.memAddr <= FIFO_ADDR_END;
+    bool timerAccess = timer_enabled && TIMER_ADDR_START <= fed.memAddr && fed.memAddr <= TIMER_ADDR_END;
+    bool flagcacheAccess = flagcache_enabled && FLAG_CACHE_ADDR_START <= fed.memAddr && fed.memAddr <= FLAG_CACHE_ADDR_END;
     // For certain instruction types, depending on mf (monitoring filter)
     // Fifo and monitoring must be enabled
     // Address cannot be for fifo, timer, or flagcache.
-    if (fifo_enabled && ( (mp.done && curStaticInst->isStore()) || 
-      (monitoring_enabled && predicate_result &&
-       (
-        (curStaticInst->isLoad() && mf.load) ||
-        (curStaticInst->isStore() && mf.store) ||
-        (curStaticInst->isCall() && mf.call) || 
-        (curStaticInst->isReturn() && mf.ret) ||
-        // integer ALU, not including memory barrier, thready sync, etc. instructions
-        (((inst_opclass == IntAluOp) || (inst_opclass == IntMultOp) || (inst_opclass == IntDivOp)) && curStaticInst->isInteger() &&
-         // and not including control instructions, must write to a register
-         !(curStaticInst->isControl()) && destReg && mf.intalu) || 
-        ((inst_dis.find("mov") != string::npos) && mf.intmov && !curStaticInst->isControl()) ||
-        ((inst_dis.find("add") != string::npos) && mf.intadd) ||
-        ((inst_dis.find("sub") != string::npos) && mf.intsub) ||
-        ((inst_dis.find("and") != string::npos) && mf.intand) ||
-        ((inst_dis.find("mul") != string::npos) && mf.intmul) ||
-        (curStaticInst->isIndirectCtrl() && mf.indctrl)
-       )
-       &&
-       !(
-        ((fed.memAddr >= FIFO_ADDR_START) && (fed.memAddr <= FIFO_ADDR_END)) ||
-        (timer_enabled && (fed.memAddr >= TIMER_ADDR_START) && (fed.memAddr <= TIMER_ADDR_END)) ||
-        (flagcache_enabled && (fed.memAddr >= FLAG_CACHE_ADDR_START) && (fed.memAddr <= FLAG_CACHE_ADDR_END))
-       )
-      ) ) ) {
+    if (fifo_enabled && 
+         (forwardDone || 
+           (monitoring_enabled && predicate_result &&
+             (forwardLoad || forwardStore || forwardCall || forwardReturn || 
+             forwardALU || forwardMov || forwardAdd || forwardSub || forwardAnd || 
+             forwardMul || forwardIndctrl) &&
+             !(fifoAccess || timerAccess || flagcacheAccess)
+           )
+         ) 
+       ) {
 
         DPRINTF(Fifo, "Monitoring event at %d, PC: %x\n", 
             curTick(), tc->instAddr());
