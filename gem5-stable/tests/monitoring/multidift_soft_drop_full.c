@@ -150,15 +150,6 @@ int main(int argc, char *argv[]) {
       // Propagate to destination memory addresses
       temp = READ_FIFO_MEMADDR;
       writeTag(temp, tagrf[rs]);
-    // Syscall read
-    } else if (READ_FIFO_SETTAG) {
-      // syscall read instruction
-      rs = READ_FIFO_SYSCALLBUFPTR;
-      rd = READ_FIFO_SYSCALLNBYTES + rs;
-      //for (temp = READ_FIFO_SYSCALLBUFPTR; temp < READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES; temp+=4) {
-      for (temp = rs; temp < rd; temp += 4) {
-        writeTag(temp, 1);
-      }
     // Indirect control
     } else if (READ_FIFO_INDCTRL) {
       rs = READ_FIFO_RS1;
@@ -167,6 +158,15 @@ int main(int argc, char *argv[]) {
         // printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
         // return -1;
         error = 1;
+      }
+    // Syscall read
+    } else if (READ_FIFO_SETTAG) {
+      // syscall read instruction
+      rs = READ_FIFO_SYSCALLBUFPTR;
+      rd = READ_FIFO_SYSCALLNBYTES + rs;
+      //for (temp = READ_FIFO_SYSCALLBUFPTR; temp < READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES; temp+=4) {
+      for (temp = rs; temp < rd; temp += 4) {
+        writeTag(temp, 1);
       }
     } // inst type
 
