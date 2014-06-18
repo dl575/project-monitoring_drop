@@ -38,4 +38,10 @@ volatile unsigned int *flagcache;
 // Set the cache to the specified value
 #define FC_SET_CACHE_VALUE(value)  *(flagcache + 8) = value;
 
+// Values to to set in flagcache
+#define FC_VALID_NULL      0b00
+#define FC_INVALID_NULL    0b01
+#define FC_VALID_NONNULL   0b10
+#define FC_INVALID_NONNULL 0b11
+
 #endif // __FLAGCACHE_H__

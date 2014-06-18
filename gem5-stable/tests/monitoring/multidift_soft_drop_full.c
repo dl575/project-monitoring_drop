@@ -29,7 +29,6 @@
   #define NUM_REGS 37
   // Exclude register 33 which is the constant zero register
   #define ZERO_REG 33
-  //#define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
   #define isISAReg(x) (x != ZERO_REG)
 #else
   #define NUM_REGS 32
@@ -164,7 +163,6 @@ int main(int argc, char *argv[]) {
       // syscall read instruction
       rs = READ_FIFO_SYSCALLBUFPTR;
       rd = READ_FIFO_SYSCALLNBYTES + rs;
-      //for (temp = READ_FIFO_SYSCALLBUFPTR; temp < READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES; temp+=4) {
       for (temp = rs; temp < rd; temp += 4) {
         writeTag(temp, 1);
       }
