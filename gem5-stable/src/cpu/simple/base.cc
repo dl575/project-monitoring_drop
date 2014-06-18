@@ -1062,6 +1062,11 @@ BaseSimpleCPU::readFifoInstType()
         DPRINTF(Invalidation, "Fifo entry instruction type is STORE\n");
         return inst_store; 
     }
+    readFromFifo(FIFO_INDCTRL, (uint8_t *)&is_type, sizeof(is_type), ArmISA::TLB::AllowUnaligned);
+    if (is_type) {
+        DPRINTF(Invalidation, "Fifo entry instruction type is INDCTRL\n");
+        return inst_indctrl;
+    }
     readFromFifo(FIFO_CALL, (uint8_t *)&is_type, sizeof(is_type), ArmISA::TLB::AllowUnaligned);
     if (is_type) {
         DPRINTF(Invalidation, "Fifo entry instruction type is CALL\n");
@@ -1076,11 +1081,6 @@ BaseSimpleCPU::readFifoInstType()
     if (is_type) {
         DPRINTF(Invalidation, "Fifo entry instruction type is INTALU\n");
         return inst_intalu;
-    }
-    readFromFifo(FIFO_INDCTRL, (uint8_t *)&is_type, sizeof(is_type), ArmISA::TLB::AllowUnaligned);
-    if (is_type) {
-        DPRINTF(Invalidation, "Fifo entry instruction type is INDCTRL\n");
-        return inst_indctrl;
     }
     DPRINTF(Invalidation, "Fifo entry instruction type is unknown\n");
     return inst_undef;
