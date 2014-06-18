@@ -133,8 +133,6 @@ parser.add_option("--static_coverage", action="store_true")
 
 # Drop only at source set tag operations
 parser.add_option("--source_dropping", action="store_true")
-# Only do monitoring for propagations starting at a source set tag
-parser.add_option("--source_propagation", action="store_true")
 
 # Configuration for WCET bound mode
 parser.add_option("--wcet", action="store_true")
@@ -219,8 +217,6 @@ MonCPUClass.monitor_type = available_monitors[options.monitor]
 if (options.simulatestalls and options.cpu_type == 'atomic'):
     # Simulate d cache stalls
     MonCPUClass.simulate_data_stalls = True
-if options.source_propagation:
-  MonCPUClass.source_propagation = True
 
 # Create drop core
 prev_cpu_type = options.cpu_type
@@ -271,13 +267,8 @@ if options.probabilistic_drop:
 DropCPUClass.print_static_coverage = options.static_coverage
 if options.source_dropping:
   DropCPUClass.source_dropping = True
-if options.source_propagation:
-  DropCPUClass.source_propagation = True
 
-if options.source_propagation:
-  table_dir = os.environ["GEM5"] + "/tables/source_propagation/"
-else:
-  table_dir = os.environ["GEM5"] + "/tables/"
+table_dir = os.environ["GEM5"] + "/tables/"
 if options.monitor == "umc":
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True

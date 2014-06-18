@@ -606,8 +606,6 @@ class BaseSimpleCPU : public BaseCPU
     unsigned all_packets;
     // Perform dropping only on set tag operations
     bool source_dropping;
-    // Perform propagation only on flows that started with a set tag operation
-    bool source_propagation;
 
     // Data structure for handling fifo event
     class fifoEventDetails {

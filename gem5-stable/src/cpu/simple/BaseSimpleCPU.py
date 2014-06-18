@@ -76,8 +76,6 @@ class BaseSimpleCPU(BaseCPU):
     optimal_dropping = Param.Bool(False, "Perform optimal dropping")
     # Perform dropping only on set tag operations
     source_dropping = Param.Bool(False, "perform dropping only on set tag operations")
-    # Perform propagation only on flows that start with a set tag operation
-    source_propagation = Param.Bool(False, "perform propagation only on for non-null metadata")
 
     print_checkid = Param.Bool(False, "Print out ID# of checks as they occured. Used for probabilistic monitoring. Used instead of DPRINTF so gem5.fast executes it")
     print_static_coverage = Param.Bool(False, "Keep track of and print out coverage of static instructions.")

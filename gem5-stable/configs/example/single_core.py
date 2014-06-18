@@ -131,8 +131,6 @@ parser.add_option("--static_coverage", action="store_true")
 
 # Drop only at source set tag operations
 parser.add_option("--source_dropping", action="store_true")
-# Only do monitoring for propagations starting at a source set tag
-parser.add_option("--source_propagation", action="store_true")
 
 # Configuration for WCET bound mode
 parser.add_option("--wcet", action="store_true")

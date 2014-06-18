@@ -110,7 +110,6 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     check_frequency(p->check_frequency),
     total_checks(0), full_packets(1), all_packets(1),
     source_dropping(p->source_dropping),
-    source_propagation(p->source_propagation),
     perf_mon(true),
     _backtrack(p->backtrack),
     optimal_dropping(p->optimal_dropping),
