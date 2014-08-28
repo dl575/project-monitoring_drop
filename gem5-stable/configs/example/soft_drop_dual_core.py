@@ -206,7 +206,7 @@ if (options.simulatestalls and options.cpu_type == 'atomic'):
 # MonCPUClass.clock = options.monfreq
 # Core-based monitor
 (MonCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
-MonCPUClass.clock = options.clock
+MonCPUClass.clock = options.monfreq
 MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True
