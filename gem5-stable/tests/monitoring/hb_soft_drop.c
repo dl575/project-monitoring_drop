@@ -31,7 +31,7 @@
   #define NUM_REGS 37
   // Exclude register 33 which is the constant zero register
   #define ZERO_REG 33
-  #define isISAReg(x) (x < NUM_REGS && x != ZERO_REG)
+  #define isISAReg(x) (x != ZERO_REG)
 #else
   #define NUM_REGS 32
   #define isISAReg(x) (x < NUM_REGS)
@@ -119,14 +119,14 @@ int main(int argc, char *argv[]) {
   register unsigned int rs1;
   register unsigned int rs2;
   volatile register int error;
-  int opcode;
-  HBTag tresult;
-  HBTag trs1;
-  HBTag trs2;
-  HBTag setTagData;
+  register int opcode;
+  register HBTag trs1;
+  register HBTag trs2;
+  register HBTag setTagData;
 
   // Set up monitoring
   INIT_MONITOR;
+  tagrf[ZERO_REG] = 0;
   // Set up interface to flag cache
   INIT_FC;
 
@@ -139,135 +139,87 @@ int main(int argc, char *argv[]) {
     // integer ALU
     if (READ_FIFO_INTALU) {
       opcode = READ_FIFO_OPCODE;
+      // Single source
       if ((opcode == ALUMov) || opcode == ALUAnd) {
         rs1 = READ_FIFO_RS1;
-        if (isISAReg(rs1)) {
-          rd = READ_FIFO_RD;
-          if (isISAReg(rd)) {
-            HBTag trs1 = tagrf[rs1];
-            tagrf[rd] = trs1;
-            // Revalidate in invalidation cache and update FADE flag
-            FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(trs1 ? 2 : 0);
-            //FC_ARRAY_REVALIDATE(rd);
-          }
-        } else {
-          rd = READ_FIFO_RD;
-          // mov immediate
-          if (isISAReg(rd)) {
-            tagrf[rd] = 0;
-            // Revalidate in invalidation cache and update FADE flag
-            FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(0);
-            //FC_ARRAY_REVALIDATE(rd);
-          }
-        }
+        rd = READ_FIFO_RD;
+        // Note: if rs1 is invalid (i.e., immediate) then
+        //   rs1 = ZERO_REG, tagrf[rs1] = 0
+        HBTag trs1 = tagrf[rs1];
+        tagrf[rd] = trs1;
+        // Revalidate in invalidation cache and update FADE flag
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(trs1 ? FC_VALID_NONNULL : FC_VALID_NULL);
       } else if ((opcode == ALUAdd1) || (opcode == ALUAdd2) || (opcode == ALUSub) || (opcode == ALUAdduop1) || (opcode == ALUAdduop2)) {
-        tresult = 0;
         rs1 = READ_FIFO_RS1;
         rs2 = READ_FIFO_RS2;
-        if (isISAReg(rs1) && isISAReg(rs2)) {
-          trs1 = tagrf[rs1];
-          trs2 = tagrf[rs2];
-          if (toBoundTag(trs1)) {
-            tresult = trs1;
-          } else {
-            tresult = trs2;
-          }
-          rd = READ_FIFO_RD;
-          if (isISAReg(rd)) {
-            tagrf[rd] = tresult;
-            // Revalidate in invalidation cache and update FADE flag
-            FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(tresult ? 2 : 0);
-            //FC_ARRAY_REVALIDATE(rd);
-          }
-        } else if isISAReg(rs1) {
-          // add immediate
-          trs1 = tagrf[rs1];
-          rd = READ_FIFO_RD;
-          if (isISAReg(rd)) {
-            tagrf[rd] = trs1;
-            // Revalidate in invalidation cache and update FADE flag
-            FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(trs1 ? 2 : 0);
-            //FC_ARRAY_REVALIDATE(rd);
-          }
+        rd = READ_FIFO_RD;
+        trs1 = tagrf[rs1];
+        if (isISAReg(rs2) && !toBoundTag(trs1)) {
+          trs1 = tagrf[rs2];
         }
+        tagrf[rd] = trs1;
+        // Revalidate in invalidation cache and update FADE flag
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(trs1 ? FC_VALID_NONNULL : FC_VALID_NULL);
       } else {
         // other ALU operations
         rd = READ_FIFO_RD;
-        if (isISAReg(rd)) {
-          tagrf[rd] = trs1;
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(rd);
-          FC_SET_ARRAY_VALUE(0);
-          //FC_ARRAY_REVALIDATE(rd);
-        }
+        tagrf[rd] = 0;
+        // Revalidate in invalidation cache and update FADE flag
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(FC_VALID_NULL);
       }
+    // Store: str rs1, [rs2, #c]
     } else if (READ_FIFO_STORE) {
-      if (!READ_FIFO_SETTAG) {
-        rs1 = READ_FIFO_RS1;
-        rs2 = READ_FIFO_RS2;
-        if (isISAReg(rs1) && isISAReg(rs2)) {
-          trs1 = tagrf[rs1];
-          trs2 = tagrf[rs2];
-          temp = READ_FIFO_MEMADDR;
-          if (!((trs2 == 0) || (temp >= toBaseTag(trs2)) && (temp < toBoundTag(trs2)))) {
-            error = 1;
-          }
-          // update destination pointer tag
-          if (READ_FIFO_MEMSIZE == 4) {
-            writeTag(READ_FIFO_PHYSADDR, trs1);
-          }
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(temp >> 2);
-          FC_SET_CACHE_VALUE(trs1 ? 2 : 0);
-          //FC_CACHE_REVALIDATE(temp >> 2);
-        }
-      } else {
-        // settag operations
-        unsigned int size = READ_FIFO_MEMSIZE;
-        if (size == 0) {
-          // set base address
-          setTagData = READ_FIFO_DATA;
-        } else if (size == 1) {
-          // set bound address
-          setTagData = setTagData | (((HBTag)READ_FIFO_DATA) << 32);
-          writeTag(READ_FIFO_PHYSADDR, setTagData);
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(READ_FIFO_MEMADDR >> 2);
-          FC_SET_CACHE_VALUE(2);
-          //FC_CACHE_REVALIDATE(READ_FIFO_MEMADDR >> 2);
-        }
-      }
-    } else if (READ_FIFO_LOAD) {
       rs1 = READ_FIFO_RS1;
-      if (isISAReg(rs1)) {
-        trs1 = tagrf[rs1];
-        if (!((trs1 == 0) || (temp >= toBaseTag(trs1)) && (temp < toBoundTag(trs1))))
-          error = 1;
-        if (READ_FIFO_MEMSIZE == 4) {
-          rd = READ_FIFO_RD;
-          HBTag tmem = readTag(READ_FIFO_PHYSADDR);
-          tagrf[rd] = tmem;
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(rd);
-          FC_SET_ARRAY_VALUE(tmem ? 2 : 0);
-          //FC_ARRAY_REVALIDATE(rd);
-        }
-      } else {
-        // should not reach here
-        // if we reach here for some reason, conservatively clear dest reg tag
-        rd = READ_FIFO_RD;
-        if (isISAReg(rd)) {
-            tagrf[rd] = 0;
-            FC_SET_ADDR(rd);
-            FC_SET_ARRAY_VALUE(0);
-            //FC_ARRAY_REVALIDATE(rd);
-        }
+      rs2 = READ_FIFO_RS2;
+      trs1 = tagrf[rs1];
+      trs2 = tagrf[rs2];
+      temp = READ_FIFO_MEMADDR;
+      if (!((trs2 == 0) || (temp >= toBaseTag(trs2)) && (temp < toBoundTag(trs2)))) {
+        error = 1;
       }
-    }
+      // update destination pointer tag
+      if (READ_FIFO_MEMSIZE == 4) {
+        writeTag(READ_FIFO_PHYSADDR, trs1);
+      }
+      // Revalidate in invalidation cache and update FADE flag
+      FC_SET_ADDR(temp >> 2);
+      FC_SET_CACHE_VALUE(trs1 ? 2 : 0);
+    // Load
+    } else if (READ_FIFO_LOAD) {
+      // Check tag
+      rs1 = READ_FIFO_RS1;
+      trs1 = tagrf[rs1];
+      if (!((trs1 == 0) || (temp >= toBaseTag(trs1)) && (temp < toBoundTag(trs1))))
+        error = 1;
+      // Propagate tag
+      if (READ_FIFO_MEMSIZE == 4) {
+        rd = READ_FIFO_RD;
+        HBTag tmem = readTag(READ_FIFO_PHYSADDR);
+        tagrf[rd] = tmem;
+        // Revalidate in invalidation cache and update FADE flag
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(tmem ? 2 : 0);
+      }
+    // Set pointer tag
+    } else if (READ_FIFO_SETTAG) {
+      // settag operations
+      temp = READ_FIFO_MEMSIZE;
+      if (temp == 0) {
+        // set base address
+        setTagData = READ_FIFO_DATA;
+      } else if (temp == 1) {
+        // set bound address
+        setTagData = setTagData | (((HBTag)READ_FIFO_DATA) << 32);
+        writeTag(READ_FIFO_PHYSADDR, setTagData);
+        // Revalidate in invalidation cache and update FADE flag
+        FC_SET_ADDR(READ_FIFO_MEMADDR >> 2);
+        FC_SET_CACHE_VALUE(2);
+        //FC_CACHE_REVALIDATE(READ_FIFO_MEMADDR >> 2);
+      }
+    } // inst type
   } // while(1)
 
   return 1;

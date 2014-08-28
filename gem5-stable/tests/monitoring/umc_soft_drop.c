@@ -199,6 +199,7 @@ inline void writeByteTag(unsigned addr, bool tag) {
 int main(int argc, char *argv[]) {
   register unsigned idx;
   volatile uint8_t error;
+  register unsigned addr, size, memend;
 
   // Set up monitoring
   INIT_MONITOR;
@@ -209,50 +210,10 @@ int main(int argc, char *argv[]) {
   while(1) {
   
     POP_FIFO;
-    // Store
-    if (READ_FIFO_STORE) {
-      if (!(READ_FIFO_SETTAG)) {
-        unsigned addr = READ_FIFO_MEMADDR;
-        unsigned size = READ_FIFO_MEMSIZE;
-        switch (size) {
-          case 4:
-            writeWordTag(addr, 0xf);
-            FC_SET_ADDR(addr >> 2);
-            FC_SET_CACHE_VALUE(2);
-            break;
-          case 2:
-            writeHalfWordTag(addr, 0x3);
-            if (addr & 0x3 == 0) {
-              if (readWordTag(addr) == 0xf) {
-                FC_SET_ADDR(addr >> 2);
-                FC_SET_CACHE_VALUE(2);
-              }
-            }
-            break;
-          case 1:
-            writeByteTag(addr, 0x1);
-            if (addr & 0x3 == 0) {
-              if (readWordTag(addr) == 0xf) {
-                FC_SET_ADDR(addr >> 2);
-                FC_SET_CACHE_VALUE(2);
-              }
-            }
-            break;
-        }
-      } else {
-        unsigned addr = READ_FIFO_MEMADDR;
-        unsigned memend = READ_FIFO_MEMEND;
-        // set tag are used for initialization of large chunks of data
-        for (; addr <= memend; addr+=4) {
-          writeWordTag(addr, 0xf);
-          FC_SET_ADDR(addr >> 2);
-          FC_SET_CACHE_VALUE(2);
-        }
-      }
     // Load
-    } else if (READ_FIFO_LOAD) {
-      unsigned addr = READ_FIFO_MEMADDR;
-      unsigned size = READ_FIFO_MEMSIZE;
+    if (READ_FIFO_LOAD) {
+      addr = READ_FIFO_MEMADDR;
+      size = READ_FIFO_MEMSIZE;
       switch (size) {
         case 4:
           error = readWordTag(addr);
@@ -264,17 +225,56 @@ int main(int argc, char *argv[]) {
           error = readByteTag(addr);
           break;
       }
-    } else if ((READ_FIFO_SETTAG) && (READ_FIFO_SYSCALLNBYTES > 0)) {
-      register int i = 0;
+    } else if (READ_FIFO_SYSCALLNBYTES) {
       // syscall read instruction
-      unsigned addr = READ_FIFO_SYSCALLBUFPTR;
-      unsigned memend = READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES - 1;
+      addr = READ_FIFO_SYSCALLBUFPTR;
+      memend = READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES - 1;
       for (; addr <= memend; addr+=4) {
         writeWordTag(addr, 0xf);
         FC_SET_ADDR(addr >> 2);
         FC_SET_CACHE_VALUE(2);
       }
-    }
+    // Settag instruction
+    } else if (READ_FIFO_CUSTOM) {
+      addr = READ_FIFO_MEMADDR;
+      memend = READ_FIFO_MEMEND;
+      // set tag are used for initialization of large chunks of data
+      for (; addr <= memend; addr+=4) {
+        writeWordTag(addr, 0xf);
+        FC_SET_ADDR(addr >> 2);
+        FC_SET_CACHE_VALUE(2);
+      }
+    // Store
+    } else if (READ_FIFO_STORE) {
+      addr = READ_FIFO_MEMADDR;
+      size = READ_FIFO_MEMSIZE;
+      switch (size) {
+        case 4:
+          writeWordTag(addr, 0xf);
+          FC_SET_ADDR(addr >> 2);
+          FC_SET_CACHE_VALUE(2);
+          break;
+        case 2:
+          writeHalfWordTag(addr, 0x3);
+          if (addr & 0x3 == 0) {
+            if (readWordTag(addr) == 0xf) {
+              FC_SET_ADDR(addr >> 2);
+              FC_SET_CACHE_VALUE(2);
+            }
+          }
+          break;
+        case 1:
+          writeByteTag(addr, 0x1);
+          if (addr & 0x3 == 0) {
+            if (readWordTag(addr) == 0xf) {
+              FC_SET_ADDR(addr >> 2);
+              FC_SET_CACHE_VALUE(2);
+            }
+          }
+          break;
+        }
+    } // inst type
+
   } // while (1)
 
   return 1;

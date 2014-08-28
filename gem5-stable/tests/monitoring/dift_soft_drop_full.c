@@ -104,8 +104,8 @@ int main(int argc, char *argv[]) {
         // return -1;
         error = 1;
       }
+    // Syscall read instruction
     } else if (READ_FIFO_SETTAG) {
-      // syscall read instruction
       rs = READ_FIFO_SYSCALLBUFPTR >> 2;
       rd = (READ_FIFO_SYSCALLNBYTES + rs) >> 2;
       for (temp = rs; temp < rd; temp++) {
