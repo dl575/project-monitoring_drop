@@ -844,6 +844,14 @@ BaseSimpleCPU::performMonitoring() {
         } else if (isStore && !isMicroOp && numSrc == 6) {
             mp.rs1 = curStaticInst->srcRegIdx(0);
             mp.rs2 = curStaticInst->srcRegIdx(5);
+        // Subtract
+        } else if (forwardSub) {
+            mp.rs1 = curStaticInst->srcRegIdx(3);
+            if (numSrc > 4) {
+              mp.rs2 = curStaticInst->srcRegIdx(numSrc-1);
+            } else {
+              mp.rs2 = INTREG_ZERO;
+            }
         } else if (TheISA::isISAReg(curStaticInst->srcRegIdx(numSrc-2))) {
             mp.rs1 = curStaticInst->srcRegIdx(numSrc-2);  // rs1 register field
             mp.rs2 = curStaticInst->srcRegIdx(numSrc-1);  // rs2 register field        
