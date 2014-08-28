@@ -994,19 +994,53 @@ BaseSimpleCPU::sendFifoPacket() {
   // Check packet properties before sending
   /////////////////////////////////////////////////////////////
   // Check that registers are always either valid or the zero reg
-  assert(TheISA::isISAReg(mp.rs1) || mp.rs1 == 33);
-  assert(TheISA::isISAReg(mp.rs2) || mp.rs2 == 33);
-  assert(TheISA::isISAReg(mp.rd) || mp.rd == 33);
+  assert(TheISA::isISAReg(mp.rs1) || mp.rs1 == TheISA::ZeroReg);
+  assert(TheISA::isISAReg(mp.rs2) || mp.rs2 == TheISA::ZeroReg);
+  assert(TheISA::isISAReg(mp.rd) || mp.rd == TheISA::ZeroReg);
   // Check that load is not loading to zero reg
-  assert(!(mp.load && mp.rd == 33));
+  assert(!(mp.load && mp.rd == TheISA::ZeroReg));
   // Check that ALU has a valid destination reg
-  assert(!(mp.intalu && mp.rd == 33));
+  assert(!(mp.intalu && mp.rd == TheISA::ZeroReg));
   // Check that only one instruction type is marked
   assert(mp.control + mp.intalu + mp.store + mp.load + mp.settag == 1);
   // For DIFT, syscallread is the only settag
   if (monitorExt == MONITOR_DIFT || monitorExt == MONITOR_MULTIDIFT) {
     if (mp.settag) {
       assert(mp.syscallReadNbytes);
+    }
+  }
+  // Check for valid packet type for UMC
+  if (monitorExt == MONITOR_UMC) {
+    if (mp.custom) {
+      // Custom settag (init memory range)
+      assert(mp.settag);
+      assert(mp.store + mp.load == 0);
+    } else {
+      // Otherwise, store/settag or load
+      assert(mp.store + mp.load + mp.settag == 1);
+    }
+  }
+  // Hardbound
+  if (monitorExt == MONITOR_HB) {
+    assert(mp.load + mp.store + mp.settag + mp.intalu == 1);
+    // Valid load register and address register
+    if (mp.load) {
+      assert(TheISA::isISAReg(mp.rd));
+      assert(TheISA::isISAReg(mp.rs1));
+    // Valid store register and address
+    } else if (mp.store) {
+      assert(TheISA::isISAReg(mp.rs1));
+      assert(TheISA::isISAReg(mp.rs2));
+    // ALU
+    } else if (mp.intalu) {
+      assert(TheISA::isISAReg(mp.rd));
+      if (mp.opcode == 0x04 || mp.opcode == 0x05 || mp.opcode == 0x02 || mp.opcode == 0x06 || mp.opcode == 0x0c) {
+        if (!TheISA::isISAReg(mp.rs1)) {
+          cout << mp.inst_dis << endl;
+          printf("%d, %d, %d\n", mp.rs1, mp.rs2, mp.rd);
+        }
+        assert(TheISA::isISAReg(mp.rs1));
+      }
     }
   }
   
