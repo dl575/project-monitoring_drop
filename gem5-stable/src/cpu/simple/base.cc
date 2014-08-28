@@ -725,6 +725,7 @@ BaseSimpleCPU::performMonitoring() {
         mp.data = 1;
         mp.settag = true;
         mp.store = false;
+        mp.custom = true;
         
         // Send packet on fifo port, stall if not successful
         fifoStall = !sendFifoPacket();
@@ -744,6 +745,7 @@ BaseSimpleCPU::performMonitoring() {
         mp.data = fed.data;
         mp.settag = true;
         mp.store = false;
+        mp.custom = true;
         DPRINTF(Fifo, "Create custom packet at %d, PC=%x, Set tag[0x%x:0x%x]=0x%x\n", 
             curTick(), tc->instAddr(), mp.memAddr, mp.memAddr+mp.size-1, mp.data);        
         

@@ -190,6 +190,7 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
                 else if (read_addr == FIFO_SETTAG) { send_data = mp.settag; }
                 else if (read_addr == FIFO_SYSCALLBUFPTR) { send_data = mp.syscallReadBufPtr; }
                 else if (read_addr == FIFO_SYSCALLNBYTES) { send_data = mp.syscallReadNbytes; }
+                else if (read_addr == FIFO_CUSTOM) { send_data = mp.custom; }
                 else if (read_addr == FIFO_PACKET) { /* We will send full packet below */}
                 else {
                   warn("Unrecognized read from fifo address %x\n", read_addr);

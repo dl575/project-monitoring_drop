@@ -82,6 +82,7 @@
 #define FIFO_SETTAG        (FIFO_ADDR + 0x5c)       // manually set the tag
 #define FIFO_SYSCALLBUFPTR (FIFO_ADDR + 0x60)       // syscall read buffer pointer
 #define FIFO_SYSCALLNBYTES (FIFO_ADDR + 0x64)       // syscall read n_bytes
+#define FIFO_CUSTOM        (FIFO_ADDR + 0x68)       // manually set the tag
 
 // Fifo registers
 #define FIFO_REG_START (FIFO_ADDR + 0x1000) 
@@ -129,6 +130,8 @@ class monitoringPacket {
     // Data for handling syscall read
     Addr syscallReadBufPtr;
     int syscallReadNbytes;
+    // Custom fifo packet (usually for setting tag for memory range)
+    bool custom;
 
     // Clear all variables
     void init() {
@@ -156,6 +159,7 @@ class monitoringPacket {
       nextpc = 0;
       opcode = 0;
       settag = false;
+      custom = false;
       memset(inst_dis, '\0', 32);
       syscallReadBufPtr = 0;
       syscallReadNbytes = 0;
@@ -190,6 +194,7 @@ class monitoringPacket {
       printf("  settag = %d\n", settag);
       printf("  syscallReadBufPtr = 0x%x\n", (int)syscallReadBufPtr);
       printf("  syscallReadNbytes = %d\n", syscallReadNbytes);
+      printf("  custom = %d\n", custom);
       printf("}\n");
     }
 };

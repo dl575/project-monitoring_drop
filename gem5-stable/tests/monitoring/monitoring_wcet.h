@@ -105,6 +105,7 @@ struct monitoring_packet {
 #define READ_FIFO_SETTAG      *(fifo + 23)
 #define READ_FIFO_SYSCALLBUFPTR *(fifo + 24)
 #define READ_FIFO_SYSCALLNBYTES *(fifo + 25)
+#define READ_FIFO_CUSTOM      *(fifo + 26)
 
 // Fifo flags
 #define READ_FIFO_FULL    *(fifo + 0x400)
