@@ -45,9 +45,11 @@ int main(int argc, char *argv[]) {
   register unsigned int rs;
   volatile register int error;
   register bool tresult;
+  register int opcode;
 
   // Set up monitoring
   INIT_MONITOR;
+  tagrf[ZERO_REG] = false;
   // Set up interface to flag cache
   INIT_FC;
 
@@ -55,77 +57,87 @@ int main(int argc, char *argv[]) {
   while(1) {
 
     // Grab new packet from FIFO. Block until packet available.
-    POP_FIFO;
+    // Read opcode of packet.
+    opcode = READ_POP_FIFO_OPCODE_CUSTOM;
 
-    // integer ALU
-    if (READ_FIFO_INTALU) {
-      // on ALU instructions, propagate tag between registers
-      // Read source tags and determine taint of destination
-      rs = READ_FIFO_RS1;
-      tresult = tagrf[rs];
-      rs = READ_FIFO_RS2;
-      tresult |= tagrf[rs];
-      // Destination register
-      rd = READ_FIFO_RD;
-      tagrf[rd] = tresult;
-      tagrf[ZERO_REG] = 0;
-      // Revalidate in invalidation cache and update FADE flag
-      FC_SET_ADDR(rd);
-      FC_SET_ARRAY_VALUE(tresult ? FC_VALID_NONNULL : FC_VALID_NULL);
-    // Load
-    } else if (READ_FIFO_LOAD) {
-      // on load, propagate tag from memory to RF
-      // Get destination register
-      rd = READ_FIFO_RD;
-      // Propagate from memory addresses
-      temp = READ_FIFO_MEMADDR >> 2;
-      // Pull out correct bit in memory to store int tag register file
-      if ((tagmem[temp >> 3]) & (1 << (temp&0x7))) {
-        tagrf[rd] = true;
-      } else {
-        tagrf[rd] = false;
-      }
-      // Revalidate in invalidation cache and update FADE flag
-      FC_SET_ADDR(rd);
-      FC_SET_ARRAY_VALUE(tresult ? FC_VALID_NONNULL : FC_VALID_NULL);
-    // Store
-    } else if (READ_FIFO_STORE) {
-      // Get source register
-      rs = READ_FIFO_RS1;
-      // Propagate to destination memory addresses
-      temp = (READ_FIFO_MEMADDR >> 2);
-      if (tagrf[rs] == 1) {
-        // Bit mask to set taint
-        tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
+    switch(opcode) {
+      // integer ALU
+      case OPCODE_INTALU:
+        // on ALU instructions, propagate tag between registers
+        // Read source tags and determine taint of destination
+        rs = READ_FIFO_RS1;
+        tresult = tagrf[rs];
+        rs = READ_FIFO_RS2;
+        tresult |= tagrf[rs];
+        // Destination register
+        rd = READ_FIFO_RD;
+        tagrf[rd] = tresult;
+        tagrf[ZERO_REG] = 0;
         // Revalidate in invalidation cache and update FADE flag
-        FC_SET_ADDR(temp);
-        FC_SET_CACHE_VALUE(FC_VALID_NONNULL);
-      } else {
-        // Bit mask to clear tag
-        tagmem[temp >> 3] = tagmem[temp >> 3] & ~(1 << (temp&0x07));
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(tresult ? FC_VALID_NONNULL : FC_VALID_NULL);
+        break;
+      // Load
+      case OPCODE_LOAD:
+        // on load, propagate tag from memory to RF
+        // Get destination register
+        rd = READ_FIFO_RD;
+        // Propagate from memory addresses
+        temp = READ_FIFO_MEMADDR >> 2;
+        // Pull out correct bit in memory to store int tag register file
+        if ((tagmem[temp >> 3]) & (1 << (temp&0x7))) {
+          tagrf[rd] = true;
+        } else {
+          tagrf[rd] = false;
+        }
         // Revalidate in invalidation cache and update FADE flag
-        FC_SET_ADDR(temp);
-        FC_SET_CACHE_VALUE(FC_VALID_NULL);
-      }
-    // Indirect control
-    } else if (READ_FIFO_INDCTRL) {
-      rs = READ_FIFO_RS1;
-      // on indirect jump, check tag taint
-      if (tagrf[rs]) {
-        // printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
-        // return -1;
-        error = 1;
-      }
-    // Syscall read instruction
-    } else if (READ_FIFO_SETTAG) {
-      rs = READ_FIFO_SYSCALLBUFPTR >> 2;
-      rd = (READ_FIFO_SYSCALLNBYTES + rs) >> 2;
-      for (temp = rs; temp < rd; temp++) {
-        tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp & 0x7));
-        FC_SET_ADDR(temp);
-        FC_SET_CACHE_VALUE(FC_VALID_NONNULL);
-      }
-    } // inst type
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(tresult ? FC_VALID_NONNULL : FC_VALID_NULL);
+        break;
+      // Store
+      case OPCODE_STORE:
+        // Get source register
+        rs = READ_FIFO_RS1;
+        // Propagate to destination memory addresses
+        temp = (READ_FIFO_MEMADDR >> 2);
+        if (tagrf[rs] == 1) {
+          // Bit mask to set taint
+          tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp&0x07));
+          // Revalidate in invalidation cache and update FADE flag
+          FC_SET_ADDR(temp);
+          FC_SET_CACHE_VALUE(FC_VALID_NONNULL);
+        } else {
+          // Bit mask to clear tag
+          tagmem[temp >> 3] = tagmem[temp >> 3] & ~(1 << (temp&0x07));
+          // Revalidate in invalidation cache and update FADE flag
+          FC_SET_ADDR(temp);
+          FC_SET_CACHE_VALUE(FC_VALID_NULL);
+        }
+        break;
+      // Indirect control
+      case OPCODE_INDCTRL:
+        rs = READ_FIFO_RS1;
+        // on indirect jump, check tag taint
+        if (tagrf[rs]) {
+          // printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
+          // return -1;
+          error = 1;
+        }
+        break;
+      // Syscall read instruction
+      case OPCODE_SYSCALLREAD:
+        rs = READ_FIFO_SYSCALLBUFPTR >> 2;
+        rd = (READ_FIFO_SYSCALLNBYTES + rs) >> 2;
+        for (temp = rs; temp < rd; temp++) {
+          tagmem[temp >> 3] = tagmem[temp >> 3] | (1 << (temp & 0x7));
+          FC_SET_ADDR(temp);
+          FC_SET_CACHE_VALUE(FC_VALID_NONNULL);
+        }
+        break;
+      default:
+        printf("Error: Unrecognized opcode = %d\n", opcode);
+        break;
+    } // switch
     
   } // while(1)
 

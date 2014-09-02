@@ -112,9 +112,12 @@ int main(int argc, char *argv[]) {
   register unsigned int rd;
   register unsigned int rs;
   volatile register int error;
+  register int opcode;
 
   // Set up monitoring
   INIT_MONITOR;
+  // zero reg tag held at 0
+  tagrf[ZERO_REG] = 0;
   // Set up interface to flag cache
   INIT_FC;
 
@@ -122,67 +125,73 @@ int main(int argc, char *argv[]) {
   while(1) {
 
     // Grab new packet from FIFO. Block until packet available.
-    POP_FIFO;
+    // Read opcode of packet
+    opcode = READ_POP_FIFO_OPCODE_CUSTOM;
 
-    // integer ALU
-    if (READ_FIFO_INTALU) {
-      // on ALU instructions, propagate tag between registers
-      // Read source tags and determine taint of destination
-      temp = 0;
-      rs = READ_FIFO_RS1;
-      temp |= tagrf[rs];
-      rs = READ_FIFO_RS2;
-      temp |= tagrf[rs];
-      // Destination register
-      rd = READ_FIFO_RD;
-      // Set destination taint
-      tagrf[rd] = temp;
-      tagrf[33] = 0; // zero reg should always have 0 taint
-      // Revalidate in invalidation RF and update FADE flag
-      FC_SET_ADDR(rd);
-      FC_SET_ARRAY_VALUE(temp ? FC_VALID_NONNULL : FC_VALID_NULL);
-    // Load
-    } else if (READ_FIFO_LOAD) {
-      // on load, propagate tag from memory to RF
-      // Get destination register
-      rd = READ_FIFO_RD;
-      // Propagate from memory addresses
-      temp = readTag(READ_FIFO_MEMADDR);
-      tagrf[rd] = temp;
-      // Revalidate in invalidation RF and update FADE flag
-      FC_SET_ADDR(rd);
-      FC_SET_ARRAY_VALUE(temp ? FC_VALID_NONNULL : FC_VALID_NULL);
-    // Store
-    } else if (READ_FIFO_STORE) {
-      // Get source register
-      rs = READ_FIFO_RS1;
-      // Propagate to destination memory addresses
-      rd = READ_FIFO_MEMADDR;
-      temp = tagrf[rs];
-      writeTag(rd, temp);
-      // Revalidate in invalidation cache and update FADE flag
-      FC_SET_ADDR(rd >> 2);
-      FC_SET_CACHE_VALUE(temp ? FC_VALID_NONNULL : FC_VALID_NULL);
-    // Indirect control
-    } else if (READ_FIFO_INDCTRL) {
-      rs = READ_FIFO_RS1;
-      // on indirect jump, check tag taint
-      if (tagrf[rs]) {
-        // printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
-        // return -1;
-        error = 1;
-      }
-    // Syscall read
-    } else if (READ_FIFO_SETTAG) {
-      // syscall read instruction
-      rs = READ_FIFO_SYSCALLBUFPTR;
-      rd = READ_FIFO_SYSCALLNBYTES + rs;
-      for (temp = rs; temp < rd; temp += 4) {
-        writeTag(temp, 1);
-        FC_SET_ADDR(temp >> 2);
-        FC_SET_CACHE_VALUE(FC_VALID_NONNULL);
-      }
-    } // inst type
+    switch (opcode) {
+      // integer ALU
+      case OPCODE_INTALU:
+        // on ALU instructions, propagate tag between registers
+        // Read source tags and determine taint of destination
+        rs = READ_FIFO_RS1;
+        temp = tagrf[rs];
+        rs = READ_FIFO_RS2;
+        temp |= tagrf[rs];
+        // Destination register
+        rd = READ_FIFO_RD;
+        // Set destination taint
+        tagrf[rd] = temp;
+        tagrf[ZERO_REG] = 0; // zero reg should always have 0 taint
+        // Revalidate in invalidation RF and update FADE flag
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(temp ? FC_VALID_NONNULL : FC_VALID_NULL);
+        break;
+      // Load
+      case OPCODE_LOAD:
+        // on load, propagate tag from memory to RF
+        // Get destination register
+        rd = READ_FIFO_RD;
+        // Propagate from memory addresses
+        temp = readTag(READ_FIFO_MEMADDR);
+        tagrf[rd] = temp;
+        // Revalidate in invalidation RF and update FADE flag
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(temp ? FC_VALID_NONNULL : FC_VALID_NULL);
+        break;
+      // Store
+      case OPCODE_STORE:
+        // Get source register
+        rs = READ_FIFO_RS1;
+        // Propagate to destination memory addresses
+        rd = READ_FIFO_MEMADDR;
+        temp = tagrf[rs];
+        writeTag(rd, temp);
+        // Revalidate in invalidation cache and update FADE flag
+        FC_SET_ADDR(rd >> 2);
+        FC_SET_CACHE_VALUE(temp ? FC_VALID_NONNULL : FC_VALID_NULL);
+        break;
+      // Indirect control
+      case OPCODE_INDCTRL:
+        rs = READ_FIFO_RS1;
+        // on indirect jump, check tag taint
+        if (tagrf[rs]) {
+          // printf(MONITOR "fatal : indirect jump on tainted value r%d, PC=%x\n", rs, READ_FIFO_PC);
+          // return -1;
+          error = 1;
+        }
+        break;
+      // Syscall read
+      case OPCODE_SYSCALLREAD:
+        // syscall read instruction
+        rs = READ_FIFO_SYSCALLBUFPTR;
+        rd = READ_FIFO_SYSCALLNBYTES + rs;
+        for (temp = rs; temp < rd; temp += 4) {
+          writeTag(temp, 1);
+          FC_SET_ADDR(temp >> 2);
+          FC_SET_CACHE_VALUE(FC_VALID_NONNULL);
+        }
+        break;
+    } // switch
 
   } // while(1)
 

@@ -134,92 +134,97 @@ int main(int argc, char *argv[]) {
   while(1) {
 
     // Grab new packet from FIFO. Block until packet available.
-    POP_FIFO;
+    opcode = READ_POP_FIFO_OPCODE_CUSTOM;
 
-    // integer ALU
-    if (READ_FIFO_INTALU) {
-      opcode = READ_FIFO_OPCODE;
-      // Single source
-      if ((opcode == ALUMov) || opcode == ALUAnd) {
-        rs1 = READ_FIFO_RS1;
-        rd = READ_FIFO_RD;
-        // Note: if rs1 is invalid (i.e., immediate) then
-        //   rs1 = ZERO_REG, tagrf[rs1] = 0
-        HBTag trs1 = tagrf[rs1];
-        tagrf[rd] = trs1;
-        // Revalidate in invalidation cache and update FADE flag
-        FC_SET_ADDR(rd);
-        FC_SET_ARRAY_VALUE(trs1 ? FC_VALID_NONNULL : FC_VALID_NULL);
-      } else if ((opcode == ALUAdd1) || (opcode == ALUAdd2) || (opcode == ALUSub) || (opcode == ALUAdduop1) || (opcode == ALUAdduop2)) {
+    switch (opcode) {
+      // integer ALU
+      case OPCODE_INTALU:
+        opcode = READ_FIFO_OPCODE;
+        // Single source
+        if ((opcode == ALUMov) || opcode == ALUAnd) {
+          rs1 = READ_FIFO_RS1;
+          rd = READ_FIFO_RD;
+          // Note: if rs1 is invalid (i.e., immediate) then
+          //   rs1 = ZERO_REG, tagrf[rs1] = 0
+          HBTag trs1 = tagrf[rs1];
+          tagrf[rd] = trs1;
+          // Revalidate in invalidation cache and update FADE flag
+          FC_SET_ADDR(rd);
+          FC_SET_ARRAY_VALUE(trs1 ? FC_VALID_NONNULL : FC_VALID_NULL);
+        } else if ((opcode == ALUAdd1) || (opcode == ALUAdd2) || (opcode == ALUSub) || (opcode == ALUAdduop1) || (opcode == ALUAdduop2)) {
+          rs1 = READ_FIFO_RS1;
+          rs2 = READ_FIFO_RS2;
+          rd = READ_FIFO_RD;
+          trs1 = tagrf[rs1];
+          if (isISAReg(rs2) && !toBoundTag(trs1)) {
+            trs1 = tagrf[rs2];
+          }
+          tagrf[rd] = trs1;
+          // Revalidate in invalidation cache and update FADE flag
+          FC_SET_ADDR(rd);
+          FC_SET_ARRAY_VALUE(trs1 ? FC_VALID_NONNULL : FC_VALID_NULL);
+        } else {
+          // other ALU operations
+          rd = READ_FIFO_RD;
+          tagrf[rd] = 0;
+          // Revalidate in invalidation cache and update FADE flag
+          FC_SET_ADDR(rd);
+          FC_SET_ARRAY_VALUE(FC_VALID_NULL);
+        }
+        break;
+      // Store: str rs1, [rs2, #c]
+      case (OPCODE_STORE):
         rs1 = READ_FIFO_RS1;
         rs2 = READ_FIFO_RS2;
-        rd = READ_FIFO_RD;
         trs1 = tagrf[rs1];
-        if (isISAReg(rs2) && !toBoundTag(trs1)) {
-          trs1 = tagrf[rs2];
+        trs2 = tagrf[rs2];
+        temp = READ_FIFO_MEMADDR;
+        if (!((trs2 == 0) || (temp >= toBaseTag(trs2)) && (temp < toBoundTag(trs2)))) {
+          error = 1;
         }
-        tagrf[rd] = trs1;
+        // update destination pointer tag
+        if (READ_FIFO_MEMSIZE == 4) {
+          writeTag(READ_FIFO_PHYSADDR, trs1);
+        }
         // Revalidate in invalidation cache and update FADE flag
-        FC_SET_ADDR(rd);
-        FC_SET_ARRAY_VALUE(trs1 ? FC_VALID_NONNULL : FC_VALID_NULL);
-      } else {
-        // other ALU operations
-        rd = READ_FIFO_RD;
-        tagrf[rd] = 0;
-        // Revalidate in invalidation cache and update FADE flag
-        FC_SET_ADDR(rd);
-        FC_SET_ARRAY_VALUE(FC_VALID_NULL);
-      }
-    // Store: str rs1, [rs2, #c]
-    } else if (READ_FIFO_STORE) {
-      rs1 = READ_FIFO_RS1;
-      rs2 = READ_FIFO_RS2;
-      trs1 = tagrf[rs1];
-      trs2 = tagrf[rs2];
-      temp = READ_FIFO_MEMADDR;
-      if (!((trs2 == 0) || (temp >= toBaseTag(trs2)) && (temp < toBoundTag(trs2)))) {
-        error = 1;
-      }
-      // update destination pointer tag
-      if (READ_FIFO_MEMSIZE == 4) {
-        writeTag(READ_FIFO_PHYSADDR, trs1);
-      }
-      // Revalidate in invalidation cache and update FADE flag
-      FC_SET_ADDR(temp >> 2);
-      FC_SET_CACHE_VALUE(trs1 ? 2 : 0);
-    // Load
-    } else if (READ_FIFO_LOAD) {
-      // Check tag
-      rs1 = READ_FIFO_RS1;
-      trs1 = tagrf[rs1];
-      if (!((trs1 == 0) || (temp >= toBaseTag(trs1)) && (temp < toBoundTag(trs1))))
-        error = 1;
-      // Propagate tag
-      if (READ_FIFO_MEMSIZE == 4) {
-        rd = READ_FIFO_RD;
-        HBTag tmem = readTag(READ_FIFO_PHYSADDR);
-        tagrf[rd] = tmem;
-        // Revalidate in invalidation cache and update FADE flag
-        FC_SET_ADDR(rd);
-        FC_SET_ARRAY_VALUE(tmem ? 2 : 0);
-      }
-    // Set pointer tag
-    } else if (READ_FIFO_SETTAG) {
-      // settag operations
-      temp = READ_FIFO_MEMSIZE;
-      if (temp == 0) {
-        // set base address
-        setTagData = READ_FIFO_DATA;
-      } else if (temp == 1) {
-        // set bound address
-        setTagData = setTagData | (((HBTag)READ_FIFO_DATA) << 32);
-        writeTag(READ_FIFO_PHYSADDR, setTagData);
-        // Revalidate in invalidation cache and update FADE flag
-        FC_SET_ADDR(READ_FIFO_MEMADDR >> 2);
-        FC_SET_CACHE_VALUE(2);
-        //FC_CACHE_REVALIDATE(READ_FIFO_MEMADDR >> 2);
-      }
-    } // inst type
+        FC_SET_ADDR(temp >> 2);
+        FC_SET_CACHE_VALUE(trs1 ? 2 : 0);
+        break;
+      // Load
+      case (OPCODE_LOAD):
+        // Check tag
+        rs1 = READ_FIFO_RS1;
+        trs1 = tagrf[rs1];
+        if (!((trs1 == 0) || (temp >= toBaseTag(trs1)) && (temp < toBoundTag(trs1))))
+          error = 1;
+        // Propagate tag
+        if (READ_FIFO_MEMSIZE == 4) {
+          rd = READ_FIFO_RD;
+          HBTag tmem = readTag(READ_FIFO_PHYSADDR);
+          tagrf[rd] = tmem;
+          // Revalidate in invalidation cache and update FADE flag
+          FC_SET_ADDR(rd);
+          FC_SET_ARRAY_VALUE(tmem ? 2 : 0);
+        }
+        break;
+      // Set pointer tag
+      case OPCODE_CUSTOM_DATA:
+        // settag operations
+        temp = READ_FIFO_MEMSIZE;
+        if (temp == 0) {
+          // set base address
+          setTagData = READ_FIFO_DATA;
+        } else if (temp == 1) {
+          // set bound address
+          setTagData = setTagData | (((HBTag)READ_FIFO_DATA) << 32);
+          writeTag(READ_FIFO_PHYSADDR, setTagData);
+          // Revalidate in invalidation cache and update FADE flag
+          FC_SET_ADDR(READ_FIFO_MEMADDR >> 2);
+          FC_SET_CACHE_VALUE(2);
+        }
+        break;
+    } // switch
+
   } // while(1)
 
   return 1;

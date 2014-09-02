@@ -79,37 +79,52 @@ struct monitoring_packet {
 // Read from fifo into x (which should be struct monitoring_packet)
 #define READ_FIFO_ALL(x) memcpy(&x, (void *)(MONITOR_ADDR), sizeof(x))
 // Read individual data from fifo (note: either READ_FIFO_ALL or READ_VALID should occur first to read new fifo packet into buffer)
-#define READ_FIFO_VALID       *fifo
-#define READ_FIFO_PC          *(fifo + 1)
-#define READ_FIFO_MEMADDR     *(fifo + 2)
-#define READ_FIFO_MEMEND      *(fifo + 3)
-#define READ_FIFO_DATA        *(fifo + 4)
-#define READ_FIFO_STORE       *(fifo + 5)
-#define READ_FIFO_DONE        *(fifo + 6)
-#define READ_FIFO_RS1         *(fifo + 7)
-#define READ_FIFO_RS2         *(fifo + 8)
-#define READ_FIFO_RS3         *(fifo + 9)
-#define READ_FIFO_RD          *(fifo + 10)
-#define READ_FIFO_CONTROL     *(fifo + 11)
-#define READ_FIFO_CALL        *(fifo + 12)
-#define READ_FIFO_RET         *(fifo + 13)
-#define READ_FIFO_LR          *(fifo + 14)
-#define READ_FIFO_NEXTPC      *(fifo + 15)
-#define READ_FIFO_LOAD        *(fifo + 16)
-#define READ_FIFO_INTALU      *(fifo + 17)
-#define READ_FIFO_INDCTRL     *(fifo + 18)
-#define READ_FIFO_VIRTADDR    *(fifo + 19)
-#define READ_FIFO_PHYSADDR    *(fifo + 20)
-#define READ_FIFO_MEMSIZE     *(fifo + 21)
-#define READ_FIFO_OPCODE      *(fifo + 22)
-#define READ_FIFO_SETTAG      *(fifo + 23)
+#define READ_FIFO_VALID         *fifo
+#define READ_FIFO_PC            *(fifo + 1)
+#define READ_FIFO_MEMADDR       *(fifo + 2)
+#define READ_FIFO_MEMEND        *(fifo + 3)
+#define READ_FIFO_DATA          *(fifo + 4)
+#define READ_FIFO_STORE         *(fifo + 5)
+#define READ_FIFO_DONE          *(fifo + 6)
+#define READ_FIFO_RS1           *(fifo + 7)
+#define READ_FIFO_RS2           *(fifo + 8)
+#define READ_FIFO_RS3           *(fifo + 9)
+#define READ_FIFO_RD            *(fifo + 10)
+#define READ_FIFO_CONTROL       *(fifo + 11)
+#define READ_FIFO_CALL          *(fifo + 12)
+#define READ_FIFO_RET           *(fifo + 13)
+#define READ_FIFO_LR            *(fifo + 14)
+#define READ_FIFO_NEXTPC        *(fifo + 15)
+#define READ_FIFO_LOAD          *(fifo + 16)
+#define READ_FIFO_INTALU        *(fifo + 17)
+#define READ_FIFO_INDCTRL       *(fifo + 18)
+#define READ_FIFO_VIRTADDR      *(fifo + 19)
+#define READ_FIFO_PHYSADDR      *(fifo + 20)
+#define READ_FIFO_MEMSIZE       *(fifo + 21)
+#define READ_FIFO_OPCODE        *(fifo + 22)
+#define READ_FIFO_SETTAG        *(fifo + 23)
 #define READ_FIFO_SYSCALLBUFPTR *(fifo + 24)
 #define READ_FIFO_SYSCALLNBYTES *(fifo + 25)
-#define READ_FIFO_CUSTOM      *(fifo + 26)
+#define READ_FIFO_CUSTOM        *(fifo + 26)
+#define READ_FIFO_OPCODE_CUSTOM *(fifo + 27)
+// Pop FIFO and read the custom opcode
+#define READ_POP_FIFO_OPCODE_CUSTOM *(fifo + 28) 
 
 // Fifo flags
 #define READ_FIFO_FULL    *(fifo + 0x400)
 #define READ_FIFO_EMPTY   *(fifo + 0x400 + 1)
+
+// Custom opcode
+typedef enum {
+  OPCODE_NULL,
+  OPCODE_INTALU,
+  OPCODE_LOAD,
+  OPCODE_STORE,
+  OPCODE_INDCTRL,
+  OPCODE_SYSCALLREAD,
+  OPCODE_CUSTOM_DATA,
+  OPCODE_NUM
+} opcode_custom_enum;
 
 inline void set_tag(unsigned addr, unsigned size, unsigned value);
 inline void set_tag_base(unsigned addr, unsigned value);

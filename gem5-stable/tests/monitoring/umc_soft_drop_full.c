@@ -201,6 +201,7 @@ int main(int argc, char *argv[]) {
   unsigned register addr;
   unsigned register size;
   unsigned register memend;
+  register int opcode;
 
   // Set up monitoring
   INIT_MONITOR;
@@ -208,54 +209,61 @@ int main(int argc, char *argv[]) {
   // Main loop, loop until main core signals done
   while(1) {
   
-    POP_FIFO;
-    // Load
-    if (READ_FIFO_LOAD) {
-      addr = READ_FIFO_MEMADDR;
-      size = READ_FIFO_MEMSIZE;
-      switch (size) {
-        case 4:
-          error = readWordTag(addr);
-          break;
-        case 2:
-          error = readHalfWordTag(addr);
-          break;
-        case 1:
-          error = readByteTag(addr);
-          break;
-      }
-    // Syscall read instruction
-    } else if (READ_FIFO_SYSCALLNBYTES) {
-      register int i = 0;
-      addr = READ_FIFO_SYSCALLBUFPTR;
-      memend = READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES - 1;
-      for (; addr <= memend; addr+=4) {
-        writeWordTag(addr, 0xf);
-      }
-    // Settag instruction
-    } else if (READ_FIFO_CUSTOM) {
-      addr = READ_FIFO_MEMADDR;
-      memend = READ_FIFO_MEMEND;
-      // set tag are used for initialization of large chunks of data
-      for (; addr <= memend; addr+=4) {
-        writeWordTag(addr, 0xf);
-      }
-    // Store
-    } else if (READ_FIFO_STORE || READ_FIFO_SETTAG) {
-      addr = READ_FIFO_MEMADDR;
-      size = READ_FIFO_MEMSIZE;
-      switch (size) {
-        case 4:
+    // Grab new packet from FIFO. Block until packet available.
+    // Read opcode of packet.
+    opcode = READ_POP_FIFO_OPCODE_CUSTOM;
+
+    switch(opcode) {
+      // Load
+      case OPCODE_LOAD:
+        addr = READ_FIFO_MEMADDR;
+        size = READ_FIFO_MEMSIZE;
+        switch (size) {
+          case 4:
+            error = readWordTag(addr);
+            break;
+          case 2:
+            error = readHalfWordTag(addr);
+            break;
+          case 1:
+            error = readByteTag(addr);
+            break;
+        }
+        break;
+      // Syscall read instruction
+      case OPCODE_SYSCALLREAD:
+        addr = READ_FIFO_SYSCALLBUFPTR;
+        memend = READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES - 1;
+        for (; addr <= memend; addr+=4) {
           writeWordTag(addr, 0xf);
-          break;
-        case 2:
-          writeHalfWordTag(addr, 0x3);
-          break;
-        case 1:
-          writeByteTag(addr, 0x1);
-          break;
-      }
-    } // inst type
+        }
+        break;
+      // Settag instruction
+      case OPCODE_CUSTOM_DATA:
+        addr = READ_FIFO_MEMADDR;
+        memend = READ_FIFO_MEMEND;
+        // set tag are used for initialization of large chunks of data
+        for (; addr <= memend; addr+=4) {
+          writeWordTag(addr, 0xf);
+        }
+        break;
+      // Store
+      case OPCODE_STORE:
+        addr = READ_FIFO_MEMADDR;
+        size = READ_FIFO_MEMSIZE;
+        switch (size) {
+          case 4:
+            writeWordTag(addr, 0xf);
+            break;
+          case 2:
+            writeHalfWordTag(addr, 0x3);
+            break;
+          case 1:
+            writeByteTag(addr, 0x1);
+            break;
+        }
+        break;
+    } // switch
 
   } // while (1)
 

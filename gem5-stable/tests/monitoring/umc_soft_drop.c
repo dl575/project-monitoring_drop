@@ -200,6 +200,7 @@ int main(int argc, char *argv[]) {
   register unsigned idx;
   volatile uint8_t error;
   register unsigned addr, size, memend;
+  register int opcode;
 
   // Set up monitoring
   INIT_MONITOR;
@@ -209,71 +210,79 @@ int main(int argc, char *argv[]) {
   // Main loop, loop until main core signals done
   while(1) {
   
-    POP_FIFO;
-    // Load
-    if (READ_FIFO_LOAD) {
-      addr = READ_FIFO_MEMADDR;
-      size = READ_FIFO_MEMSIZE;
-      switch (size) {
-        case 4:
-          error = readWordTag(addr);
-          break;
-        case 2:
-          error = readHalfWordTag(addr);
-          break;
-        case 1:
-          error = readByteTag(addr);
-          break;
-      }
-    } else if (READ_FIFO_SYSCALLNBYTES) {
+    // Grab new packet from FIFO. Block until packet available.
+    // Read opcode of packet.
+    opcode = READ_POP_FIFO_OPCODE_CUSTOM;
+
+    switch (opcode) {
+      // Load
+      case OPCODE_LOAD:
+        addr = READ_FIFO_MEMADDR;
+        size = READ_FIFO_MEMSIZE;
+        switch (size) {
+          case 4:
+            error = readWordTag(addr);
+            break;
+          case 2:
+            error = readHalfWordTag(addr);
+            break;
+          case 1:
+            error = readByteTag(addr);
+            break;
+        }
+        break;
       // syscall read instruction
-      addr = READ_FIFO_SYSCALLBUFPTR;
-      memend = READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES - 1;
-      for (; addr <= memend; addr+=4) {
-        writeWordTag(addr, 0xf);
-        FC_SET_ADDR(addr >> 2);
-        FC_SET_CACHE_VALUE(2);
-      }
-    // Settag instruction
-    } else if (READ_FIFO_CUSTOM) {
-      addr = READ_FIFO_MEMADDR;
-      memend = READ_FIFO_MEMEND;
-      // set tag are used for initialization of large chunks of data
-      for (; addr <= memend; addr+=4) {
-        writeWordTag(addr, 0xf);
-        FC_SET_ADDR(addr >> 2);
-        FC_SET_CACHE_VALUE(2);
-      }
-    // Store
-    } else if (READ_FIFO_STORE) {
-      addr = READ_FIFO_MEMADDR;
-      size = READ_FIFO_MEMSIZE;
-      switch (size) {
-        case 4:
+      case OPCODE_SYSCALLREAD:
+        addr = READ_FIFO_SYSCALLBUFPTR;
+        memend = READ_FIFO_SYSCALLBUFPTR + READ_FIFO_SYSCALLNBYTES - 1;
+        for (; addr <= memend; addr+=4) {
           writeWordTag(addr, 0xf);
           FC_SET_ADDR(addr >> 2);
           FC_SET_CACHE_VALUE(2);
-          break;
-        case 2:
-          writeHalfWordTag(addr, 0x3);
-          if (addr & 0x3 == 0) {
-            if (readWordTag(addr) == 0xf) {
-              FC_SET_ADDR(addr >> 2);
-              FC_SET_CACHE_VALUE(2);
-            }
-          }
-          break;
-        case 1:
-          writeByteTag(addr, 0x1);
-          if (addr & 0x3 == 0) {
-            if (readWordTag(addr) == 0xf) {
-              FC_SET_ADDR(addr >> 2);
-              FC_SET_CACHE_VALUE(2);
-            }
-          }
-          break;
         }
-    } // inst type
+        break;
+      // Settag instruction
+      case OPCODE_CUSTOM_DATA:
+        addr = READ_FIFO_MEMADDR;
+        memend = READ_FIFO_MEMEND;
+        // set tag are used for initialization of large chunks of data
+        for (; addr <= memend; addr+=4) {
+          writeWordTag(addr, 0xf);
+          FC_SET_ADDR(addr >> 2);
+          FC_SET_CACHE_VALUE(2);
+        }
+        break;
+      // Store
+      case OPCODE_STORE:
+        addr = READ_FIFO_MEMADDR;
+        size = READ_FIFO_MEMSIZE;
+        switch (size) {
+          case 4:
+            writeWordTag(addr, 0xf);
+            FC_SET_ADDR(addr >> 2);
+            FC_SET_CACHE_VALUE(2);
+            break;
+          case 2:
+            writeHalfWordTag(addr, 0x3);
+            if (addr & 0x3 == 0) {
+              if (readWordTag(addr) == 0xf) {
+                FC_SET_ADDR(addr >> 2);
+                FC_SET_CACHE_VALUE(2);
+              }
+            }
+            break;
+          case 1:
+            writeByteTag(addr, 0x1);
+            if (addr & 0x3 == 0) {
+              if (readWordTag(addr) == 0xf) {
+                FC_SET_ADDR(addr >> 2);
+                FC_SET_CACHE_VALUE(2);
+              }
+            }
+            break;
+          }
+        break;
+    } // switch
 
   } // while (1)
 
