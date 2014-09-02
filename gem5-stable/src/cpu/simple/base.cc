@@ -684,6 +684,8 @@ BaseSimpleCPU::performMonitoring() {
       mp.settag = true;
       mp.syscallReadBufPtr = fed.syscallReadBufPtr;
       mp.syscallReadNbytes = fed.syscallReadNbytes;
+      assert(mp.opcode_custom == OPCODE_NULL);
+      mp.opcode_custom = OPCODE_SYSCALLREAD;
       // Send packet on fifo port, stall if not successful
       fifoStall = !sendFifoPacket();
       // Any additional functionality needed for stall
@@ -746,6 +748,8 @@ BaseSimpleCPU::performMonitoring() {
         mp.settag = true;
         mp.store = false;
         mp.custom = true;
+        assert(mp.opcode_custom == OPCODE_NULL);
+        mp.opcode_custom = OPCODE_CUSTOM_DATA;
         DPRINTF(Fifo, "Create custom packet at %d, PC=%x, Set tag[0x%x:0x%x]=0x%x\n", 
             curTick(), tc->instAddr(), mp.memAddr, mp.memAddr+mp.size-1, mp.data);        
         
@@ -903,6 +907,17 @@ BaseSimpleCPU::performMonitoring() {
               curStaticInst->opClass() == IntDivOp) && !curStaticInst->isIndirectCtrl()); // integer ALU inst
         // ALU opcode
         mp.opcode = (uint8_t)curStaticInst->machInst.opcode;
+        // Custom opcode for software monitor
+        assert(mp.opcode_custom == OPCODE_NULL);
+        if (mp.intalu) {
+          mp.opcode_custom = OPCODE_INTALU;
+        } else if (mp.load) {
+          mp.opcode_custom = OPCODE_LOAD;
+        } else if (isStore) {
+          mp.opcode_custom = OPCODE_STORE;
+        } else if (mp.indctrl) {
+          mp.opcode_custom = OPCODE_INDCTRL;
+        }
 
         // Send packet on fifo port, stall if not successful
         fifoStall = !sendFifoPacket();
@@ -1008,6 +1023,11 @@ BaseSimpleCPU::sendFifoPacket() {
     if (mp.settag) {
       assert(mp.syscallReadNbytes);
     }
+    assert(mp.opcode_custom == OPCODE_INTALU ||
+      mp.opcode_custom == OPCODE_LOAD ||
+      mp.opcode_custom == OPCODE_STORE ||
+      mp.opcode_custom == OPCODE_INDCTRL ||
+      mp.opcode_custom == OPCODE_SYSCALLREAD);
   }
   // Check for valid packet type for UMC
   if (monitorExt == MONITOR_UMC) {
@@ -1019,6 +1039,10 @@ BaseSimpleCPU::sendFifoPacket() {
       // Otherwise, store/settag or load
       assert(mp.store + mp.load + mp.settag == 1);
     }
+    assert(mp.opcode_custom == OPCODE_LOAD ||
+      mp.opcode_custom == OPCODE_STORE ||
+      mp.opcode_custom == OPCODE_SYSCALLREAD ||
+      mp.opcode_custom == OPCODE_CUSTOM_DATA);
   }
   // Hardbound
   if (monitorExt == MONITOR_HB) {
@@ -1034,6 +1058,7 @@ BaseSimpleCPU::sendFifoPacket() {
     // ALU
     } else if (mp.intalu) {
       assert(TheISA::isISAReg(mp.rd));
+      // Dual source operations
       if (mp.opcode == 0x04 || mp.opcode == 0x05 || mp.opcode == 0x02 || mp.opcode == 0x06 || mp.opcode == 0x0c) {
         if (!TheISA::isISAReg(mp.rs1)) {
           cout << mp.inst_dis << endl;
@@ -1042,7 +1067,12 @@ BaseSimpleCPU::sendFifoPacket() {
         assert(TheISA::isISAReg(mp.rs1));
       }
     }
+    assert(mp.opcode_custom == OPCODE_INTALU ||
+      mp.opcode_custom == OPCODE_LOAD ||
+      mp.opcode_custom == OPCODE_STORE ||
+      mp.opcode_custom == OPCODE_CUSTOM_DATA);
   }
+  assert(mp.opcode_custom != OPCODE_NULL);
   
   // Create request
   Request *req = &data_write_req;
@@ -1785,6 +1815,53 @@ Fault
 BaseSimpleCPU::readFromFifo(Addr addr, uint8_t * data,
                          unsigned size, unsigned flags)
 {
+  DPRINTF(Fifo, "Read from fifo, addr = %x\n", addr);
+    // Read custom opcode as well as pop fifo entry
+    // Blocks on pop if fifo is empty
+    if (addr == FIFO_POP_OPCODE_CUSTOM) {
+      DPRINTF(Fifo, "Pop custom opcode\n");
+
+        bool wasEmpty = fifoEmpty;
+
+        // Pop fifo, since there is an entry
+        if (!wasEmpty) {
+          Request* req = &data_write_req;
+          unsigned flags = ArmISA::TLB::AllowUnaligned;
+          //size = sizeof(read_tp);
+          req->setPhys(FIFO_NEXT, sizeof(fed.data), flags, dataMasterId());
+          // Read command
+          MemCmd cmd = MemCmd::WriteReq;
+          // Create packet
+          PacketPtr pkt = new Packet(req, cmd);
+          // Point packet to data pointer
+          pkt->dataStatic(&fed.data);
+
+          // Send read request
+          fifoPort.sendFunctional(pkt);
+
+          // Clean up
+          delete pkt;
+        }
+
+        fifoEmpty = isFifoEmpty();
+
+#ifdef DEBUG
+        if (wasEmpty ^ fifoEmpty){
+            // Print out for debug
+            DPRINTF(Fifo, "Check if Fifo empty: %d\n", fifoEmpty);
+        } 
+#endif
+        // Wait until fifo is no longer empty
+        if (fifoEmpty) {
+          return ReExecFault; 
+        }
+        
+        /* Check if next FIFO packet has the done flag and
+         * exit.
+         */
+        if (isFifoDone()) { exitSimLoop("fifo done flag received"); }
+    } 
+
     // use the CPU's statically allocated read request and packet objects
     Request *req = &data_read_req;
 

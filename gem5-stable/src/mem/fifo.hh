@@ -83,6 +83,9 @@
 #define FIFO_SYSCALLBUFPTR (FIFO_ADDR + 0x60)       // syscall read buffer pointer
 #define FIFO_SYSCALLNBYTES (FIFO_ADDR + 0x64)       // syscall read n_bytes
 #define FIFO_CUSTOM        (FIFO_ADDR + 0x68)       // manually set the tag
+#define FIFO_OPCODE_CUSTOM (FIFO_ADDR + 0x6c)       // custom defined opcode to simplify software monitor
+// Pop fifo and read custom opcode
+#define FIFO_POP_OPCODE_CUSTOM (FIFO_ADDR + 0x70)
 
 // Fifo registers
 #define FIFO_REG_START (FIFO_ADDR + 0x1000) 
@@ -98,6 +101,18 @@
 #define FIFO_CUSTOM_SIZE    (FIFO_OP_RANGE_START + 0x10) //Custom data to be sent
 #define FIFO_CUSTOM_DATA    (FIFO_OP_RANGE_START + 0x14) //Custom data to be sent
 #define FIFO_OP_RANGE_END   (FIFO_OP_RANGE_START + 0x18) //End of op range
+
+// Custom opcode
+typedef enum {
+  OPCODE_NULL,
+  OPCODE_INTALU,
+  OPCODE_LOAD,
+  OPCODE_STORE,
+  OPCODE_INDCTRL,
+  OPCODE_SYSCALLREAD,
+  OPCODE_CUSTOM_DATA,
+  OPCODE_NUM
+} opcode_custom_enum;
 
 // Monitoring packet that is stored as each fifo entry
 class monitoringPacket {
@@ -132,6 +147,8 @@ class monitoringPacket {
     int syscallReadNbytes;
     // Custom fifo packet (usually for setting tag for memory range)
     bool custom;
+    // Custom defined opcode for simpler software monitoring
+    opcode_custom_enum opcode_custom;
 
     // Clear all variables
     void init() {
@@ -159,10 +176,11 @@ class monitoringPacket {
       nextpc = 0;
       opcode = 0;
       settag = false;
-      custom = false;
       memset(inst_dis, '\0', 32);
       syscallReadBufPtr = 0;
       syscallReadNbytes = 0;
+      custom = false;
+      opcode_custom = OPCODE_NULL;
     }
 
     // Print out full monitoring packet information
@@ -195,6 +213,7 @@ class monitoringPacket {
       printf("  syscallReadBufPtr = 0x%x\n", (int)syscallReadBufPtr);
       printf("  syscallReadNbytes = %d\n", syscallReadNbytes);
       printf("  custom = %d\n", custom);
+      printf("  opcode_custom = %d\n", (int)opcode_custom);
       printf("}\n");
     }
 };
