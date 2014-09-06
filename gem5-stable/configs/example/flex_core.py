@@ -208,11 +208,12 @@ MonCPUClass.numThreads = numThreads;
 # Has port to access fifo, but does not enqueue monitoring events
 MonCPUClass.fifo_enabled = True
 MonCPUClass.monitoring_enabled = False
+MonCPUClass.full_monitoring = not options.invalidation
 MonCPUClass.monitor_type = available_monitors[options.monitor]
 # Enable slack timer so it can read from it
 MonCPUClass.timer_enabled = True
 # Need flag cache for monitoring core
-MonCPUClass.flagcache_enabled = False
+MonCPUClass.flagcache_enabled = True
 MonCPUClass.monitor_type = available_monitors[options.monitor]
 if (options.simulatestalls and options.cpu_type == 'atomic'):
     # Simulate d cache stalls

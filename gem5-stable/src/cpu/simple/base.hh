@@ -140,10 +140,11 @@ class BaseSimpleCPU : public BaseCPU
     /* ALU Opcodes */
     enum ALUOpCode {
         ALUNone,
-        ALUAdd,
-        ALUSub,
+        ALUAnd,
         ALUMov,
-        ALUAnd
+        ALUAdd,
+        ALUAdduop,
+        ALUSub
     };
 
   protected:
@@ -508,6 +509,8 @@ class BaseSimpleCPU : public BaseCPU
 
     // monitoring extension
     enum MonitoringExtension monitorExt;
+    // full monitoring (no dropping)
+    bool full_monitoring;
 
   private:
     

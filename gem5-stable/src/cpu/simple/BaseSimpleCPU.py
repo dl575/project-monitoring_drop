@@ -39,6 +39,7 @@ class BaseSimpleCPU(BaseCPU):
     fifo_enabled = Param.Bool(False, "monitoring fifo port enabled")
     monitoring_enabled = Param.Bool(False, "monitoring enabled")
     monitor_type = Param.Int(0, "Type of monitor")
+    full_monitoring = Param.Bool(False, "Full monitoring (no dropping)")
     timer_enabled = Param.Bool(False, "timer enabled")
     flagcache_enabled = Param.Bool(False, "flag cache enabled")
     invalidation_file = Param.String("", "invalidation file name")

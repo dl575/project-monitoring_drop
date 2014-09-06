@@ -1186,6 +1186,8 @@ AtomicSimpleMonitor::invalidateMemTag(Addr addr)
 void
 AtomicSimpleMonitor::setDropRegTag(int idx, unsigned fadeTag, unsigned invalidTag)
 {
+    if (full_monitoring)
+        return;
     setFlagCacheAddr(idx << 2);
     // calculate combined tag
     unsigned combined_tag = (fadeTag << 1) | invalidTag;
@@ -1204,6 +1206,8 @@ AtomicSimpleMonitor::setDropRegTag(int idx, unsigned fadeTag, unsigned invalidTa
 void
 AtomicSimpleMonitor::setDropMemTag(Addr addr, unsigned fadeTag, unsigned invalidTag)
 {
+    if (full_monitoring)
+        return;
     setFlagCacheAddr(addr);
     // calculate combined tag
     unsigned combined_tag = (fadeTag << 1) | invalidTag;
@@ -1818,7 +1822,7 @@ AtomicSimpleMonitor::HBExecute()
         // integer ALU operation
         DPRINTF(Monitor, "HardBound: Integer ALU instruction\n");
         ALUOpCode opcode = decodeALUOpcode(mp.opcode);
-        if (opcode == ALUMov) {
+        if (opcode == ALUMov || opcode == ALUAnd) {
             if (TheISA::isISAReg(mp.rs1)) {
                 HBTag trs1 = (HBTag)thread->readIntReg(mp.rs1);
                 if (TheISA::isISAReg(mp.rd)) {
@@ -2161,8 +2165,14 @@ AtomicSimpleMonitor::decodeALUOpcode(uint8_t opcode)
         return ALUAdd;
       case 0x05:
         return ALUAdd;
+      case 0x06:
+        return ALUAdduop;
+      case 0x0c:
+        return ALUAdduop;
       case 0x02:
         return ALUSub;
+      case 0x00:
+        return ALUAnd;
       default:
         return ALUNone;
     }

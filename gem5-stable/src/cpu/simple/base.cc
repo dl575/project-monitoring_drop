@@ -91,6 +91,7 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
     : BaseCPU(p), traceData(NULL), thread(NULL),
     monitoring_enabled(p->monitoring_enabled), fifo_enabled(p->fifo_enabled),
     timer_enabled(p->timer_enabled), flagcache_enabled(p->flagcache_enabled),
+    full_monitoring(p->full_monitoring),
     emulate_filtering(p->emulate_filtering),
     fifoPort(name() + "-iport", this),
     timerPort(name() + "-iport", this),
