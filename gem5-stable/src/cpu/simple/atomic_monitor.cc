@@ -1304,7 +1304,7 @@ void
 AtomicSimpleMonitor::UMCExecute()
 {
     // Load instruction
-    if (mp.load) {
+    if (mp.opcode_custom == OPCODE_LOAD) {
         DPRINTF(Monitor, "UMC: Load instruction mem[0x%x]\n", mp.memAddr);
         numLoadInsts++;
         numMonitorInsts++;
@@ -1313,7 +1313,7 @@ AtomicSimpleMonitor::UMCExecute()
             numUMCErrors++;
         }
     // Store instruction
-    } else if (mp.store && !mp.settag) {
+    } else if (mp.opcode_custom == OPCODE_STORE) {
         DPRINTF(Monitor, "UMC: Store instruction mem[0x%x:0x%x]\n", mp.memAddr, mp.memEnd);
         numStoreInsts++;
         numMonitorInsts++;
@@ -1324,7 +1324,7 @@ AtomicSimpleMonitor::UMCExecute()
             setDropMemTag(pbyte, 1, 0);
         }
     // Set tag instruction
-    } else if (mp.store && mp.settag) {
+    } else if (mp.opcode_custom == OPCODE_CUSTOM_DATA) {
         DPRINTF(Monitor, "UMC: Initializing mem[0x%x:0x%x]\n", mp.memAddr, mp.memEnd);
         numMonitorInsts++;
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
@@ -1334,7 +1334,7 @@ AtomicSimpleMonitor::UMCExecute()
             setDropMemTag(pbyte, 1, 0);
         }
     // Read syscall
-    } else if (mp.settag && mp.syscallReadNbytes > 0) {
+    } else if (mp.opcode_custom == OPCODE_SYSCALLREAD) {
       DPRINTF(Monitor, "UMC: Syscall read instruction\n");
       // Set tags for syscall read
       for (ChunkGenerator gen(mp.syscallReadBufPtr, mp.syscallReadNbytes, TheISA::VMPageSize); !gen.done(); gen.next()) {
@@ -1423,7 +1423,7 @@ AtomicSimpleMonitor::DIFTExecute()
         numStoreInsts++;
         numMonitorInsts++;
     // Set tag instruction
-    } else if (mp.store && mp.settag) {
+    } else if (mp.custom) {
         DPRINTF(Monitor, "DIFT: Set taint mem[0x%x:0x%x]=%d\n", mp.memAddr, mp.memEnd, mp.data);
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
             writeBitTag(pbyte, (bool)mp.data);
@@ -1635,7 +1635,7 @@ AtomicSimpleMonitor::MultiDIFTExecute()
         }
         numStoreInsts++;
         numMonitorInsts++;
-    } else if (mp.store && mp.settag) {
+    } else if (mp.custom) {
         DPRINTF(Monitor, "Multi DIFT: Set taint mem[0x%x:0x%x]=%d\n", mp.memAddr, mp.memEnd, mp.data);
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
             writeWordTag(pbyte, (bool)mp.data);
@@ -1676,6 +1676,7 @@ AtomicSimpleMonitor::MultiDIFTExecute()
 void
 AtomicSimpleMonitor::BCExecute()
 {
+  warn("BC Execute is out-of-date. Please double-check implementation.\n");
     if (mp.intalu) {
         // integer ALU operation
         DPRINTF(Monitor, "BC: Integer ALU instruction\n");
@@ -1838,7 +1839,7 @@ AtomicSimpleMonitor::HBExecute()
                     setDropRegTag((int)mp.rd, 0, 0);
                 }
             }
-        } else if ((opcode == ALUAdd) || (opcode == ALUSub)) {
+        } else if ((opcode == ALUAdd) || (opcode == ALUSub) || (opcode == ALUAdduop)) {
             HBTag tresult = 0;
             if (TheISA::isISAReg(mp.rs1) && TheISA::isISAReg(mp.rs2)) {
                 HBTag trs1 = (HBTag)thread->readIntReg(mp.rs1);
@@ -1945,7 +1946,7 @@ AtomicSimpleMonitor::HBExecute()
         numStoreInsts++;
         numMonitorInsts++;
     // SETTAG instruction
-    } else if (mp.store && mp.settag) {
+    } else if (mp.custom) {
         if (mp.size == 0) {
             // set base address
             setTagData = mp.data;
