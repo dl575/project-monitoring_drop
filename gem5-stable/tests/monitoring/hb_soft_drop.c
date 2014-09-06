@@ -138,39 +138,38 @@ int main(int argc, char *argv[]) {
 
     switch (opcode) {
       // integer ALU
-      case OPCODE_INTALU:
-        opcode = READ_FIFO_OPCODE;
-        // Single source
-        if ((opcode == ALUMov) || opcode == ALUAnd) {
-          rs1 = READ_FIFO_RS1;
-          rd = READ_FIFO_RD;
-          // Note: if rs1 is invalid (i.e., immediate) then
-          //   rs1 = ZERO_REG, tagrf[rs1] = 0
-          HBTag trs1 = tagrf[rs1];
-          tagrf[rd] = trs1;
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(rd);
-          FC_SET_ARRAY_VALUE(trs1 ? FC_VALID_NONNULL : FC_VALID_NULL);
-        } else if ((opcode == ALUAdd1) || (opcode == ALUAdd2) || (opcode == ALUSub) || (opcode == ALUAdduop1) || (opcode == ALUAdduop2)) {
-          rs1 = READ_FIFO_RS1;
-          rs2 = READ_FIFO_RS2;
-          rd = READ_FIFO_RD;
-          trs1 = tagrf[rs1];
-          if (isISAReg(rs2) && !toBoundTag(trs1)) {
-            trs1 = tagrf[rs2];
-          }
-          tagrf[rd] = trs1;
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(rd);
-          FC_SET_ARRAY_VALUE(trs1 ? FC_VALID_NONNULL : FC_VALID_NULL);
-        } else {
-          // other ALU operations
-          rd = READ_FIFO_RD;
-          tagrf[rd] = 0;
-          // Revalidate in invalidation cache and update FADE flag
-          FC_SET_ADDR(rd);
-          FC_SET_ARRAY_VALUE(FC_VALID_NULL);
+      // Single source
+      case OPCODE_INTALU_SINGLESRC:
+        rs1 = READ_FIFO_RS1;
+        rd = READ_FIFO_RD;
+        // Note: if rs1 is invalid (i.e., immediate) then
+        //   rs1 = ZERO_REG, tagrf[rs1] = 0
+        HBTag trs1 = tagrf[rs1];
+        tagrf[rd] = trs1;
+        // Revalidate in invalidation cache and update FADE flag
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(trs1 ? FC_VALID_NONNULL : FC_VALID_NULL);
+        break;
+      case OPCODE_INTALU_DUALSRC:
+        rs1 = READ_FIFO_RS1;
+        rs2 = READ_FIFO_RS2;
+        rd = READ_FIFO_RD;
+        trs1 = tagrf[rs1];
+        if (!toBoundTag(trs1)) {
+          trs1 = tagrf[rs2];
         }
+        tagrf[rd] = trs1;
+        // Revalidate in invalidation cache and update FADE flag
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(trs1 ? FC_VALID_NONNULL : FC_VALID_NULL);
+        break;
+      case OPCODE_INTALU_OTHER:
+        // other ALU operations
+        rd = READ_FIFO_RD;
+        tagrf[rd] = 0;
+        // Revalidate in invalidation cache and update FADE flag
+        FC_SET_ADDR(rd);
+        FC_SET_ARRAY_VALUE(FC_VALID_NULL);
         break;
       // Store: str rs1, [rs2, #c]
       case (OPCODE_STORE):
