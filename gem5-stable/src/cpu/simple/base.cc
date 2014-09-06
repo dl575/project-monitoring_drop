@@ -911,6 +911,32 @@ BaseSimpleCPU::performMonitoring() {
         assert(mp.opcode_custom == OPCODE_NULL);
         if (mp.intalu) {
           mp.opcode_custom = OPCODE_INTALU;
+          // For HB, split out to more detailed ALU opcode
+          if (monitorExt == MONITOR_HB) {
+            // Single source
+            //   0x00: ALUAnd
+            //   0x0d: ALUMov
+            if (mp.opcode == 0x00 || mp.opcode == 0x0d) {
+              mp.opcode_custom = OPCODE_INTALU_SINGLESRC;
+            // Dual source
+            //   0x02: ALUSub
+            //   0x04: ALUAdd1
+            //   0x05: ALUAdd2
+            //   0x06: ALUAdduop1
+            //   0x0c: ALUAdduop2
+            } else if (mp.opcode == 0x02 || mp.opcode == 0x04 || 
+                mp.opcode == 0x05 || mp.opcode == 0x06 || mp.opcode == 0x0c) {
+              if (TheISA::isISAReg(mp.rs2)) {
+                mp.opcode_custom = OPCODE_INTALU_DUALSRC;
+              // if mp.rs2 is not a regsiter, then mark as single source
+              } else {
+                mp.opcode_custom = OPCODE_INTALU_SINGLESRC;
+              }
+            // Other
+            } else {
+              mp.opcode_custom = OPCODE_INTALU_OTHER;
+            }
+          }
         } else if (mp.load) {
           mp.opcode_custom = OPCODE_LOAD;
         } else if (isStore) {
@@ -1058,16 +1084,14 @@ BaseSimpleCPU::sendFifoPacket() {
     // ALU
     } else if (mp.intalu) {
       assert(TheISA::isISAReg(mp.rd));
-      // Dual source operations
-      if (mp.opcode == 0x04 || mp.opcode == 0x05 || mp.opcode == 0x02 || mp.opcode == 0x06 || mp.opcode == 0x0c) {
-        if (!TheISA::isISAReg(mp.rs1)) {
-          cout << mp.inst_dis << endl;
-          printf("%d, %d, %d\n", mp.rs1, mp.rs2, mp.rd);
-        }
+      if (mp.opcode_custom == OPCODE_INTALU_DUALSRC) {
         assert(TheISA::isISAReg(mp.rs1));
+        assert(TheISA::isISAReg(mp.rs2));
       }
-    }
-    assert(mp.opcode_custom == OPCODE_INTALU ||
+    } 
+    assert(mp.opcode_custom == OPCODE_INTALU_SINGLESRC ||
+      mp.opcode_custom == OPCODE_INTALU_DUALSRC ||
+      mp.opcode_custom == OPCODE_INTALU_OTHER || 
       mp.opcode_custom == OPCODE_LOAD ||
       mp.opcode_custom == OPCODE_STORE ||
       mp.opcode_custom == OPCODE_CUSTOM_DATA);

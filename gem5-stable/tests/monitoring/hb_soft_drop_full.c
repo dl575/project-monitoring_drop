@@ -136,29 +136,28 @@ int main(int argc, char *argv[]) {
 
     switch (opcode) {
       // integer ALU
-      case OPCODE_INTALU: 
-        opcode = READ_FIFO_OPCODE;
-        // Single source
-        if ((opcode == ALUMov) || opcode == ALUAnd) {
-          rs1 = READ_FIFO_RS1;
-          rd = READ_FIFO_RD;
-          // Note: if rs1 is invalid (i.e., immediate) then
-          //   rs1 = ZERO_REG, tagrf[rs1] = 0
-          tagrf[rd] = tagrf[rs1];
-        // Dual source
-        } else if ((opcode == ALUAdd1) || (opcode == ALUAdd2) || (opcode == ALUSub) || (opcode == ALUAdduop1) || (opcode == ALUAdduop2)) {
-          rs1 = READ_FIFO_RS1;
-          rs2 = READ_FIFO_RS2;
-          rd = READ_FIFO_RD;
-          trs1 = tagrf[rs1];
-          if (isISAReg(rs2) && !toBoundTag(trs1)) {
-            trs1 = tagrf[rs2];
-          }
-          tagrf[rd] = trs1;
-        } else {
-          // other ALU operations
-          tagrf[rd] = 0;
+      // Single source
+      case OPCODE_INTALU_SINGLESRC:
+        rs1 = READ_FIFO_RS1;
+        rd = READ_FIFO_RD;
+        // Note: if rs1 is invalid (i.e., immediate) then
+        //   rs1 = ZERO_REG, tagrf[rs1] = 0
+        tagrf[rd] = tagrf[rs1];
+        break;
+      // Dual source
+      case OPCODE_INTALU_DUALSRC:
+        rs1 = READ_FIFO_RS1;
+        rs2 = READ_FIFO_RS2;
+        rd = READ_FIFO_RD;
+        trs1 = tagrf[rs1];
+        if (!toBoundTag(trs1)) {
+          trs1 = tagrf[rs2];
         }
+        tagrf[rd] = trs1;
+        break;
+      case OPCODE_INTALU_OTHER:
+        // other ALU operations
+        tagrf[rd] = 0;
         break;
       // Store: str rs1, [rs2, #c]
       case OPCODE_STORE:
