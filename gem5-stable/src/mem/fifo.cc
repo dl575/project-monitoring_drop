@@ -63,6 +63,9 @@ Fifo::Fifo(const Params* p) :
     AbstractMemory(p),
     lat(p->latency), lat_var(p->latency_var)
 {
+    // FIFO is not in global address map
+    inAddrMap = false;
+
     for (size_t i = 0; i < p->port_port_connection_count; ++i) {
         ports.push_back(new MemoryPort(csprintf("%s-port-%d", name(), i),
                                        *this));
