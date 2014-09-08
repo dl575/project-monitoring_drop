@@ -143,6 +143,7 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
         case MONITOR_MULTIDIFT: monitorExt = MONITOR_MULTIDIFT; break;
         case MONITOR_LRC: monitorExt = MONITOR_LRC; break;
         case MONITOR_DIFTRF: monitorExt = MONITOR_DIFTRF; break;
+        case MONITOR_INSTTYPE: monitorExt = MONITOR_INSTTYPE; break;
         default: panic("Invalid monitor type\n");
     }
 

@@ -147,7 +147,8 @@ available_monitors = {
   "sec"  : 4,
   "hb"   : 5,
   "multidift" : 6,
-  "lrc"  : 7
+  "lrc"  : 7,
+  "insttype" : 9
 }
 
 important_policy = {
@@ -353,6 +354,19 @@ elif options.monitor == "lrc":
     DropCPUClass.filter_ptr_file = table_dir + "lrc_filter_ptrs.txt"
   # Set coverage check flags
   #DropCPUClass.check_ret = True
+elif options.monitor == "insttype":
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_indctrl = True
+  if options.invalidation:
+    # Load the invalidation file
+    DropCPUClass.invalidation_file = table_dir + "insttype_invalidation.txt"
+    # Set coverage check flags
+    DropCPUClass.check_load = False
+    DropCPUClass.check_store = False
+    DropCPUClass.check_indctrl = False
 elif options.monitor == "none":
   # Set up monitoring filter
   pass

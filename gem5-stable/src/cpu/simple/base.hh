@@ -503,6 +503,8 @@ class BaseSimpleCPU : public BaseCPU
       MONITOR_LRC,
       // dift with flag array storing taint
       MONITOR_DIFTRF,
+      // count number of instruction types
+      MONITOR_INSTTYPE,
       // number of monitoring extensions
       NUM_MONITORING_EXTENSIONS
     };

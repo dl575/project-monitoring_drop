@@ -2010,6 +2010,26 @@ AtomicSimpleMonitor::LRCExecute()
   }
 }
 
+/**
+ * InstType Execution
+ */
+void
+AtomicSimpleMonitor::InstTypeExecute()
+{
+    numMonitorInsts++;
+    Counter c = numMonitorInsts.value();
+    // Monitoring stats
+    if ((c % 1000)==0){
+        DPRINTF(Monitor, "InstType: Epoch reached. Clear stats.\n");
+        for (unsigned i = 0; i < OPCODE_NUM; ++i){
+            thread->setIntReg(i, 0);
+            setDropRegTag(i, 0, 0);
+        }
+    }
+    InstTypeCount count = (InstTypeCount)thread->readIntReg(mp.opcode_custom);
+    DPRINTF(Monitor, "InstType: Instruction opcode %x, count = %u\n", mp.opcode_custom, count+1);
+    thread->setIntReg(mp.opcode_custom, count+1);
+}
 
 
 /**
@@ -2087,6 +2107,8 @@ AtomicSimpleMonitor::processMonitoringPacket()
         LRCExecute();
     } else if (monitorExt == MONITOR_DIFTRF) {
         DIFTRFExecute();
+    } else if (monitorExt == MONITOR_INSTTYPE) {
+        InstTypeExecute();
     } else
         panic("Unknown monitoring extension specified\n");
 
