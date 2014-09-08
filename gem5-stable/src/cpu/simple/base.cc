@@ -1657,6 +1657,23 @@ BaseSimpleCPU::readFromTimer(Addr addr, uint8_t * data,
                 filterstats[itp]++;
                 filterdetailed[itp][select]++;
                 DPRINTF(Invalidation, "Filtering fifo entry: num_filtered: %d\n", filterstats.total());
+
+                // Mark static instruction as being monitored if filtered due to NULL metadata
+                // (if not previously monitored already)
+                // FIXME: select is hard coded for hardbound (first operand == 0 == null)
+                if (print_static_coverage && ischeck && 
+                    (select == 0 || select == 1 || select == 2 || select == 3)) {
+                  // Read PC from FIFO
+                  Addr pc = -1;
+                  readFromFifo(FIFO_INSTADDR, (uint8_t *)&pc, sizeof(pc), ArmISA::TLB::AllowUnaligned);
+                  // Look for PC in list of full monitored PCs
+                  std::list<int>::iterator findIter = std::find(pc_checked_full.begin(), pc_checked_full.end(), (int)pc);
+                  // If not found, add to list
+                  if (findIter == pc_checked_full.end()) {
+                    pc_checked_full.push_back((int)pc);
+                  }
+                }
+
                 // Filtering is enabled
                 if (!emulate_filtering){
                     all_packets++;
