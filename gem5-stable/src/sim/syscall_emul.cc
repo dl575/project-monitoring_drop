@@ -228,12 +228,14 @@ readFunc(SyscallDesc *desc, int num, LiveProcess *p, ThreadContext *tc)
     // UMC  : mark read data as initialized
     
     // get pointer to monitor
-    AtomicSimpleCPU* main_core = (AtomicSimpleCPU*)(AtomicSimpleCPU::main_thread->getCpuPtr());
-    if (main_core->monitorExt == AtomicSimpleCPU::MONITOR_DIFT ||
-        main_core->monitorExt == AtomicSimpleCPU::MONITOR_MULTIDIFT ||
-        main_core->monitorExt == AtomicSimpleCPU::MONITOR_UMC) {
-        // Set up main core to perform monitoring for this syscall
-        main_core->monitorSyscallRead(bufPtr, nbytes);
+    if (AtomicSimpleCPU::main_thread) {
+        AtomicSimpleCPU* main_core = (AtomicSimpleCPU*)(AtomicSimpleCPU::main_thread->getCpuPtr());
+        if (main_core->monitorExt == AtomicSimpleCPU::MONITOR_DIFT ||
+            main_core->monitorExt == AtomicSimpleCPU::MONITOR_MULTIDIFT ||
+            main_core->monitorExt == AtomicSimpleCPU::MONITOR_UMC) {
+            // Set up main core to perform monitoring for this syscall
+            main_core->monitorSyscallRead(bufPtr, nbytes);
+        }
     }
 
     return bytes_read;
