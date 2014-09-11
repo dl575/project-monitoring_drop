@@ -147,7 +147,10 @@ available_monitors = {
   "sec"  : 4,
   "hb"   : 5,
   "multidift" : 6,
-  "lrc"  : 7
+  "lrc"  : 7,
+  "diftrf" : 8,
+  "ls"   : 9,
+  "insttype": 10
 }
 
 important_policy = {
@@ -377,6 +380,20 @@ elif options.monitor == "lrc":
     DropCPUClass.filter_ptr_file = table_dir + "lrc_filter_ptrs.txt"
   # Set coverage check flags
   #DropCPUClass.check_ret = True
+elif options.monitor == "insttype":
+  monitor_bin = "insttype_soft_drop"
+  # Set up monitoring filter
+  MainCPUClass.monitoring_filter_load = True
+  MainCPUClass.monitoring_filter_store = True
+  MainCPUClass.monitoring_filter_intalu = True
+  MainCPUClass.monitoring_filter_indctrl = True
+  if options.invalidation:
+    # Load the invalidation file
+    DropCPUClass.invalidation_file = table_dir + "insttype_invalidation.txt"
+    # Set coverage check flags
+    DropCPUClass.check_load = False
+    DropCPUClass.check_store = False
+    DropCPUClass.check_indctrl = False
 elif options.monitor == "none":
   # FIXME: need an empty monitor
   monitor_bin = "umc_soft_drop"
@@ -410,7 +427,7 @@ fifo_main_to_dc.fifo_size = options.fifo_size
 system.fifo_main_to_dc = fifo_main_to_dc
 # Create a second fifo
 fifo_dc_to_mon = Fifo(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FIFO_DC_TO_MON_OFFSET, size="64kB"))
-fifo_dc_to_mon.fifo_size = 2 
+fifo_dc_to_mon.fifo_size = 2
 system.fifo_dc_to_mon = fifo_dc_to_mon
 # Create timer
 timer = PerformanceTimer(range=AddrRange(start=PERIPHERAL_ADDR_BASE + TIMER_OFFSET, size="64kB"))

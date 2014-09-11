@@ -505,6 +505,8 @@ class BaseSimpleCPU : public BaseCPU
       MONITOR_DIFTRF,
       // LocckSet-based race detection
       MONITOR_LS,
+      // count number of instruction types
+      MONITOR_INSTTYPE,
       // number of monitoring extensions
       NUM_MONITORING_EXTENSIONS
     };

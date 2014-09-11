@@ -1,0 +1,7 @@
+//opcode    sel1      sel2    op       c    action
+
+  LOAD      c         -       add      2    HW_set_array_b01
+  STORE     c         -       add      3    HW_set_array_b01
+  INTALU    c         -       add      1    HW_set_array_b01
+  INDCTRL   c         -       add      4    HW_set_array_b01
+  SETTAG    c         -       add      5    HW_set_array_b01

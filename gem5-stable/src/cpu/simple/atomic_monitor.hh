@@ -179,6 +179,7 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     typedef bool    DIFTTag;
     typedef uint8_t BCTag;
     typedef uint64_t HBTag;
+    typedef uint32_t InstTypeCount;
 
     // statistics
     virtual void regStats();
@@ -225,6 +226,7 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     void HBExecute();
     void LRCExecute();
     void LSExecute();
+    void InstTypeExecute();
 
     void preExecute();
     void postExecute();
