@@ -521,6 +521,10 @@ if options.cmd:
 else:
   print "error: missing program command line"
   sys.exit(1)
+
+if options.input != "":
+    process0.input = options.input
+
 system.cpu[0].workload = process0
 # assign the same process to cpu[1]
 system.cpu[1].workload = process0
