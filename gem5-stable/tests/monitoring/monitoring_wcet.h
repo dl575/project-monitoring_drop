@@ -109,6 +109,7 @@ struct monitoring_packet {
 #define READ_FIFO_OPCODE_CUSTOM *(fifo + 27)
 // Pop FIFO and read the custom opcode
 #define READ_POP_FIFO_OPCODE_CUSTOM *(fifo + 28) 
+#define READ_FIFO_THREADID      *(fifo + 29)
 
 // Fifo flags
 #define READ_FIFO_FULL    *(fifo + 0x400)
