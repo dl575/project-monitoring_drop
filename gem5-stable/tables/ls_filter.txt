@@ -1,0 +1,3 @@
+//opcode    sel1      sel2    op       c    location
+
+  LOAD      MEMADDR   c       shftr    2    cache
