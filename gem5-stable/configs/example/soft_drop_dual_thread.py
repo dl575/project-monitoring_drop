@@ -388,8 +388,7 @@ elif options.monitor == "ls":
   if options.invalidation:
     # Load the invalidation file
     DropCPUClass.invalidation_file = table_dir + "ls_invalidation.txt"
-    DropCPUClass.filter_file_1 = table_dir + "ls_filter1.txt"
-    DropCPUClass.filter_file_2 = table_dir + "ls_filter2.txt"
+    DropCPUClass.filter_file_1 = table_dir + "ls_filter.txt"
     DropCPUClass.filter_ptr_file = table_dir + "ls_filter_ptrs.txt"
   # Set coverage check flags
   DropCPUClass.check_load = True
@@ -410,7 +409,7 @@ system = System(cpu = [MainCPUClass(cpu_id=0), MainCPUClass(cpu_id=1),
 
 # Save a list of the CPU classes. These will be used in fast-forwarding
 # to create a replica CPU set that runs after fast-forward.
-cpu_list = [MainCPUClass, MonCPUClass, DropCPUClass]
+cpu_list = [MainCPUClass, MainCPUClass, MonCPUClass, MonCPUClass, DropCPUClass, DropCPUClass]
 
 # Connect port between drop and monitoring cpu
 system.cpu[2].monitor_port = system.cpu[4].monitor_port
@@ -592,4 +591,4 @@ root = Root(full_system = False, system = system)
 if options.fastforward_insts == 0:
     Simulation.run(options, root, system, FutureClass)
 else:
-    Simulation.run_ff(options, root, system, cpu_list)
+    Simulation.run_ff_dual_thread(options, root, system, cpu_list)

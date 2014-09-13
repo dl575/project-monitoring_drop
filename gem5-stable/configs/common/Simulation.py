@@ -463,7 +463,7 @@ def run_ff(options, root, testsys, cpu_list):
         switch_cpus[i].workload = testsys.cpu[i].workload
         switch_cpus[i].clock = testsys.cpu[i].clock
         # Simulation period
-        if options.maxinsts: 
+        if options.maxinsts:
             switch_cpus[i].max_insts_any_thread = options.maxinsts
     if options.maxinsts_cpu0:
         switch_cpus[0].max_insts_any_thread = options.maxinsts_cpu0
@@ -498,7 +498,151 @@ def run_ff(options, root, testsys, cpu_list):
     testsys.cpu[2].filter_ptr_file = ""
     # Disable source dropping/propagation before switch
     testsys.cpu[2].source_dropping = False
- 
+
+    switch_cpu_list = [(testsys.cpu[i], switch_cpus[i]) for i in xrange(np)]
+
+    checkpoint_dir = None
+    m5.instantiate(checkpoint_dir)
+
+    # Modified "if options.standard_switch or cpu_class:"
+    print "Switch at instruction count: %s" % \
+        str(testsys.cpu[0].max_insts_any_thread)
+    exit_event = m5.simulate()
+    print "Switched CPUS @ tick %s" % (m5.curTick())
+
+    # Switch to second set of CPUs
+    m5.switchCpus(switch_cpu_list)
+    # Reset so stats are for post-fast forward (mainly for sim_ticks)
+    m5.stats.reset()
+    m5.resume(testsys)
+
+    num_checkpoints = 0
+    exit_cause = ''
+
+    print "**** REAL SIMULATION ****"
+    exit_event = m5.simulate(maxtick)
+
+    while exit_event.getCause() == "checkpoint":
+        m5.checkpoint(joinpath(cptdir, "cpt.%d"))
+        num_checkpoints += 1
+        if num_checkpoints == max_checkpoints:
+            exit_cause = "maximum %d checkpoints dropped" % max_checkpoints
+            break
+
+        exit_event = m5.simulate(maxtick - m5.curTick())
+        exit_cause = exit_event.getCause()
+
+    if exit_cause == '':
+        exit_cause = exit_event.getCause()
+    print 'Exiting @ tick %i because %s' % (m5.curTick(), exit_cause)
+
+    if options.checkpoint_at_end:
+        m5.checkpoint(joinpath(cptdir, "cpt.%d"))
+
+"""
+Run simulation with fast-forwarding. During the fast-forwarding period,
+full monitoring is performed. After that, dropping/filtering is performed.
+"""
+def run_ff_dual_thread(options, root, testsys, cpu_list):
+    if options.maxtick:
+        maxtick = options.maxtick
+    elif options.maxtime:
+        simtime = m5.ticks.seconds(simtime)
+        print "simulating for: ", simtime
+        maxtick = simtime
+    else:
+        maxtick = m5.MaxTick
+
+    if options.checkpoint_dir:
+        cptdir = options.checkpoint_dir
+    elif m5.options.outdir:
+        cptdir = m5.options.outdir
+    else:
+        cptdir = getcwd()
+
+    if options.fast_forward:
+        fatal("options.fast_forward not supported with --fastforward_insts")
+    if options.checkpoint_restore:
+        fatal("options.checkpoint_restore not supported with --fastforward_insts")
+    if options.standard_switch:
+        fatal("options.standard_switch not supported with --fastforward_insts")
+
+    np = options.num_cpus
+    max_checkpoints = options.max_checkpoints
+    switch_cpus = None
+
+    if options.prog_interval:
+        fatal("options.prog_interval not supported with --fastforward_insts")
+
+    # Modified from "if cpu_class:" in run()
+    switch_cpus = [cpu_list[i](defer_registration=True, cpu_id=(np+i)) for i in xrange(np)]
+    # Fast forward (only apply to main core)
+    testsys.cpu[0].max_insts_any_thread = options.fastforward_insts
+    for i in xrange(np):
+        switch_cpus[i].system = testsys
+        switch_cpus[i].workload = testsys.cpu[i].workload
+        switch_cpus[i].clock = testsys.cpu[i].clock
+        # Simulation period
+        if options.maxinsts:
+            switch_cpus[i].max_insts_any_thread = options.maxinsts
+    if options.maxinsts_cpu0:
+        switch_cpus[0].max_insts_any_thread = options.maxinsts_cpu0
+
+    testsys.switch_cpus = switch_cpus
+    # Hook up all the fifos for the new cpu models
+    if testsys.cpu[2].monitor_port:
+        testsys.switch_cpus[2].monitor_port = testsys.switch_cpus[4].monitor_port
+    if testsys.cpu[3].monitor_port:
+        testsys.switch_cpus[3].monitor_port = testsys.switch_cpus[5].monitor_port
+    if testsys.switch_cpus[0].fifo_enabled:
+        testsys.switch_cpus[0].fifo_port = testsys.fifo_main_to_dc_0.port
+    if testsys.switch_cpus[1].fifo_enabled:
+        testsys.switch_cpus[1].fifo_port = testsys.fifo_main_to_dc_1.port
+    if testsys.switch_cpus[2].fifo_enabled:
+        testsys.switch_cpus[2].fifo_port = testsys.fifo_dc_to_mon_0.port
+    if testsys.switch_cpus[3].fifo_enabled:
+        testsys.switch_cpus[3].fifo_port = testsys.fifo_dc_to_mon_1.port
+    if testsys.switch_cpus[4].fifo_enabled:
+        testsys.switch_cpus[4].fifo_port = testsys.fifo_main_to_dc_0.port
+    if testsys.switch_cpus[5].fifo_enabled:
+        testsys.switch_cpus[5].fifo_port = testsys.fifo_main_to_dc_1.port
+    if testsys.switch_cpus[4].forward_fifo_enabled:
+        testsys.switch_cpus[4].forward_fifo_port = testsys.fifo_dc_to_mon_0.port
+    if testsys.switch_cpus[5].forward_fifo_enabled:
+        testsys.switch_cpus[5].forward_fifo_port = testsys.fifo_dc_to_mon_1.port
+    # Connect to timer and flagcache to new CPUs
+    for i in (0, 2, 4):
+        # Connect CPU to timer
+        if testsys.switch_cpus[i].timer_enabled:
+            testsys.switch_cpus[i].timer_port = testsys.timer_0.port
+        # Connect CPU to flag cache
+        if testsys.switch_cpus[i].flagcache_enabled:
+            testsys.switch_cpus[i].flagcache_port = testsys.flagcache_0.port
+    for i in (1, 3, 5):
+        # Connect CPU to timer
+        if testsys.switch_cpus[i].timer_enabled:
+            testsys.switch_cpus[i].timer_port = testsys.timer_1.port
+        # Connect CPU to flag cache
+        if testsys.switch_cpus[i].flagcache_enabled:
+            testsys.switch_cpus[i].flagcache_port = testsys.flagcache_1.port
+    # Enable monitoring after switch
+    testsys.switch_cpus[0].monitoring_enabled = True
+    testsys.switch_cpus[1].monitoring_enabled = True
+    # Disable invalidation/filtering before switch
+    testsys.cpu[4].timer_enabled = False
+    testsys.cpu[4].invalidation_file = ""
+    testsys.cpu[4].filter_file_1 = ""
+    testsys.cpu[4].filter_file_2 = ""
+    testsys.cpu[4].filter_ptr_file = ""
+    testsys.cpu[5].timer_enabled = False
+    testsys.cpu[5].invalidation_file = ""
+    testsys.cpu[5].filter_file_1 = ""
+    testsys.cpu[5].filter_file_2 = ""
+    testsys.cpu[5].filter_ptr_file = ""
+    # Disable source dropping/propagation before switch
+    testsys.cpu[4].source_dropping = False
+    testsys.cpu[5].source_dropping = False
+
     switch_cpu_list = [(testsys.cpu[i], switch_cpus[i]) for i in xrange(np)]
 
     checkpoint_dir = None
