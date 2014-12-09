@@ -268,8 +268,8 @@ DropCPUClass.mpt_size = options.mpt_size
 # Coverage options
 DropCPUClass.target_coverage = options.coverage
 DropCPUClass.check_frequency = options.coverage_adjust
-if options.probabilistic_drop:
-  DropCPUClass.print_checkid = True
+# if options.probabilistic_drop:
+#   DropCPUClass.print_checkid = True
 DropCPUClass.print_static_coverage = options.static_coverage
 if options.source_dropping:
   DropCPUClass.source_dropping = True
@@ -450,7 +450,7 @@ timer.persistence_dir = options.backtrack_table_dir
 if options.probabilistic_drop:
   timer.seed = random.randint(-2**30,2**30)
   timer.slack_lo = -100
-  timer.slack_hi = 100
+  timer.slack_hi =  100
 system.timer = timer
 # Create flag cache
 flagcache = FlagCache(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FLAGCACHE_OFFSET, size="64kB"))
