@@ -422,11 +422,14 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                     
                     DPRINTF(SlackTimer, "Prob computation: slack = %lld, rate = %f, number = %f, result = %d\n", adjusted_slack, not_drop_rate, random_number, drop_status);
                 }
-                /*
                 // 50/50 drop
-                double random_number = (double)rand()/RAND_MAX;
-                drop_status = (random_number <= 0.95);
-                */
+                // FIXME: using slack_lo != slack_hi to indicate that we want completely random dropping
+                if (slack_lo != slack_hi) {
+                  double random_number = (double)rand()/RAND_MAX;
+                  // random_number <= x means x chance of not drop
+                  drop_status = (random_number <= 0.10);
+                  DPRINTF(SlackTimer, "Prob computation: number = %f, result = %d\n", random_number, drop_status);
+                }
 
                 send_data = drop_status;
                 if (stored_tp.intask || curTick() < stored_tp.WCET_end){
