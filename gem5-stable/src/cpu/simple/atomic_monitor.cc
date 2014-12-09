@@ -2011,6 +2011,14 @@ AtomicSimpleMonitor::LRCExecute()
 }
 
 /**
+ * LockSet Execution
+ */
+void
+AtomicSimpleMonitor::LSExecute()
+{
+}
+
+/**
  * InstType Execution
  */
 void
@@ -2107,6 +2115,8 @@ AtomicSimpleMonitor::processMonitoringPacket()
         LRCExecute();
     } else if (monitorExt == MONITOR_DIFTRF) {
         DIFTRFExecute();
+    } else if (monitorExt == MONITOR_LS) {
+        LSExecute();
     } else if (monitorExt == MONITOR_INSTTYPE) {
         InstTypeExecute();
     } else

@@ -150,7 +150,7 @@ available_monitors = {
   "lrc"  : 7,
   "diftrf" : 8,
   "ls"   : 9,
-  "insttype": 10
+  "insttype" : 10
 }
 
 important_policy = {
@@ -270,8 +270,8 @@ DropCPUClass.mpt_size = options.mpt_size
 # Coverage options
 DropCPUClass.target_coverage = options.coverage
 DropCPUClass.check_frequency = options.coverage_adjust
-# if options.probabilistic_drop:
-#   DropCPUClass.print_checkid = True
+if options.probabilistic_drop:
+  DropCPUClass.print_checkid = True
 DropCPUClass.print_static_coverage = options.static_coverage
 if options.source_dropping:
   DropCPUClass.source_dropping = True
@@ -380,20 +380,20 @@ elif options.monitor == "lrc":
     DropCPUClass.filter_ptr_file = table_dir + "lrc_filter_ptrs.txt"
   # Set coverage check flags
   #DropCPUClass.check_ret = True
-elif options.monitor == "insttype":
-  monitor_bin = "insttype_soft_drop"
+elif options.monitor == "ls":
+  monitor_bin = "ls_soft_drop"
   # Set up monitoring filter
   MainCPUClass.monitoring_filter_load = True
   MainCPUClass.monitoring_filter_store = True
-  MainCPUClass.monitoring_filter_intalu = True
-  MainCPUClass.monitoring_filter_indctrl = True
   if options.invalidation:
     # Load the invalidation file
-    DropCPUClass.invalidation_file = table_dir + "insttype_invalidation.txt"
-    # Set coverage check flags
-    DropCPUClass.check_load = False
-    DropCPUClass.check_store = False
-    DropCPUClass.check_indctrl = False
+    DropCPUClass.invalidation_file = table_dir + "ls_invalidation.txt"
+    DropCPUClass.filter_file_1 = table_dir + "ls_filter.txt"
+    DropCPUClass.filter_ptr_file = table_dir + "ls_filter_ptrs.txt"
+  # Set coverage check flags
+  DropCPUClass.check_load = True
+  DropCPUClass.check_store = True
+  DropCPUClass.check_indctrl = False
 elif options.monitor == "none":
   # FIXME: need an empty monitor
   monitor_bin = "umc_soft_drop"
@@ -401,19 +401,22 @@ else:
   raise Exception("Monitor not recognized: %s" % monitor)
 
 # Create system, CPUs, bus, and memory
-system = System(cpu = [MainCPUClass(cpu_id=0), MonCPUClass(cpu_id=1), DropCPUClass(cpu_id=2)],
+system = System(cpu = [MainCPUClass(cpu_id=0), MainCPUClass(cpu_id=1),
+                       MonCPUClass(cpu_id=2),  MonCPUClass(cpu_id=3),
+                       DropCPUClass(cpu_id=4), DropCPUClass(cpu_id=5)],
                 physmem = SimpleMemory(range=AddrRange("1GB"), latency='30ns'),
                 membus = CoherentBus(), mem_mode = test_mem_mode)
 
 # Save a list of the CPU classes. These will be used in fast-forwarding
 # to create a replica CPU set that runs after fast-forward.
-cpu_list = [MainCPUClass, MonCPUClass, DropCPUClass]
+cpu_list = [MainCPUClass, MainCPUClass, MonCPUClass, MonCPUClass, DropCPUClass, DropCPUClass]
 
 # Connect port between drop and monitoring cpu
-system.cpu[1].monitor_port = system.cpu[2].monitor_port
+system.cpu[2].monitor_port = system.cpu[4].monitor_port
+system.cpu[3].monitor_port = system.cpu[5].monitor_port
 
 # Number of CPUs
-options.num_cpus = 3
+options.num_cpus = 6
 
 # Addresses for peripherals
 PERIPHERAL_ADDR_BASE = 0x50000000
@@ -421,60 +424,93 @@ FIFO_MAIN_TO_DC_OFFSET = 0x0
 FIFO_DC_TO_MON_OFFSET = 0x30000
 TIMER_OFFSET = 0x10000
 FLAGCACHE_OFFSET = 0x20000
+# monitoring structures for thread 0
 # Create a "fifo" memory
-fifo_main_to_dc = Fifo(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FIFO_MAIN_TO_DC_OFFSET, size="64kB"))
-fifo_main_to_dc.fifo_size = options.fifo_size
-system.fifo_main_to_dc = fifo_main_to_dc
+fifo_main_to_dc_0 = Fifo(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FIFO_MAIN_TO_DC_OFFSET, size="64kB"))
+fifo_main_to_dc_0.fifo_size = options.fifo_size
+system.fifo_main_to_dc_0 = fifo_main_to_dc_0
 # Create a second fifo
-fifo_dc_to_mon = Fifo(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FIFO_DC_TO_MON_OFFSET, size="64kB"))
-fifo_dc_to_mon.fifo_size = 2
-system.fifo_dc_to_mon = fifo_dc_to_mon
+fifo_dc_to_mon_0 = Fifo(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FIFO_DC_TO_MON_OFFSET, size="64kB"))
+fifo_dc_to_mon_0.fifo_size = 2
+system.fifo_dc_to_mon_0 = fifo_dc_to_mon_0
 # Create timer
-timer = PerformanceTimer(range=AddrRange(start=PERIPHERAL_ADDR_BASE + TIMER_OFFSET, size="64kB"))
-if options.important_policy == "percent":
-  timer.percent_overhead = options.overhead - options.important_percent
-  if (timer.percent_overhead < 0):
-    raise Exception("overhead for important instructions should not exceed total overhead!")
-else:
-  timer.percent_overhead = options.overhead
+timer_0 = PerformanceTimer(range=AddrRange(start=PERIPHERAL_ADDR_BASE + TIMER_OFFSET, size="64kB"))
+timer_0.percent_overhead = options.overhead
 # For spec benchmarks, we set init slack here
-timer.start_cycles = options.headstart_slack
-timer.start_cycles_clock = MainCPUClass.clock
-timer.use_start_ticks = True
-# policy of forwarding important instructions
-timer.important_policy = important_policy[options.important_policy]
-timer.important_slack = options.important_slack
-timer.important_percent = options.important_percent
-timer.increment_important_only = options.increment_important_only
-timer.read_slack_multiplier = options.read_slack_multiplier
-timer.persistence_dir = options.backtrack_table_dir
+timer_0.start_cycles = options.headstart_slack
+timer_0.start_cycles_clock = MainCPUClass.clock
+timer_0.use_start_ticks = True
 # We can also set a probabilistic range
 if options.probabilistic_drop:
-  timer.seed = random.randint(-2**30,2**30)
-  timer.slack_lo = -100
-  timer.slack_hi =  100
-system.timer = timer
+  timer_0.seed = random.randint(-2**30,2**30)
+  timer_0.slack_lo = -100
+  timer_0.slack_hi = 100
+system.timer_0 = timer_0
 # Create flag cache
-flagcache = FlagCache(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FLAGCACHE_OFFSET, size="64kB"))
-system.flagcache = flagcache
+flagcache_0 = FlagCache(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FLAGCACHE_OFFSET, size="64kB"))
+system.flagcache_0 = flagcache_0
 
 # Connect CPU to fifo
 if system.cpu[0].fifo_enabled:
-  system.cpu[0].fifo_port = system.fifo_main_to_dc.port
-if system.cpu[1].fifo_enabled:
-  system.cpu[1].fifo_port = system.fifo_dc_to_mon.port
+  system.cpu[0].fifo_port = system.fifo_main_to_dc_0.port
 if system.cpu[2].fifo_enabled:
-  system.cpu[2].fifo_port = system.fifo_main_to_dc.port
-if system.cpu[2].forward_fifo_enabled:
-  system.cpu[2].forward_fifo_port = system.fifo_dc_to_mon.port
+  system.cpu[2].fifo_port = system.fifo_dc_to_mon_0.port
+if system.cpu[4].fifo_enabled:
+  system.cpu[4].fifo_port = system.fifo_main_to_dc_0.port
+if system.cpu[4].forward_fifo_enabled:
+  system.cpu[4].forward_fifo_port = system.fifo_dc_to_mon_0.port
 
-for i in range(options.num_cpus):
+for i in (0, 2, 4):
   # Connect CPU to timer
   if system.cpu[i].timer_enabled:
-    system.cpu[i].timer_port = system.timer.port
+    system.cpu[i].timer_port = system.timer_0.port
   # Connect CPU to flag cache
   if system.cpu[i].flagcache_enabled:
-    system.cpu[i].flagcache_port = system.flagcache.port
+    system.cpu[i].flagcache_port = system.flagcache_0.port
+
+# monitoring structures for thread 1
+# Create a "fifo" memory
+fifo_main_to_dc_1 = Fifo(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FIFO_MAIN_TO_DC_OFFSET, size="64kB"))
+fifo_main_to_dc_1.fifo_size = options.fifo_size
+system.fifo_main_to_dc_1 = fifo_main_to_dc_1
+# Create a second fifo
+fifo_dc_to_mon_1 = Fifo(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FIFO_DC_TO_MON_OFFSET, size="64kB"))
+fifo_dc_to_mon_1.fifo_size = 2
+system.fifo_dc_to_mon_1 = fifo_dc_to_mon_1
+# Create timer
+timer_1 = PerformanceTimer(range=AddrRange(start=PERIPHERAL_ADDR_BASE + TIMER_OFFSET, size="64kB"))
+timer_1.percent_overhead = options.overhead
+# For spec benchmarks, we set init slack here
+timer_1.start_cycles = options.headstart_slack
+timer_1.start_cycles_clock = MainCPUClass.clock
+timer_1.use_start_ticks = True
+# We can also set a probabilistic range
+if options.probabilistic_drop:
+  timer_1.seed = random.randint(-2**30,2**30)
+  timer_1.slack_lo = -100
+  timer_1.slack_hi = 100
+system.timer_1 = timer_1
+# Create flag cache
+flagcache_1 = FlagCache(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FLAGCACHE_OFFSET, size="64kB"))
+system.flagcache_1 = flagcache_1
+
+# Connect CPU to fifo
+if system.cpu[1].fifo_enabled:
+  system.cpu[1].fifo_port = system.fifo_main_to_dc_1.port
+if system.cpu[3].fifo_enabled:
+  system.cpu[3].fifo_port = system.fifo_dc_to_mon_1.port
+if system.cpu[5].fifo_enabled:
+  system.cpu[5].fifo_port = system.fifo_main_to_dc_1.port
+if system.cpu[5].forward_fifo_enabled:
+  system.cpu[5].forward_fifo_port = system.fifo_dc_to_mon_1.port
+
+for i in (1, 3, 5):
+  # Connect CPU to timer
+  if system.cpu[i].timer_enabled:
+    system.cpu[i].timer_port = system.timer_1.port
+  # Connect CPU to flag cache
+  if system.cpu[i].flagcache_enabled:
+    system.cpu[i].flagcache_port = system.flagcache_1.port
 
 # Assign programs
 process0 = LiveProcess()
@@ -483,77 +519,76 @@ if options.cmd:
   process0.executable = options.cmd
   process0.cmd = [options.cmd] + options.options.split()
 else:
-  #process0.executable = os.environ["GEM5"] + "/tests/malarden_monitor/malarden_wcet.arm"
-  process0.executable = os.environ["GEM5"] + "/tests/monitoring/timer_monitor.arm"
-  # process0.executable = os.environ["GEM5"] + "../../papabench/sw/airborne/autopilot/autopilot.elf"
-  process0.cmd = ""
-system.cpu[0].workload = process0
+  print "error: missing program command line"
+  sys.exit(1)
 
-process1 = LiveProcess()
-# load a dummy executable file to avoid polluting tag memory space
-# process1.executable = os.environ["GEM5"] + "/tests/test-progs/dummy/dummy.arm"
-# process1.cmd = ""
-process1.executable = os.environ["GEM5"] + ("/tests/monitoring/%s%s.arm" % (monitor_bin, "" if options.invalidation else "_full"))
-process1.cmd = ""
-system.cpu[1].workload = process1
+if options.input != "":
+    process0.input = options.input
+
+system.cpu[0].workload = process0
+# assign the same process to cpu[1]
+system.cpu[1].workload = process0
+# enable monitoring by default on cpu[1]
+system.cpu[1].monitoring_enabled = True
 
 process2 = LiveProcess()
-process2.executable = os.environ["GEM5"] + "/tests/test-progs/dummy/dummy.arm"
+process2.executable = os.environ["GEM5"] + ("/tests/monitoring/%s%s.arm" % (monitor_bin, "" if options.invalidation else "_full"))
 process2.cmd = ""
 system.cpu[2].workload = process2
 
+# same executable for cpu[3]
+process3 = LiveProcess()
+process3.executable = os.environ["GEM5"] + ("/tests/monitoring/%s%s.arm" % (monitor_bin, "" if options.invalidation else "_full"))
+process3.cmd = ""
+system.cpu[3].workload = process3
+
+process4 = LiveProcess()
+process4.executable = os.environ["GEM5"] + "/tests/test-progs/dummy/dummy.arm"
+process4.cmd = ""
+system.cpu[4].workload = process4
+
+process5 = LiveProcess()
+process5.executable = os.environ["GEM5"] + "/tests/test-progs/dummy/dummy.arm"
+process5.cmd = ""
+system.cpu[5].workload = process5
+
 options.l1i_latency = '1ps'
 options.l1d_latency = '1ps'
-# Remove drop core for connecting up caches
-options.num_cpus = 2
-if options.ruby:
-  options.num_cpus = 3
-  options.use_map = True
-  Ruby.create_system(options, system)
-  assert(options.num_cpus == len(system.ruby._cpu_ruby_ports))
+# Remove drop cores for connecting up caches
+options.num_cpus = 4
+# Connect system to the bus
+system.system_port = system.membus.slave
+# Connect memory to bus
+system.physmem.port = system.membus.master
+# Set up caches for main and monitoring cores if enabled, connect to memory
+# bus, and set up interrupts
+CacheConfig.config_cache(options, system)
 
-  for i in xrange(options.num_cpus):
-    ruby_port = system.ruby._cpu_ruby_ports[i]
-
-    # Create the interrupt controller and connect its ports to Ruby
-    system.cpu[i].createInterruptController()
-    # system.cpu[i].interrupts.pio = ruby_port.master
-    # system.cpu[i].interrupts.int_master = ruby_port.slave
-    # system.cpu[i].interrupts.int_slave = ruby_port.master
-
-    # Connect the cpu's cache ports to Ruby
-    system.cpu[i].icache_port = ruby_port.slave
-    system.cpu[i].dcache_port = ruby_port.slave
+if options.caches:
+  for i in (4, 5):
+    icache = L1Cache(size = options.l1i_size,
+                     assoc = options.l1i_assoc,
+                     block_size=options.cacheline_size,
+                     latency = options.l1i_latency)
+    dcache = L1Cache(size = options.invalidation_cache_size,
+                     assoc = options.l1d_assoc,
+                     block_size=16,
+                     latency = options.l1d_latency)
+    system.cpu[i].addPrivateSplitL1Caches(icache, dcache)
+system.cpu[4].createInterruptController()
+system.cpu[5].createInterruptController()
+if options.l2cache:
+    system.cpu[4].connectAllPorts(system.tol2bus, system.membus)
+    system.cpu[5].connectAllPorts(system.tol2bus, system.membus)
 else:
-  # Connect system to the bus
-  system.system_port = system.membus.slave
-  # Connect memory to bus
-  system.physmem.port = system.membus.master
-  # Set up caches for main and monitoring cores if enabled, connect to memory
-  # bus, and set up interrupts
-  CacheConfig.config_cache(options, system)
-
-  if options.caches:
-      icache = L1Cache(size = options.l1i_size,
-                       assoc = options.l1i_assoc,
-                       block_size=options.cacheline_size,
-                       latency = options.l1i_latency)
-      dcache = L1Cache(size = options.invalidation_cache_size,
-                       assoc = options.l1d_assoc,
-                       block_size=16,
-                       latency = options.l1d_latency)
-      system.cpu[2].addPrivateSplitL1Caches(icache, dcache)
-  system.cpu[2].createInterruptController()
-  if options.l2cache:
-      system.cpu[2].connectAllPorts(system.tol2bus, system.membus)
-  else:
-      system.cpu[2].connectAllPorts(system.membus)
+    system.cpu[4].connectAllPorts(system.membus)
+    system.cpu[5].connectAllPorts(system.membus)
 # Reinclude drop core for switching CPU count in Simulation.run
-options.num_cpus = 3
+options.num_cpus = 6
 
 # Run simulation
 root = Root(full_system = False, system = system)
 if options.fastforward_insts == 0:
     Simulation.run(options, root, system, FutureClass)
 else:
-    Simulation.run_ff(options, root, system, cpu_list)
+    Simulation.run_ff_dual_thread(options, root, system, cpu_list)

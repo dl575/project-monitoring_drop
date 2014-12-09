@@ -63,6 +63,9 @@ Fifo::Fifo(const Params* p) :
     AbstractMemory(p),
     lat(p->latency), lat_var(p->latency_var)
 {
+    // FIFO is not in global address map
+    inAddrMap = false;
+
     for (size_t i = 0; i < p->port_port_connection_count; ++i) {
         ports.push_back(new MemoryPort(csprintf("%s-port-%d", name(), i),
                                        *this));
@@ -192,6 +195,7 @@ Fifo::doFunctionalAccess(PacketPtr pkt)
                 else if (read_addr == FIFO_SYSCALLNBYTES) { send_data = mp.syscallReadNbytes; }
                 else if (read_addr == FIFO_CUSTOM) { send_data = mp.custom; }
                 else if (read_addr == FIFO_OPCODE_CUSTOM || read_addr == FIFO_POP_OPCODE_CUSTOM) { send_data = mp.opcode_custom; }
+                else if (read_addr == FIFO_THREADID) { send_data = mp.threadid; }
                 else if (read_addr == FIFO_PACKET) { /* We will send full packet below */}
                 else {
                   warn("Unrecognized read from fifo address %x\n", read_addr);

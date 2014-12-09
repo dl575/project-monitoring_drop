@@ -143,6 +143,7 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
         case MONITOR_MULTIDIFT: monitorExt = MONITOR_MULTIDIFT; break;
         case MONITOR_LRC: monitorExt = MONITOR_LRC; break;
         case MONITOR_DIFTRF: monitorExt = MONITOR_DIFTRF; break;
+        case MONITOR_LS: monitorExt = MONITOR_LS; break;
         case MONITOR_INSTTYPE: monitorExt = MONITOR_INSTTYPE; break;
         default: panic("Invalid monitor type\n");
     }
@@ -688,6 +689,7 @@ BaseSimpleCPU::performMonitoring() {
       mp.syscallReadNbytes = fed.syscallReadNbytes;
       assert(mp.opcode_custom == OPCODE_NULL);
       mp.opcode_custom = OPCODE_SYSCALLREAD;
+      mp.threadid = _cpuId;
       // Send packet on fifo port, stall if not successful
       fifoStall = !sendFifoPacket();
       // Any additional functionality needed for stall
@@ -730,6 +732,7 @@ BaseSimpleCPU::performMonitoring() {
         mp.settag = true;
         mp.store = false;
         mp.custom = true;
+        mp.threadid = _cpuId;
         
         // Send packet on fifo port, stall if not successful
         fifoStall = !sendFifoPacket();
@@ -752,6 +755,7 @@ BaseSimpleCPU::performMonitoring() {
         mp.custom = true;
         assert(mp.opcode_custom == OPCODE_NULL);
         mp.opcode_custom = OPCODE_CUSTOM_DATA;
+        mp.threadid = _cpuId;
         DPRINTF(Fifo, "Create custom packet at %d, PC=%x, Set tag[0x%x:0x%x]=0x%x\n", 
             curTick(), tc->instAddr(), mp.memAddr, mp.memAddr+mp.size-1, mp.data);        
         
@@ -818,6 +822,7 @@ BaseSimpleCPU::performMonitoring() {
       
         // Monitoring packet to be sent
         mp.valid = true;
+        mp.threadid = _cpuId;
         mp.instAddr = tc->instAddr(); // current PC
         mp.memAddr = fed.memAddr; // memory access instruction
         mp.memEnd = fed.memAddr + fed.dataSize - 1;

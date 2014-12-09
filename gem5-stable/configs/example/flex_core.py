@@ -148,7 +148,9 @@ available_monitors = {
   "hb"   : 5,
   "multidift" : 6,
   "lrc"  : 7,
-  "insttype" : 9
+  "diftrf" : 8,
+  "ls"   : 9,
+  "insttype" : 10
 }
 
 important_policy = {

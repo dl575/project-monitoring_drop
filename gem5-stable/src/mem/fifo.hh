@@ -86,6 +86,7 @@
 #define FIFO_OPCODE_CUSTOM (FIFO_ADDR + 0x6c)       // custom defined opcode to simplify software monitor
 // Pop fifo and read custom opcode
 #define FIFO_POP_OPCODE_CUSTOM (FIFO_ADDR + 0x70)
+#define FIFO_THREADID      (FIFO_ADDR + 0x74)       // thread ID
 
 // Fifo registers
 #define FIFO_REG_START (FIFO_ADDR + 0x1000) 
@@ -152,6 +153,7 @@ class monitoringPacket {
     bool custom;
     // Custom defined opcode for simpler software monitoring
     opcode_custom_enum opcode_custom;
+    int32_t threadid;    // thread ID
 
     // Clear all variables
     void init() {
@@ -184,6 +186,7 @@ class monitoringPacket {
       syscallReadNbytes = 0;
       custom = false;
       opcode_custom = OPCODE_NULL;
+      threadid = -1;
     }
 
     // Print out full monitoring packet information
@@ -217,6 +220,7 @@ class monitoringPacket {
       printf("  syscallReadNbytes = %d\n", syscallReadNbytes);
       printf("  custom = %d\n", custom);
       printf("  opcode_custom = %d\n", (int)opcode_custom);
+      printf("  threadid = %d\n", threadid);
       printf("}\n");
     }
 };

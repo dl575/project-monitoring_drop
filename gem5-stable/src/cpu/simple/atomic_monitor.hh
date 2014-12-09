@@ -225,6 +225,7 @@ class AtomicSimpleMonitor : public BaseSimpleCPU
     void SECExecute();
     void HBExecute();
     void LRCExecute();
+    void LSExecute();
     void InstTypeExecute();
 
     void preExecute();

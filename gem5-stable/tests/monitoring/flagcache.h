@@ -12,7 +12,7 @@
 
 // Initialization
 volatile unsigned int *flagcache;
-#define INIT_FC flagcache = (int *)FC_ADDR;
+#define INIT_FC flagcache = (volatile unsigned int *)FC_ADDR;
 
 // read values
 #define FC_GET_ADDR            *(flagcache) 

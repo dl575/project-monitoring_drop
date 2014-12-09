@@ -64,6 +64,9 @@ FlagCache::FlagCache(const Params* p) :
     lat(p->latency), lat_var(p->latency_var),
     addr(), last_access()
 {
+    // FlagCache is not in global address map
+    inAddrMap = false;
+
     for (size_t i = 0; i < p->port_port_connection_count; ++i) {
         ports.push_back(new MemoryPort(csprintf("%s-port-%d", name(), i),
                                        *this));
