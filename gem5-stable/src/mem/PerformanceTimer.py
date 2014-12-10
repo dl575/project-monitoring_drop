@@ -51,9 +51,6 @@ class PerformanceTimer(AbstractMemory):
     start_cycles = Param.Tick(0, "Cycles to use for Start Task")
     start_cycles_clock = Param.Clock('2GHz', "Clock to use for tick conversion")
     use_start_ticks = Param.Bool(False, "Use param based start ticks")
-    slack_lo = Param.Int(0, "Low slack range for probabilistic dropping")
-    slack_hi = Param.Int(0, "High slack range for probabilistic dropping")
-    not_drop_prob = Param.Float(1, "Percent not drop rate for instructions with enough slack")
     important_policy = Param.Int(0, "Policy for forwarding important instructions")
     important_slack = Param.Int(0, "Additional slack for important instructions")
     important_percent = Param.Float(0, "Additional slack for important instructions as percent of total cycles")
@@ -61,4 +58,6 @@ class PerformanceTimer(AbstractMemory):
     read_slack_multiplier = Param.Bool(False, "read slack multiplier from file")
     slack_multiplier_interval = Param.Int(0, "Interval for adjusting slack multiplier (in cycles)")
     persistence_dir = Param.String("", "directory to read/write persistence data")
+
+    drop_probability = Param.Float(0, "Randomly drop events with this probability")
     seed = Param.Int(0, "Seed for random values in probabilistic dropping")

@@ -74,25 +74,7 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
     }
     
     start_ticks = p->start_cycles * p->start_cycles_clock;
-    
-    if (p->slack_lo <= p->slack_hi){
-        slack_lo = p->slack_lo * p->start_cycles_clock;
-        slack_hi = p->slack_hi * p->start_cycles_clock;
-    } else {
-        warn("Low slack value higher than high slack value. Switching...");
-        slack_hi = p->slack_lo * p->start_cycles_clock;
-        slack_lo = p->slack_hi * p->start_cycles_clock;
-    }
 
-    if (p->not_drop_prob > 1){
-        warn("Not drop probability is greater than 1");
-        not_drop_prob = 1;
-    } else if (p->not_drop_prob < 0) {
-        warn("Not drop probability is less than 0");
-        not_drop_prob = 0;
-    } else {
-        not_drop_prob = p->not_drop_prob;
-    }
     
     switch(p->important_policy) {
         case ALWAYS: important_policy = ALWAYS; break;
@@ -105,10 +87,10 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
 
     persistence_dir = p->persistence_dir;
 
+    // Random dropping
+    drop_probability = p->drop_probability;
     srand(p->seed);
     
-    // printf("Random init: %d, %d\n", rand(), p->seed);
-    // DPRINTF(SlackTimer, "Performance timer initialized with probabilistic range {%lld, %lld}\n", slack_lo, slack_hi);
 }
 
 void
@@ -402,35 +384,12 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                 // We're not in a task, so we will always not drop
                 if (always_not_drop){
                     drop_status = 1;
-                // Probabilistic drop using linear function
-                } else if (adjusted_slack < slack_lo){
-                    drop_status = 0; // Drop
-                } else if (adjusted_slack >= slack_hi){
-                    // Do a probabilistic drop on not drop cases, so we have slack later on for other instructions
-                    // Get a random number in [0, 1]
-                    double random_number = (double)rand()/RAND_MAX;
-                    // Drop with some probability
-                    drop_status = (random_number <= not_drop_prob);
-                    DPRINTF(SlackTimer, "Prob computation: slack = %lld, rate = %f, number = %f, result = %d\n", adjusted_slack, not_drop_prob, random_number, drop_status);
-                } else {
-                    // We assume a linear probability model between slack_hi and slack_lo.
-                    // Note (slack_hi != slack_lo) in this part of the code (due to above conditions).
-                    // At slack_hi not_drop_rate = not_drop_prob
-                    // At slack_lo not_drop_rate = 0
-                    double not_drop_rate = not_drop_prob * (double)(adjusted_slack - slack_lo)/(double)(slack_hi - slack_lo);
-                    // Get a random number in [0, 1]
-                    double random_number = (double)rand()/RAND_MAX; 
-                    // If we get any random number under the not_drop_rate, we don't drop
-                    drop_status = (random_number <= not_drop_rate);
-                    
-                    DPRINTF(SlackTimer, "Prob computation: slack = %lld, rate = %f, number = %f, result = %d\n", adjusted_slack, not_drop_rate, random_number, drop_status);
                 }
-                // 50/50 drop
-                // FIXME: using slack_lo != slack_hi to indicate that we want completely random dropping
-                if (slack_lo != slack_hi) {
+                // Randomly drop
+                else if (drop_probability != 0) {
                   double random_number = (double)rand()/RAND_MAX;
-                  // random_number <= x means x chance of not drop
-                  drop_status = (random_number <= 0.10);
+                  // random_number >= x means x chance of drop
+                  drop_status = (random_number >= drop_probability);
                   DPRINTF(SlackTimer, "Prob computation: number = %f, result = %d\n", random_number, drop_status);
                 }
 

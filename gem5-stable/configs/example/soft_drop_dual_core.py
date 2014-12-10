@@ -451,8 +451,7 @@ timer.persistence_dir = options.backtrack_table_dir
 # We can also set a probabilistic range
 if options.probabilistic_drop:
   timer.seed = random.randint(-2**30,2**30)
-  timer.slack_lo = -100
-  timer.slack_hi =  100
+  timer.drop_probability = 0.9
 system.timer = timer
 # Create flag cache
 flagcache = FlagCache(range=AddrRange(start=PERIPHERAL_ADDR_BASE + FLAGCACHE_OFFSET, size="64kB"))

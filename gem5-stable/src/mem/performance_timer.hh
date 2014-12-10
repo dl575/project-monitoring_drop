@@ -137,10 +137,8 @@ class PerformanceTimer : public AbstractMemory
     unsigned drops, not_drops;
     // Overhead
     double povr;
-    // Probabilistic slack range
-    long long int slack_lo, slack_hi;
-    // Not drop probability
-    double not_drop_prob;
+    // Probabilty to drop events
+    float drop_probability;
     // number of ticks in a clock cycle
     Tick clock;
 
