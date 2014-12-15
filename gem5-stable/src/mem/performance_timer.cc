@@ -391,6 +391,13 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                   // random_number >= x means x chance of drop
                   drop_status = (random_number >= drop_probability);
                   DPRINTF(SlackTimer, "Prob computation: number = %f, result = %d\n", random_number, drop_status);
+                // Slack-based dropping
+                } else {
+                  if (adjusted_slack < 0) {
+                    drop_status = 0;
+                  } else {
+                    drop_status = 1;
+                  }
                 }
 
                 send_data = drop_status;
@@ -400,6 +407,8 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                 }
                 // set last instruction importance
                 last_important = false;
+                // Make sure a valid drop decison is being sent
+                assert(send_data == 1 || send_data == 0);
             } else if (read_addr == TIMER_READ_DROP_IMPORTANT) {
                 if (important_policy == ALWAYS) {
                     // always forward
