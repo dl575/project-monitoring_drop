@@ -208,7 +208,13 @@ PerformanceTimer::effectiveImportantSlack(){
 inline long long int
 PerformanceTimer::slackAllocated()
 {
-    long long int slack = last_slack_allocated + (curTick() - slack_multiplier_last_update) * effectiveOverhead() - slack_subtrahend;
+    // slack for importance-based slack tracking
+    //long long int slack = last_slack_allocated + (curTick() - slack_multiplier_last_update) * effectiveOverhead() - slack_subtrahend;
+    if (important_policy != ALWAYS) {
+      panic("slackAllocated needs to be updated to support importance policies. Specifically, does not work with fastforwarding\n");
+    } 
+    // slack is percentage of time since last update
+    long long int slack = (curTick() - slack_multiplier_last_update) * povr;
     slack_allocated = slack;
     // update taskExecutionTime
     taskExecutionTime();
