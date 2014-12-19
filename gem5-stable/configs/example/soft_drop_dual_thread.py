@@ -440,6 +440,8 @@ timer_0.percent_overhead = options.overhead
 timer_0.start_cycles = options.headstart_slack
 timer_0.start_cycles_clock = MainCPUClass.clock
 timer_0.use_start_ticks = True
+# Start running timer at initialization
+timer_0.init_intask = True
 # We can also set a probabilistic range
 if options.probabilistic_drop:
   timer_0.seed = random.randint(-2**30,2**30)
@@ -484,6 +486,8 @@ timer_1.percent_overhead = options.overhead
 timer_1.start_cycles = options.headstart_slack
 timer_1.start_cycles_clock = MainCPUClass.clock
 timer_1.use_start_ticks = True
+# Start running timer at initialization
+timer_1.init_intask = True
 # We can also set a probabilistic range
 if options.probabilistic_drop:
   timer_1.seed = random.randint(-2**30,2**30)

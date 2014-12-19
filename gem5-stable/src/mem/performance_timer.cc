@@ -90,6 +90,9 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
     // Random dropping
     drop_probability = p->drop_probability;
     srand(p->seed);
+
+    // Start timer at initialization rather than at TIMER_START_TASK call
+    init_intask = p->init_intask;
     
 }
 
@@ -129,6 +132,15 @@ PerformanceTimer::init()
     last_non_stall_time = 0;
     last_slack_allocated = 0;
     slack_multiplier_last_update = curTick();
+
+    // Start running timer at initialization rather than waiting for
+    // TIMER_START_TASK call. This is needed for multi-threaded applications
+    // that don't call TIMER_START_TASK in newly spawned tasks.
+    if (init_intask) {
+      stored_tp.intask = true;
+      stored_tp.taskStart = curTick();
+      stored_tp.slack = start_ticks;
+    }
 }
 
 void
@@ -513,7 +525,7 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
                   DPRINTF(SlackTimer, "Written to timer: decrement start = %d, slack = %d\n", stored_tp.decrementStart, effectiveSlack());
               }
             } else if (write_addr == TIMER_END_DECREMENT) {
-              if (stored_tp.intask){
+              if (stored_tp.intask && stored_tp.isDecrement){
                   stored_tp.isDecrement = false;
                   Tick delay_time = curTick() - stored_tp.decrementStart;
                   long long int slack = stored_tp.slack - delay_time;

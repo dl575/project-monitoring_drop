@@ -60,4 +60,5 @@ class PerformanceTimer(AbstractMemory):
     persistence_dir = Param.String("", "directory to read/write persistence data")
 
     drop_probability = Param.Float(0, "Randomly drop events with this probability")
+    init_intask = Param.Bool(False, "Start timer at initialization rather than at TIMER_START_TASK call");
     seed = Param.Int(0, "Seed for random values in probabilistic dropping")
