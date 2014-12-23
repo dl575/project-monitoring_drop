@@ -221,12 +221,7 @@ inline long long int
 PerformanceTimer::slackAllocated()
 {
     // slack for importance-based slack tracking
-    //long long int slack = last_slack_allocated + (curTick() - slack_multiplier_last_update) * effectiveOverhead() - slack_subtrahend;
-    if (important_policy != ALWAYS) {
-      panic("slackAllocated needs to be updated to support importance policies. Specifically, does not work with fastforwarding\n");
-    } 
-    // slack is percentage of time since last update
-    long long int slack = (curTick() - slack_multiplier_last_update) * povr;
+    long long int slack = last_slack_allocated + (curTick() - slack_multiplier_last_update) * effectiveOverhead() - slack_subtrahend;
     slack_allocated = slack;
     // update taskExecutionTime
     taskExecutionTime();
@@ -618,6 +613,22 @@ PerformanceTimer::resume()
     stored_tp.taskStart = curTick();
   } else {
     panic("No headstart slack specified\n");
+  }
+  // Re-initialize slack variables
+  last_slack_allocated = 0;
+  slack_subtrahend = 0;
+  // initialize slack multiplier
+  if (read_slack_multiplier) {
+      ifstream is;
+      // read instruction priority table
+      is.open(persistence_dir + "/slack_multiplier", std::ios::in);
+      if (is.good()) {
+          is >> slack_multiplier;
+      } else
+          warn("slack multiplier file could not be opened.\n");
+      is.close();
+  } else {
+    slack_multiplier = 1.0;
   }
   // reset slack subtrahend last update timestamp
   slack_subtrahend_last_update = curTick();
