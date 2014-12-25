@@ -93,6 +93,8 @@ PerformanceTimer::PerformanceTimer(const Params* p) :
 
     // Start timer at initialization rather than at TIMER_START_TASK call
     init_intask = p->init_intask;
+    // Always have max slack
+    infinite_slack = p->infinite_slack;
     
 }
 
@@ -340,10 +342,15 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             //memcpy(pkt->getPtr<uint8_t>(), &stored_tp, pkt->getSize());
             */
             
+            // Determine amount of slack currently
             long long int slack;
             long long int impt_slack = 0;
             bool always_not_drop = false;
-            if (stored_tp.intask && !stored_tp.isDecrement){
+            if (infinite_slack) {
+                slack = LLONG_MAX;
+                impt_slack = LLONG_MAX;
+                always_not_drop = true;
+            } else if (stored_tp.intask && !stored_tp.isDecrement){
                 if (increment_important_only) {
                     updateSlackSubtrahend();
                     if (slack_multiplier_interval != 0 && (curTick() - slack_multiplier_last_update > clock * slack_multiplier_interval))
@@ -385,8 +392,10 @@ PerformanceTimer::doFunctionalAccess(PacketPtr pkt)
             uint64_t send_data = 0;
             double send_data_double = 0.0;
             
+            // Return current amount of slack
             if (read_addr == TIMER_READ_SLACK){
                 send_data = slack;
+            // Return drop decision (0 = drop, 1 = not drop)
             } else if (read_addr == TIMER_READ_DROP) {
                 long long int adjusted_slack = slack - drop_thres;
                 // if using unified important slack policy, drop unimportant instruction if slack is below threshold
@@ -634,6 +643,9 @@ PerformanceTimer::resume()
   slack_subtrahend_last_update = curTick();
   // reset slack multiplier last update timestamp
   slack_multiplier_last_update = curTick();
+
+  // Disable infinite slack for simulation after fast-forwarding
+  infinite_slack = false;
 
   DPRINTF(SlackTimer, "Resuming simulation, slack = %d\n", effectiveSlack());
 

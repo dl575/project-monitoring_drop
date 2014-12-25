@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
     // Grab new packet from FIFO. Block until packet available.
     // Read opcode of packet.
     opcode = READ_POP_FIFO_OPCODE_CUSTOM;
+    /*
     if ((++num_processed % 1000)==0) {
       for (i = 0; i < OPCODE_NUM; ++i){
         counts[i] = 0;
@@ -44,6 +45,7 @@ int main(int argc, char *argv[]) {
         FC_SET_ARRAY_VALUE(FC_VALID_NULL);
       }
     }
+    */
     counts[opcode]++;
     
   } // while(1)

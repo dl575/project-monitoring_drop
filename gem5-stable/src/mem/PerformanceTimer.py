@@ -61,4 +61,5 @@ class PerformanceTimer(AbstractMemory):
 
     drop_probability = Param.Float(0, "Randomly drop events with this probability")
     init_intask = Param.Bool(False, "Start timer at initialization rather than at TIMER_START_TASK call");
+    infinite_slack = Param.Bool(False, "Timer acts as if it has an infinite/max amount of slack (Note: set to false on resume after fast-forward)")
     seed = Param.Int(0, "Seed for random values in probabilistic dropping")
