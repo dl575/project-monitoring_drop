@@ -490,14 +490,8 @@ def run_ff(options, root, testsys, cpu_list):
             testsys.switch_cpus[i].flagcache_port = testsys.flagcache.port
     # Enable monitoring after switch
     testsys.switch_cpus[0].monitoring_enabled = True
-    # Disable invalidation/filtering before switch
-    testsys.cpu[2].timer_enabled = False
-    testsys.cpu[2].invalidation_file = ""
-    testsys.cpu[2].filter_file_1 = ""
-    testsys.cpu[2].filter_file_2 = ""
-    testsys.cpu[2].filter_ptr_file = ""
-    # Disable source dropping/propagation before switch
-    testsys.cpu[2].source_dropping = False
+    # Infinite slack (don't drop due to slack) during fast-forward period 
+    testsys.timer.infinite_slack = True
 
     switch_cpu_list = [(testsys.cpu[i], switch_cpus[i]) for i in xrange(np)]
 

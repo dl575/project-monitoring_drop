@@ -141,6 +141,8 @@ class PerformanceTimer : public AbstractMemory
     float drop_probability;
     // Start timer at initialization rather than at TIMER_START_TASK call
     bool init_intask;
+    // Act as if there is always infinite slack
+    bool infinite_slack;
     // number of ticks in a clock cycle
     Tick clock;
 
