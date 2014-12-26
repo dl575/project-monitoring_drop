@@ -1328,7 +1328,9 @@ DropSimpleCPU::inOptimalDroppingTable()
 {
     monitoringPacket mpkt;
     readFromFifo(FIFO_PACKET, (uint8_t *)&mpkt, sizeof(mpkt), ArmISA::TLB::AllowUnaligned);
-    return odt.lookup(mpkt.instAddr);
+    // settag operations are considered optimal dropping points
+    bool retval = mpkt.settag ? true : odt.lookup(mpkt.instAddr);
+    return retval;
 }
 
 void
