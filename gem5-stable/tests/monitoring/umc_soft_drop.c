@@ -259,26 +259,30 @@ int main(int argc, char *argv[]) {
         switch (size) {
           case 4:
             writeWordTag(addr, 0xf);
-            FC_SET_ADDR(addr >> 2);
-            FC_SET_CACHE_VALUE(2);
+            //FC_SET_ADDR(addr >> 2);
+            //FC_SET_CACHE_VALUE(2);
             break;
           case 2:
             writeHalfWordTag(addr, 0x3);
+            /*
             if (addr & 0x3 == 0) {
               if (readWordTag(addr) == 0xf) {
                 FC_SET_ADDR(addr >> 2);
                 FC_SET_CACHE_VALUE(2);
               }
             }
+            */
             break;
           case 1:
             writeByteTag(addr, 0x1);
+            /*
             if (addr & 0x3 == 0) {
               if (readWordTag(addr) == 0xf) {
                 FC_SET_ADDR(addr >> 2);
                 FC_SET_CACHE_VALUE(2);
               }
             }
+            */
             break;
           }
         break;
