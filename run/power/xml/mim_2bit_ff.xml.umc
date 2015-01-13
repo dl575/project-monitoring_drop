@@ -17,7 +17,7 @@
     <param name="homogeneous_ccs" value="1"/><!--cache coherece hardware -->
     <param name="homogeneous_NoCs" value="1"/>
     <param name="core_tech_node" value="40"/><!-- nm -->
-    <param name="target_core_clockrate" value="{1e-6/config.system.cpu0.clock*1e12}"/><!--MHz -->
+    <param name="target_core_clockrate" value="{1e-6/config.system.switch_cpus0.clock*1e12}"/><!--MHz -->
     <param name="temperature" value="300"/> <!-- Kelvin -->
     <param name="number_cache_levels" value="1"/>
     <param name="interconnect_projection_type" value="0"/><!--0: agressive wire technology; 1: conservative wire technology -->
@@ -28,16 +28,16 @@
     <param name="virtual_address_width" value="32"/>
     <param name="physical_address_width" value="32"/>
     <param name="virtual_memory_page_size" value="4096"/>
-    <stat name="runtime_sec" value="{stats.system.cpu0.numCycles * config.system.cpu0.clock / 1e12}"/>
-    <stat name="total_cycles" value="{stats.system.cpu0.numCycles}"/>
-    <stat name="idle_cycles" value="{stats.system.cpu0.num_idle_cycles}"/>
-    <stat name="busy_cycles"  value="{stats.system.cpu0.numCycles - stats.system.cpu0.num_idle_cycles}"/>
+    <stat name="runtime_sec" value="{stats.system.switch_cpus0.numCycles * config.system.switch_cpus0.clock / 1e12}"/>
+    <stat name="total_cycles" value="{stats.system.switch_cpus0.numCycles}"/>
+    <stat name="idle_cycles" value="{stats.system.switch_cpus0.num_idle_cycles}"/>
+    <stat name="busy_cycles"  value="{stats.system.switch_cpus0.numCycles - stats.system.switch_cpus0.num_idle_cycles}"/>
     <!--This page size(B) is complete different from the page size in Main memo secction. this page size is the size of 
 	     virtual memory from OS/Archi perspective; the page size in Main memo secction is the actuall physical line in a DRAM bank  -->
     <!-- *********************** cores ******************* -->
     <component id="system.core0" name="core0">
       <!-- Core property -->
-      <param name="clock_rate" value="{1e-6/config.system.cpu0.clock*1e12}"/>
+      <param name="clock_rate" value="{1e-6/config.system.switch_cpus0.clock*1e12}"/>
       <!-- for cores with unknow timing, set to 0 to force off the opt flag -->
       <param name="opt_local" value="1"/>
       <param name="instruction_length" value="32"/>
@@ -121,9 +121,9 @@
       -->
       <!-- general stats, defines simulation periods;require total, idle, and busy cycles for senity check  -->
       <!-- please note: if target architecture is X86, then all the instrucions refer to (fused) micro-ops -->
-      <stat name="total_instructions" value="{stats.system.cpu0.committedInsts}"/>
-      <stat name="int_instructions" value="{stats.system.cpu0.num_int_insts}"/>
-      <stat name="fp_instructions" value="{stats.system.cpu0.num_fp_insts}"/>
+      <stat name="total_instructions" value="{stats.system.switch_cpus0.committedInsts}"/>
+      <stat name="int_instructions" value="{stats.system.switch_cpus0.num_int_insts}"/>
+      <stat name="fp_instructions" value="{stats.system.switch_cpus0.num_fp_insts}"/>
 
       <!-- dlo: no branch predictor
       <stat name="branch_instructions" value="stats.system.cpu0.branchPred.condPredicted"/>
@@ -138,9 +138,9 @@
       <stat name="pipeline_duty_cycle" value="1"/><!-- lteq 1, runtime_ipc/peak_ipc; averaged for all cores if homogenous -->
       <!-- the following cycle stats are used for heterogeneouse cores only, 
 	   please ignore them if homogeneouse cores -->
-      <stat name="total_cycles" value="{stats.system.cpu0.numCycles}"/>
-      <stat name="idle_cycles" value="{stats.system.cpu0.num_idle_cycles}"/>
-      <stat name="busy_cycles" value="{stats.system.cpu0.numCycles - stats.system.cpu0.num_idle_cycles}"/>
+      <stat name="total_cycles" value="{stats.system.switch_cpus0.numCycles}"/>
+      <stat name="idle_cycles" value="{stats.system.switch_cpus0.num_idle_cycles}"/>
+      <stat name="busy_cycles" value="{stats.system.switch_cpus0.numCycles - stats.system.switch_cpus0.num_idle_cycles}"/>
       <!-- instruction buffer stats -->
       <!-- ROB stats, both RS and Phy based OoOs have ROB
 	   performance simulator should capture the difference on accesses,
@@ -161,18 +161,18 @@
       <!-- ctorng: OOO <stat name="fp_inst_window_writes" value="stats.system.cpu0.iq.fp_inst_queue_writes"/>-->
       <!-- ctorng: OOO <stat name="fp_inst_window_wakeup_accesses" value="stats.system.cpu0.iq.fp_inst_queue_wakeup_accesses"/>-->
       <!--  RF accesses -->
-      <stat name="int_regfile_reads" value="{stats.system.cpu0.num_int_register_reads}"/>
-      <stat name="float_regfile_reads" value="{stats.system.cpu0.num_fp_register_reads}"/>
-      <stat name="int_regfile_writes" value="{stats.system.cpu0.num_int_register_writes}"/>
-      <stat name="float_regfile_writes" value="{stats.system.cpu0.num_fp_register_writes}"/>
+      <stat name="int_regfile_reads" value="{stats.system.switch_cpus0.num_int_register_reads}"/>
+      <stat name="float_regfile_reads" value="{stats.system.switch_cpus0.num_fp_register_reads}"/>
+      <stat name="int_regfile_writes" value="{stats.system.switch_cpus0.num_int_register_writes}"/>
+      <stat name="float_regfile_writes" value="{stats.system.switch_cpus0.num_fp_register_writes}"/>
       <!-- accesses to the working reg -->
       <!-- ctorng: OOO <stat name="function_calls" value="stats.system.cpu0.commit.function_calls"/>-->
       <stat name="context_switches" value="{stats.system.cpu0.workload.num_syscalls}"/>
       <!-- Number of Windowes switches (number of function calls and returns)-->
       <!-- Alu stats by default, the processor has one FPU that includes the divider and 
 	   multiplier. The fpu accesses should include accesses to multiplier and divider  -->
-      <stat name="ialu_accesses" value="{stats.system.cpu0.num_int_alu_accesses}"/>			
-      <stat name="fpu_accesses" value="{stats.system.cpu0.num_fp_alu_accesses}"/>
+      <stat name="ialu_accesses" value="{stats.system.switch_cpus0.num_int_alu_accesses}"/>			
+      <stat name="fpu_accesses" value="{stats.system.switch_cpus0.num_fp_alu_accesses}"/>
       <!--<stat name="mul_accesses" value="stats.system.cpu0.mult_div_unit.multiplies"/>-->
       <!-- ctorng: OOO <stat name="cdb_alu_accesses" value="0"/>-->
       <!-- ctorng: OOO <stat name="cdb_mul_accesses" value="0"/>-->
@@ -222,10 +222,10 @@
 	     -->
       </component>
       <component id="system.core0.itlb" name="itlb">
-        <param name="number_entries" value="{config.system.cpu0.itb.size}"/>
-	<stat name="total_accesses" value="{stats.system.cpu0.itb.accesses}"/>
-	<stat name="total_hits" value="{stats.system.cpu0.itb.hits}"/>
-	<stat name="total_misses" value="{stats.system.cpu0.itb.misses}"/>
+        <param name="number_entries" value="{config.system.switch_cpus0.itb.size}"/>
+	<stat name="total_accesses" value="{stats.system.switch_cpus0.itb.accesses}"/>
+	<stat name="total_hits" value="{stats.system.switch_cpus0.itb.hits}"/>
+	<stat name="total_misses" value="{stats.system.switch_cpus0.itb.misses}"/>
 	<stat name="conflicts" value="0"/><!-- TODO -->
 	<!-- there is no write requests to itlb although writes happen to itlb after miss, 
 	     which is actually a replacement -->
@@ -245,10 +245,10 @@
 	<stat name="conflicts" value="{stats.system.cpu0.icache.replacements}"/>				
       </component>
       <component id="system.core0.dtlb" name="dtlb">
-	<param name="number_entries" value="{config.system.cpu0.dtb.size}"/><!--dual threads-->
-	<stat name="total_accesses" value="{stats.system.cpu0.dtb.accesses}"/>
-	<stat name="total_hits" value="{stats.system.cpu0.dtb.hits}"/>
-	<stat name="total_misses" value="{stats.system.cpu0.dtb.misses}"/>
+	<param name="number_entries" value="{config.system.switch_cpus0.dtb.size}"/><!--dual threads-->
+	<stat name="total_accesses" value="{stats.system.switch_cpus0.dtb.accesses}"/>
+	<stat name="total_hits" value="{stats.system.switch_cpus0.dtb.hits}"/>
+	<stat name="total_misses" value="{stats.system.switch_cpus0.dtb.misses}"/>
 	<stat name="conflicts" value="0"/><!-- TODO -->
       </component>
       <component id="system.core0.dcache" name="dcache">
@@ -283,34 +283,34 @@
         <param name="store_buffer_size" value="0"/>
         <param name="load_buffer_size" value="0"/>	
         <!-- RegFU -->
-        <stat name="regfile_reads" value="{stats.system.cpu2.flagRegLoads}"/> 
-        <stat name="regfile_writes" value="{stats.system.cpu2.flagRegStores}"/> 
+        <stat name="regfile_reads" value="{stats.system.switch_cpus2.flagRegLoads}"/> 
+        <stat name="regfile_writes" value="{stats.system.switch_cpus2.flagRegStores}"/> 
         <!-- LoadStoreU -->
-        <stat name="LSU_duty_cycle" value="{stats.system.cpu2.dcache.overall_accesses::total/stats.system.cpu0.numCycles}"/>
-        <stat name="read_accesses" value="{stats.system.cpu2.flagCacheLoads}"/>
-        <stat name="write_accesses" value="{stats.system.cpu2.flagCacheStores}"/>
+        <stat name="LSU_duty_cycle" value="{stats.system.cpu2.dcache.overall_accesses::total/stats.system.switch_cpus0.numCycles}"/>
+        <stat name="read_accesses" value="{stats.system.switch_cpus2.flagCacheLoads}"/>
+        <stat name="write_accesses" value="{stats.system.switch_cpus2.flagCacheStores}"/>
         <stat name="read_misses" value="{stats.system.cpu2.dcache.ReadReq_misses::total}"/>
         <stat name="write_misses" value="{stats.system.cpu2.dcache.overall_misses::total - stats.system.cpu2.dcache.ReadReq_misses::total}"/>
-        <stat name="loads" value="{stats.system.cpu2.flagCacheLoads}"/>
-        <stat name="stores" value="{stats.system.cpu2.flagCacheStores}"/>
+        <stat name="loads" value="{stats.system.switch_cpus2.flagCacheLoads}"/>
+        <stat name="stores" value="{stats.system.switch_cpus2.flagCacheStores}"/>
         <!-- ConfigTable -->
-        <stat name="CT_duty_cycle" value="{stats.system.cpu2.drops::total / stats.system.cpu0.numCycles}"/>	
-        <stat name="CT_reads" value="{stats.system.cpu2.drops::total}"/>	
+        <stat name="CT_duty_cycle" value="{stats.system.switch_cpus2.drops::total / stats.system.switch_cpus0.numCycles}"/>	
+        <stat name="CT_reads" value="{stats.system.switch_cpus2.drops::total}"/>	
         <!-- FunctionalUnit -->
-        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU) / stats.system.cpu0.numCycles}"/>	
-        <stat name="alu_accesses" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU)}"/>			
+        <stat name="ALU_duty_cycle" value="{(stats.system.switch_cpus2.drops::total + stats.system.switch_cpus2.filtered::LOAD + stats.system.switch_cpus2.filtered::STORE + stats.system.switch_cpus2.filtered::INTALU) / stats.system.switch_cpus0.numCycles}"/>	
+        <stat name="alu_accesses" value="{(stats.system.switch_cpus2.drops::total + stats.system.switch_cpus2.filtered::LOAD + stats.system.switch_cpus2.filtered::STORE + stats.system.switch_cpus2.filtered::INTALU)}"/>			
       </component>
 
  			<component id="system.core0.metadata" name="MFM">
         <!-- FunctionalUnit -->
-        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.filtered::total + stats.system.cpu2.drop::total + stats.system.cpu2.non_drops::total) / stats.system.cpu0.numCycles}"/>	
-        <stat name="alu_accesses" value="{stats.system.cpu2.filtered::INTALU}"/>			
+        <stat name="ALU_duty_cycle" value="{(stats.system.switch_cpus2.filtered::total + stats.system.switch_cpus2.drop::total + stats.system.switch_cpus2.non_drops::total) / stats.system.switch_cpus0.numCycles}"/>	
+        <stat name="alu_accesses" value="{stats.system.switch_cpus2.filtered::INTALU}"/>			
         <!-- ConfigTable -->
-				<stat name="CT_duty_cycle" value="{(stats.system.cpu2.filtered::total + stats.system.cpu2.drop::total + stats.system.cpu2.non_drops::total) / stats.system.cpu0.numCycles}"/>	
-				<stat name="CT_reads" value="{stats.system.cpu2.filtered::total + stats.system.cpu2.drops::total + stats.system.cpu2.non_drops::total}"/>	
+				<stat name="CT_duty_cycle" value="{(stats.system.switch_cpus2.filtered::total + stats.system.switch_cpus2.drop::total + stats.system.switch_cpus2.non_drops::total) / stats.system.switch_cpus0.numCycles}"/>	
+				<stat name="CT_reads" value="{stats.system.switch_cpus2.filtered::total + stats.system.switch_cpus2.drops::total + stats.system.switch_cpus2.non_drops::total}"/>	
         <!-- FilterLookupTable -->
-        <stat name="FLT_duty_cycle" value="{stats.system.cpu2.filtered::total / stats.system.cpu0.numCycles}"/>	
-        <stat name="FLT_reads" value="{stats.system.cpu2.filtered::total}"/>	
+        <stat name="FLT_duty_cycle" value="{stats.system.switch_cpus2.filtered::total / stats.system.switch_cpus0.numCycles}"/>	
+        <stat name="FLT_reads" value="{stats.system.switch_cpus2.filtered::total}"/>	
       </component>
 
       <param name="number_of_BTB" value="0"/>

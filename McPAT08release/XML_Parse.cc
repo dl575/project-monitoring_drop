@@ -583,6 +583,7 @@ void ParseXML::parse(char* filepath)
 							itmp=xNode4.nChildNode("param");
 							for(k=0; k<itmp; k++)
 							{ //get all items of param in system.core0.MIM--MIM
+                if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"MIM_exist")==0) {sys.core[i].MIM.MIM_exist=atoi(xNode4.getChildNode("param",k).getAttribute("value"));continue;}
                 if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"MIT_exist")==0) {sys.core[i].MIM.MIT_exist=atoi(xNode4.getChildNode("param",k).getAttribute("value"));continue;}
                 if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"MIC_exist")==0) {sys.core[i].MIM.MIC_exist=atoi(xNode4.getChildNode("param",k).getAttribute("value"));continue;}
                 if (strcmp(xNode4.getChildNode("param",k).getAttribute("name"),"flag_width")==0) {sys.core[i].MIM.flag_width=atoi(xNode4.getChildNode("param",k).getAttribute("value"));continue;}

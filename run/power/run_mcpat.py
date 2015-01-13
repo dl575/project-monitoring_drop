@@ -53,6 +53,13 @@ if not norun:
     # Create config xml using simulation data
     if "umc" in stat_file:
       os.system("./m5-mcpat.pl %s %s %s.umc > output.xml" % (stat_file, config_file, xml_file))
+    elif "ls" in stat_file:
+      # No fast-forwarding for these
+      if "raytrace" in stat_file or "fmm" in stat_file:
+        os.system("./m5-mcpat.pl %s %s %s.xml.ls > output.xml" % (stat_file, config_file, xml_file[:-7]))
+      # Assume fast-forwarding for these
+      else:
+        os.system("./m5-mcpat.pl %s %s %s.xml.ls > output.xml" % (stat_file, config_file, xml_file[:-4]))
     else:
       os.system("./m5-mcpat.pl %s %s %s > output.xml" % (stat_file, config_file, xml_file))
     # Run McPat until successful
@@ -68,7 +75,9 @@ if not norun:
 ######################################################################
 # Parse core results
 ######################################################################
-mcpat_files = get_files(base_dir, "mcpat.txt")
+mcpat_files = []
+for mon in monitors:
+  mcpat_files += get_files(base_dir, "mcpat.txt", include=[mon] + include)
 core_stats = get_mcpat_stats(mcpat_files, "Core:")
 # Get MIM results and subtract them out
 mim_stats = get_mcpat_stats(mcpat_files, "Metadata Invalidation Module:")
@@ -91,7 +100,7 @@ print "  Runtime: ", corem[2]
 for mon in monitors:
   print mon
   # Get MIM and Backtrack Hardware McPat results
-  mcpat_files = get_files(base_dir, "mcpat.txt", include=[mon])
+  mcpat_files = get_files(base_dir, "mcpat.txt", include=[mon] + include)
   mim_stats = get_mcpat_stats(mcpat_files, "Metadata Invalidation Module:")
   backtrack_stats = get_mcpat_stats(mcpat_files, "Backtrack Hardware:")
   assert(len(mim_stats) == len(backtrack_stats))

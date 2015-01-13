@@ -275,7 +275,7 @@
         <!-- Flag bit width -->
         <param name="flag_width" value="2"/>
         <!--			<param name="mcache_config" value="2048,64,2,1,10,10,32,1"/>-->
-  <param name="mcache_config" value="{join(',',config.system.cpu2.dcache.size,config.system.cpu2.dcache.block_size,config.system.cpu2.dcache.assoc,1,1,config.system.cpu2.dcache.hit_latency,32,1)}"/>
+  <param name="mcache_config" value="{join(',',config.system.cpu5.dcache.size,config.system.cpu5.dcache.block_size,config.system.cpu5.dcache.assoc,1,1,config.system.cpu5.dcache.hit_latency,32,1)}"/>
 				<!-- the parameters are capacity,block_width, associativity, bank, throughput w.r.t. core clock, latency w.r.t. core clock,output_width, cache policy,  -->
 				<!-- cache_policy;//0 no write or write-though with non-write allocate;1 write-back with write-allocate -->
 				<param name="buffer_sizes" value="4, 4, 4, 4"/>
@@ -283,34 +283,34 @@
         <param name="store_buffer_size" value="0"/>
         <param name="load_buffer_size" value="0"/>	
         <!-- RegFU -->
-        <stat name="regfile_reads" value="{stats.system.cpu2.flagRegLoads}"/> 
-        <stat name="regfile_writes" value="{stats.system.cpu2.flagRegStores}"/> 
+        <stat name="regfile_reads" value="{stats.system.cpu5.flagRegLoads}"/> 
+        <stat name="regfile_writes" value="{stats.system.cpu5.flagRegStores}"/> 
         <!-- LoadStoreU -->
-        <stat name="LSU_duty_cycle" value="{stats.system.cpu2.dcache.overall_accesses::total/stats.system.cpu0.numCycles}"/>
-        <stat name="read_accesses" value="{stats.system.cpu2.flagCacheLoads}"/>
-        <stat name="write_accesses" value="{stats.system.cpu2.flagCacheStores}"/>
-        <stat name="read_misses" value="{stats.system.cpu2.dcache.ReadReq_misses::total}"/>
-        <stat name="write_misses" value="{stats.system.cpu2.dcache.overall_misses::total - stats.system.cpu2.dcache.ReadReq_misses::total}"/>
-        <stat name="loads" value="{stats.system.cpu2.flagCacheLoads}"/>
-        <stat name="stores" value="{stats.system.cpu2.flagCacheStores}"/>
+        <stat name="LSU_duty_cycle" value="{stats.system.cpu5.dcache.overall_accesses::total/stats.system.cpu0.numCycles}"/>
+        <stat name="read_accesses" value="{stats.system.cpu5.flagCacheLoads}"/>
+        <stat name="write_accesses" value="{stats.system.cpu5.flagCacheStores}"/>
+        <stat name="read_misses" value="{stats.system.cpu5.dcache.ReadReq_misses::total}"/>
+        <stat name="write_misses" value="{stats.system.cpu5.dcache.overall_misses::total - stats.system.cpu5.dcache.ReadReq_misses::total}"/>
+        <stat name="loads" value="{stats.system.cpu5.flagCacheLoads}"/>
+        <stat name="stores" value="{stats.system.cpu5.flagCacheStores}"/>
         <!-- ConfigTable -->
-        <stat name="CT_duty_cycle" value="{stats.system.cpu2.drops::total / stats.system.cpu0.numCycles}"/>	
-        <stat name="CT_reads" value="{stats.system.cpu2.drops::total}"/>	
+        <stat name="CT_duty_cycle" value="{stats.system.cpu5.drops::total / stats.system.cpu0.numCycles}"/>	
+        <stat name="CT_reads" value="{stats.system.cpu5.drops::total}"/>	
         <!-- FunctionalUnit -->
-        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU) / stats.system.cpu0.numCycles}"/>	
-        <stat name="alu_accesses" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU)}"/>			
+        <stat name="ALU_duty_cycle" value="{(stats.system.cpu5.drops::total + stats.system.cpu5.filtered::LOAD + stats.system.cpu5.filtered::STORE + stats.system.cpu5.filtered::INTALU) / stats.system.cpu0.numCycles}"/>	
+        <stat name="alu_accesses" value="{(stats.system.cpu5.drops::total + stats.system.cpu5.filtered::LOAD + stats.system.cpu5.filtered::STORE + stats.system.cpu5.filtered::INTALU)}"/>			
       </component>
 
  			<component id="system.core0.metadata" name="MFM">
         <!-- FunctionalUnit -->
-        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.filtered::total + stats.system.cpu2.drop::total + stats.system.cpu2.non_drops::total) / stats.system.cpu0.numCycles}"/>	
-        <stat name="alu_accesses" value="{stats.system.cpu2.filtered::INTALU}"/>			
+        <stat name="ALU_duty_cycle" value="{(stats.system.cpu5.filtered::total + stats.system.cpu5.drop::total + stats.system.cpu5.non_drops::total) / stats.system.cpu0.numCycles}"/>	
+        <stat name="alu_accesses" value="{stats.system.cpu5.filtered::INTALU}"/>			
         <!-- ConfigTable -->
-				<stat name="CT_duty_cycle" value="{(stats.system.cpu2.filtered::total + stats.system.cpu2.drop::total + stats.system.cpu2.non_drops::total) / stats.system.cpu0.numCycles}"/>	
-				<stat name="CT_reads" value="{stats.system.cpu2.filtered::total + stats.system.cpu2.drops::total + stats.system.cpu2.non_drops::total}"/>	
+				<stat name="CT_duty_cycle" value="{(stats.system.cpu5.filtered::total + stats.system.cpu5.drop::total + stats.system.cpu5.non_drops::total) / stats.system.cpu0.numCycles}"/>	
+				<stat name="CT_reads" value="{stats.system.cpu5.filtered::total + stats.system.cpu5.drops::total + stats.system.cpu5.non_drops::total}"/>	
         <!-- FilterLookupTable -->
-        <stat name="FLT_duty_cycle" value="{stats.system.cpu2.filtered::total / stats.system.cpu0.numCycles}"/>	
-        <stat name="FLT_reads" value="{stats.system.cpu2.filtered::total}"/>	
+        <stat name="FLT_duty_cycle" value="{stats.system.cpu5.filtered::total / stats.system.cpu0.numCycles}"/>	
+        <stat name="FLT_reads" value="{stats.system.cpu5.filtered::total}"/>	
       </component>
 
       <param name="number_of_BTB" value="0"/>

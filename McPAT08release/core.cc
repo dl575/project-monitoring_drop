@@ -1772,6 +1772,11 @@ Core::Core(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_)
   exu          = new EXECU     (XML, ithCore, &interface_ip,lsu->lsq_height, coredynp);
 
   mim = new MIM(XML, ithCore, &interface_ip, coredynp);
+  if (XML->sys.core[ithCore].MIM.MIM_exist) {
+    mim->exist = true;
+  } else {
+    mim->exist = false;
+  }
 
   undiffCore   = new UndiffCore(XML, ithCore, &interface_ip,coredynp);
   if (coredynp.core_ty==OOO)

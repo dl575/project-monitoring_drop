@@ -17,7 +17,7 @@
     <param name="homogeneous_ccs" value="1"/><!--cache coherece hardware -->
     <param name="homogeneous_NoCs" value="1"/>
     <param name="core_tech_node" value="40"/><!-- nm -->
-    <param name="target_core_clockrate" value="{1e-6/config.system.cpu0.clock*1e12}"/><!--MHz -->
+    <param name="target_core_clockrate" value="{1e-6/config.system.cpu1.clock*1e12}"/><!--MHz -->
     <param name="temperature" value="300"/> <!-- Kelvin -->
     <param name="number_cache_levels" value="1"/>
     <param name="interconnect_projection_type" value="0"/><!--0: agressive wire technology; 1: conservative wire technology -->
@@ -28,16 +28,16 @@
     <param name="virtual_address_width" value="32"/>
     <param name="physical_address_width" value="32"/>
     <param name="virtual_memory_page_size" value="4096"/>
-    <stat name="runtime_sec" value="{stats.system.cpu0.numCycles * config.system.cpu0.clock / 1e12}"/>
-    <stat name="total_cycles" value="{stats.system.cpu0.numCycles}"/>
-    <stat name="idle_cycles" value="{stats.system.cpu0.num_idle_cycles}"/>
-    <stat name="busy_cycles"  value="{stats.system.cpu0.numCycles - stats.system.cpu0.num_idle_cycles}"/>
+    <stat name="runtime_sec" value="{stats.system.cpu1.numCycles * config.system.cpu1.clock / 1e12}"/>
+    <stat name="total_cycles" value="{stats.system.cpu1.numCycles}"/>
+    <stat name="idle_cycles" value="{stats.system.cpu1.num_idle_cycles}"/>
+    <stat name="busy_cycles"  value="{stats.system.cpu1.numCycles - stats.system.cpu1.num_idle_cycles}"/>
     <!--This page size(B) is complete different from the page size in Main memo secction. this page size is the size of 
 	     virtual memory from OS/Archi perspective; the page size in Main memo secction is the actuall physical line in a DRAM bank  -->
     <!-- *********************** cores ******************* -->
     <component id="system.core0" name="core0">
       <!-- Core property -->
-      <param name="clock_rate" value="{1e-6/config.system.cpu0.clock*1e12}"/>
+      <param name="clock_rate" value="{1e-6/config.system.cpu1.clock*1e12}"/>
       <!-- for cores with unknow timing, set to 0 to force off the opt flag -->
       <param name="opt_local" value="1"/>
       <param name="instruction_length" value="32"/>
@@ -83,18 +83,18 @@
       <param name="decoded_stream_buffer_size" value="1"/>
       <param name="instruction_window_scheme" value="0"/><!-- 0 PHYREG based, 1 RSBASED-->
       <!-- McPAT support 2 types of OoO cores, RS based and physical reg based-->
-      <!-- ctorng: OOO <param name="instruction_window_size" value="config.system.cpu0.numIQEntries"/>-->
-      <!-- ctorng: OOO <param name="fp_instruction_window_size" value="config.system.cpu0.numIQEntries"/>-->
+      <!-- ctorng: OOO <param name="instruction_window_size" value="config.system.cpu1.numIQEntries"/>-->
+      <!-- ctorng: OOO <param name="fp_instruction_window_size" value="config.system.cpu1.numIQEntries"/>-->
       <!-- the instruction issue Q as in Alpha 21264; The RS as in Intel P6 -->
-      <!-- ctorng: OOO <param name="ROB_size" value="config.system.cpu0.numROBEntries"/>-->
+      <!-- ctorng: OOO <param name="ROB_size" value="config.system.cpu1.numROBEntries"/>-->
       <!-- each in-flight instruction has an entry in ROB -->
       <!-- registers -->
       <!-- ctorng: OOO <param name="archi_Regs_IRF_size" value="32"/>		-->
       <!-- ctorng: OOO <param name="archi_Regs_FRF_size" value="32"/>-->
       <!--  if OoO processor, phy_reg number is needed for renaming logic, 
 	    renaming logic is for both integer and floating point insts.  -->
-      <!-- ctorng: OOO <param name="phy_Regs_IRF_size" value="config.system.cpu0.numPhysIntRegs"/>-->
-      <!-- ctorng: OOO <param name="phy_Regs_FRF_size" value="config.system.cpu0.numPhysFloatRegs"/>-->
+      <!-- ctorng: OOO <param name="phy_Regs_IRF_size" value="config.system.cpu1.numPhysIntRegs"/>-->
+      <!-- ctorng: OOO <param name="phy_Regs_FRF_size" value="config.system.cpu1.numPhysFloatRegs"/>-->
       <!-- rename logic -->
       <!-- ctorng: OOO <param name="rename_scheme" value="1"/>-->
       <!-- can be RAM based(0) or CAM based(1) rename scheme 
@@ -108,72 +108,72 @@
       <!-- In OoO cores, loads and stores can be issued whether inorder(Pentium Pro) or (OoO)out-of-order(Alpha),
 	   They will always try to exeute out-of-order though. -->
       <param name="LSU_order" value="inorder"/>
-      <!-- ctorng: OOO <param name="store_buffer_size" value="config.system.cpu0.SQEntries"/>-->
+      <!-- ctorng: OOO <param name="store_buffer_size" value="config.system.cpu1.SQEntries"/>-->
       <!-- By default, in-order cores do not have load buffers -->
-      <!-- ctorng: OOO <param name="load_buffer_size" value="config.system.cpu0.LQEntries"/>	-->
+      <!-- ctorng: OOO <param name="load_buffer_size" value="config.system.cpu1.LQEntries"/>	-->
       <!-- number of ports refer to sustainable concurrent memory accesses --> 
       <param name="memory_ports" value="1"/>	
       <!-- max_allowed_in_flight_memo_instructions determins the # of ports of load and store buffer
 	   as well as the ports of Dcache which is connected to LSU -->	
       <!-- dual-pumped Dcache can be used to save the extra read/write ports -->
       <!-- dlo: no branch predictor
-      <param name="RAS_size" value="config.system.cpu0.branchPred.RASSize"/>						
+      <param name="RAS_size" value="config.system.cpu1.branchPred.RASSize"/>						
       -->
       <!-- general stats, defines simulation periods;require total, idle, and busy cycles for senity check  -->
       <!-- please note: if target architecture is X86, then all the instrucions refer to (fused) micro-ops -->
-      <stat name="total_instructions" value="{stats.system.cpu0.committedInsts}"/>
-      <stat name="int_instructions" value="{stats.system.cpu0.num_int_insts}"/>
-      <stat name="fp_instructions" value="{stats.system.cpu0.num_fp_insts}"/>
+      <stat name="total_instructions" value="{stats.system.cpu1.committedInsts}"/>
+      <stat name="int_instructions" value="{stats.system.cpu1.num_int_insts}"/>
+      <stat name="fp_instructions" value="{stats.system.cpu1.num_fp_insts}"/>
 
       <!-- dlo: no branch predictor
-      <stat name="branch_instructions" value="stats.system.cpu0.branchPred.condPredicted"/>
-      <stat name="branch_mispredictions" value="stats.system.cpu0.branchPred.condIncorrect"/>
-      <stat name="load_instructions" value="stats.system.cpu0.num_load_insts"/>
-      <stat name="store_instructions" value="stats.system.cpu0.num_store_insts"/>
-      <stat name="committed_instructions" value="stats.system.cpu0.committedInsts"/>
-      <stat name="committed_int_instructions" value="stats.system.cpu0.num_int_insts"/>
-      <stat name="committed_fp_instructions" value="stats.system.cpu0.num_fp_insts"/>
+      <stat name="branch_instructions" value="stats.system.cpu1.branchPred.condPredicted"/>
+      <stat name="branch_mispredictions" value="stats.system.cpu1.branchPred.condIncorrect"/>
+      <stat name="load_instructions" value="stats.system.cpu1.num_load_insts"/>
+      <stat name="store_instructions" value="stats.system.cpu1.num_store_insts"/>
+      <stat name="committed_instructions" value="stats.system.cpu1.committedInsts"/>
+      <stat name="committed_int_instructions" value="stats.system.cpu1.num_int_insts"/>
+      <stat name="committed_fp_instructions" value="stats.system.cpu1.num_fp_insts"/>
       -->
 
       <stat name="pipeline_duty_cycle" value="1"/><!-- lteq 1, runtime_ipc/peak_ipc; averaged for all cores if homogenous -->
       <!-- the following cycle stats are used for heterogeneouse cores only, 
 	   please ignore them if homogeneouse cores -->
-      <stat name="total_cycles" value="{stats.system.cpu0.numCycles}"/>
-      <stat name="idle_cycles" value="{stats.system.cpu0.num_idle_cycles}"/>
-      <stat name="busy_cycles" value="{stats.system.cpu0.numCycles - stats.system.cpu0.num_idle_cycles}"/>
+      <stat name="total_cycles" value="{stats.system.cpu1.numCycles}"/>
+      <stat name="idle_cycles" value="{stats.system.cpu1.num_idle_cycles}"/>
+      <stat name="busy_cycles" value="{stats.system.cpu1.numCycles - stats.system.cpu1.num_idle_cycles}"/>
       <!-- instruction buffer stats -->
       <!-- ROB stats, both RS and Phy based OoOs have ROB
 	   performance simulator should capture the difference on accesses,
 	   otherwise, McPAT has to guess based on number of commited instructions. -->
-     <!-- ctorng: OOO <stat name="ROB_reads" value="stats.system.cpu0.rob.rob_reads"/>-->
-     <!-- ctorng: OOO <stat name="ROB_writes" value="stats.system.cpu0.rob.rob_writes"/>-->
+     <!-- ctorng: OOO <stat name="ROB_reads" value="stats.system.cpu1.rob.rob_reads"/>-->
+     <!-- ctorng: OOO <stat name="ROB_writes" value="stats.system.cpu1.rob.rob_writes"/>-->
       <!-- RAT accesses -->
-      <!-- ctorng: OOO <stat name="rename_reads" value="stats.system.cpu0.rename.int_rename_lookups"/> <!-lookup in renaming logic ->-->
-      <!-- ctorng: OOO <stat name="rename_writes" value="int(stats.system.cpu0.rename.RenamedOperands * stats.system.cpu0.rename.int_rename_lookups / stats.system.cpu0.rename.RenameLookups)"/><!-update dest regs. renaming logic ->-->
-      <!-- ctorng: OOO <stat name="fp_rename_reads" value="stats.system.cpu0.rename.fp_rename_lookups"/>-->
-      <!-- ctorng: OOO <stat name="fp_rename_writes" value="int(stats.system.cpu0.rename.RenamedOperands * stats.system.cpu0.rename.fp_rename_lookups / stats.system.cpu0.rename.RenameLookups)"/>-->
+      <!-- ctorng: OOO <stat name="rename_reads" value="stats.system.cpu1.rename.int_rename_lookups"/> <!-lookup in renaming logic ->-->
+      <!-- ctorng: OOO <stat name="rename_writes" value="int(stats.system.cpu1.rename.RenamedOperands * stats.system.cpu1.rename.int_rename_lookups / stats.system.cpu1.rename.RenameLookups)"/><!-update dest regs. renaming logic ->-->
+      <!-- ctorng: OOO <stat name="fp_rename_reads" value="stats.system.cpu1.rename.fp_rename_lookups"/>-->
+      <!-- ctorng: OOO <stat name="fp_rename_writes" value="int(stats.system.cpu1.rename.RenamedOperands * stats.system.cpu1.rename.fp_rename_lookups / stats.system.cpu1.rename.RenameLookups)"/>-->
       <!-- decode and rename stage use this, should be total ic - nop -->
       <!-- Inst window stats -->
-      <!-- ctorng: OOO <stat name="inst_window_reads" value="stats.system.cpu0.iq.int_inst_queue_reads"/>-->
-      <!-- ctorng: OOO <stat name="inst_window_writes" value="stats.system.cpu0.iq.int_inst_queue_writes"/>-->
-      <!-- ctorng: OOO <stat name="inst_window_wakeup_accesses" value="stats.system.cpu0.iq.int_inst_queue_wakeup_accesses"/>-->
-      <!-- ctorng: OOO <stat name="fp_inst_window_reads" value="stats.system.cpu0.iq.fp_inst_queue_reads"/>-->
-      <!-- ctorng: OOO <stat name="fp_inst_window_writes" value="stats.system.cpu0.iq.fp_inst_queue_writes"/>-->
-      <!-- ctorng: OOO <stat name="fp_inst_window_wakeup_accesses" value="stats.system.cpu0.iq.fp_inst_queue_wakeup_accesses"/>-->
+      <!-- ctorng: OOO <stat name="inst_window_reads" value="stats.system.cpu1.iq.int_inst_queue_reads"/>-->
+      <!-- ctorng: OOO <stat name="inst_window_writes" value="stats.system.cpu1.iq.int_inst_queue_writes"/>-->
+      <!-- ctorng: OOO <stat name="inst_window_wakeup_accesses" value="stats.system.cpu1.iq.int_inst_queue_wakeup_accesses"/>-->
+      <!-- ctorng: OOO <stat name="fp_inst_window_reads" value="stats.system.cpu1.iq.fp_inst_queue_reads"/>-->
+      <!-- ctorng: OOO <stat name="fp_inst_window_writes" value="stats.system.cpu1.iq.fp_inst_queue_writes"/>-->
+      <!-- ctorng: OOO <stat name="fp_inst_window_wakeup_accesses" value="stats.system.cpu1.iq.fp_inst_queue_wakeup_accesses"/>-->
       <!--  RF accesses -->
-      <stat name="int_regfile_reads" value="{stats.system.cpu0.num_int_register_reads}"/>
-      <stat name="float_regfile_reads" value="{stats.system.cpu0.num_fp_register_reads}"/>
-      <stat name="int_regfile_writes" value="{stats.system.cpu0.num_int_register_writes}"/>
-      <stat name="float_regfile_writes" value="{stats.system.cpu0.num_fp_register_writes}"/>
+      <stat name="int_regfile_reads" value="{stats.system.cpu1.num_int_register_reads}"/>
+      <stat name="float_regfile_reads" value="{stats.system.cpu1.num_fp_register_reads}"/>
+      <stat name="int_regfile_writes" value="{stats.system.cpu1.num_int_register_writes}"/>
+      <stat name="float_regfile_writes" value="{stats.system.cpu1.num_fp_register_writes}"/>
       <!-- accesses to the working reg -->
-      <!-- ctorng: OOO <stat name="function_calls" value="stats.system.cpu0.commit.function_calls"/>-->
-      <stat name="context_switches" value="{stats.system.cpu0.workload.num_syscalls}"/>
+      <!-- ctorng: OOO <stat name="function_calls" value="stats.system.cpu1.commit.function_calls"/>-->
+      <stat name="context_switches" value="{stats.system.cpu1.workload.num_syscalls}"/>
       <!-- Number of Windowes switches (number of function calls and returns)-->
       <!-- Alu stats by default, the processor has one FPU that includes the divider and 
 	   multiplier. The fpu accesses should include accesses to multiplier and divider  -->
-      <stat name="ialu_accesses" value="{stats.system.cpu0.num_int_alu_accesses}"/>			
-      <stat name="fpu_accesses" value="{stats.system.cpu0.num_fp_alu_accesses}"/>
-      <!--<stat name="mul_accesses" value="stats.system.cpu0.mult_div_unit.multiplies"/>-->
+      <stat name="ialu_accesses" value="{stats.system.cpu1.num_int_alu_accesses}"/>			
+      <stat name="fpu_accesses" value="{stats.system.cpu1.num_fp_alu_accesses}"/>
+      <!--<stat name="mul_accesses" value="stats.system.cpu1.mult_div_unit.multiplies"/>-->
       <!-- ctorng: OOO <stat name="cdb_alu_accesses" value="0"/>-->
       <!-- ctorng: OOO <stat name="cdb_mul_accesses" value="0"/>-->
       <!-- ctorng: OOO <stat name="cdb_fpu_accesses" value="0"/>-->
@@ -205,13 +205,13 @@
 
 
   <!-- dlo rawr: no branch predictor
-  <param name="local_predictor_size" value="config.system.cpu0.branchPred.localPredictorSize"/> <!-- ctorng rawr: NOT_SURE_IF_THIS_IS_RIGHT -->
+  <param name="local_predictor_size" value="config.system.cpu1.branchPred.localPredictorSize"/> <!-- ctorng rawr: NOT_SURE_IF_THIS_IS_RIGHT -->
   <!--
-  <param name="local_predictor_entries" value="config.system.cpu0.branchPred.localHistoryTableSize"/>
-	<param name="global_predictor_entries" value="config.system.cpu0.branchPred.globalPredictorSize"/>
-	<param name="global_predictor_bits" value="config.system.cpu0.branchPred.globalCtrBits"/>
-  <param name="chooser_predictor_entries" value="config.system.cpu0.branchPred.choicePredictorSize"/>
-  <param name="chooser_predictor_bits" value="config.system.cpu0.branchPred.choiceCtrBits"/>
+  <param name="local_predictor_entries" value="config.system.cpu1.branchPred.localHistoryTableSize"/>
+	<param name="global_predictor_entries" value="config.system.cpu1.branchPred.globalPredictorSize"/>
+	<param name="global_predictor_bits" value="config.system.cpu1.branchPred.globalCtrBits"/>
+  <param name="chooser_predictor_entries" value="config.system.cpu1.branchPred.choicePredictorSize"/>
+  <param name="chooser_predictor_bits" value="config.system.cpu1.branchPred.choiceCtrBits"/>
   -->
 
 
@@ -222,10 +222,10 @@
 	     -->
       </component>
       <component id="system.core0.itlb" name="itlb">
-        <param name="number_entries" value="{config.system.cpu0.itb.size}"/>
-	<stat name="total_accesses" value="{stats.system.cpu0.itb.accesses}"/>
-	<stat name="total_hits" value="{stats.system.cpu0.itb.hits}"/>
-	<stat name="total_misses" value="{stats.system.cpu0.itb.misses}"/>
+        <param name="number_entries" value="{config.system.cpu1.itb.size}"/>
+	<stat name="total_accesses" value="{stats.system.cpu1.itb.accesses}"/>
+	<stat name="total_hits" value="{stats.system.cpu1.itb.hits}"/>
+	<stat name="total_misses" value="{stats.system.cpu1.itb.misses}"/>
 	<stat name="conflicts" value="0"/><!-- TODO -->
 	<!-- there is no write requests to itlb although writes happen to itlb after miss, 
 	     which is actually a replacement -->
@@ -233,41 +233,41 @@
       <component id="system.core0.icache" name="icache">
 	<!-- there is no write requests to itlb although writes happen to it after miss, 
 	     which is actually a replacement -->
-	<param name="icache_config" value="{join(',',config.system.cpu0.icache.size,config.system.cpu0.icache.block_size,config.system.cpu0.icache.assoc,1,1,config.system.cpu0.icache.hit_latency,32,0)}"/>
+	<param name="icache_config" value="{join(',',config.system.cpu1.icache.size,config.system.cpu1.icache.block_size,config.system.cpu1.icache.assoc,1,1,config.system.cpu1.icache.hit_latency,32,0)}"/>
 	<!-- the parameters are capacity,block_width, associativity, bank, throughput w.r.t. core clock, latency w.r.t. core clock,output_width, cache policy,  -->
   <!-- ctorng: the "output_width" is not used anywhere in mcpat -->
 	<!-- cache_policy;//0 no write or write-though with non-write allocate;1 write-back with write-allocate -->
-	<param name="buffer_sizes" value="{join(',',config.system.cpu0.icache.mshrs,config.system.cpu0.icache.mshrs,config.system.cpu0.icache.mshrs,config.system.cpu0.icache.mshrs)}"/> <!-- ctorng rawr: NOT_SURE_IF_THIS_IS_RIGHT -->
+	<param name="buffer_sizes" value="{join(',',config.system.cpu1.icache.mshrs,config.system.cpu1.icache.mshrs,config.system.cpu1.icache.mshrs,config.system.cpu1.icache.mshrs)}"/> <!-- ctorng rawr: NOT_SURE_IF_THIS_IS_RIGHT -->
 	<!-- cache controller buffer sizes: miss_buffer_size(MSHR),fill_buffer_size,prefetch_buffer_size,wb_buffer_size--> 
-  <stat name="read_accesses" value="{stats.system.cpu0.icache.ReadReq_accesses::total}"/>
-	<stat name="read_hits" value="{stats.system.cpu0.icache.ReadReq_hits::total}"/>
-	<stat name="read_misses" value="{stats.system.cpu0.icache.ReadReq_misses::total}"/>
-	<stat name="conflicts" value="{stats.system.cpu0.icache.replacements}"/>				
+  <stat name="read_accesses" value="{stats.system.cpu1.icache.ReadReq_accesses::total}"/>
+	<stat name="read_hits" value="{stats.system.cpu1.icache.ReadReq_hits::total}"/>
+	<stat name="read_misses" value="{stats.system.cpu1.icache.ReadReq_misses::total}"/>
+	<stat name="conflicts" value="{stats.system.cpu1.icache.replacements}"/>				
       </component>
       <component id="system.core0.dtlb" name="dtlb">
-	<param name="number_entries" value="{config.system.cpu0.dtb.size}"/><!--dual threads-->
-	<stat name="total_accesses" value="{stats.system.cpu0.dtb.accesses}"/>
-	<stat name="total_hits" value="{stats.system.cpu0.dtb.hits}"/>
-	<stat name="total_misses" value="{stats.system.cpu0.dtb.misses}"/>
+	<param name="number_entries" value="{config.system.cpu1.dtb.size}"/><!--dual threads-->
+	<stat name="total_accesses" value="{stats.system.cpu1.dtb.accesses}"/>
+	<stat name="total_hits" value="{stats.system.cpu1.dtb.hits}"/>
+	<stat name="total_misses" value="{stats.system.cpu1.dtb.misses}"/>
 	<stat name="conflicts" value="0"/><!-- TODO -->
       </component>
       <component id="system.core0.dcache" name="dcache">
 	<!-- all the buffer related are optional -->
-  <param name="dcache_config" value="{join(',',config.system.cpu0.dcache.size,config.system.cpu0.dcache.block_size,config.system.cpu0.dcache.assoc,1,1,config.system.cpu0.dcache.hit_latency,32,1)}"/>
-	<param name="buffer_sizes" value="{join(',',config.system.cpu0.dcache.mshrs,config.system.cpu0.dcache.mshrs,config.system.cpu0.dcache.mshrs,config.system.cpu0.dcache.mshrs)}"/> <!-- ctorng rawr: NOT_SURE_IF_THIS_IS_RIGHT -->
+  <param name="dcache_config" value="{join(',',config.system.cpu1.dcache.size,config.system.cpu1.dcache.block_size,config.system.cpu1.dcache.assoc,1,1,config.system.cpu1.dcache.hit_latency,32,1)}"/>
+	<param name="buffer_sizes" value="{join(',',config.system.cpu1.dcache.mshrs,config.system.cpu1.dcache.mshrs,config.system.cpu1.dcache.mshrs,config.system.cpu1.dcache.mshrs)}"/> <!-- ctorng rawr: NOT_SURE_IF_THIS_IS_RIGHT -->
 	<!-- cache controller buffer sizes: miss_buffer_size(MSHR),fill_buffer_size,prefetch_buffer_size,wb_buffer_size-->	
-	<stat name="read_accesses" value="{stats.system.cpu0.dcache.ReadReq_accesses::total}"/>
-	<stat name="write_accesses" value="{stats.system.cpu0.dcache.WriteReq_accesses::total}"/>
-	<stat name="read_hits" value="{stats.system.cpu0.dcache.ReadReq_hits::total}"/>
-	<stat name="write_hits" value="{stats.system.cpu0.dcache.WriteReq_hits::total}"/>
-	<stat name="read_misses" value="{stats.system.cpu0.dcache.ReadReq_misses::total}"/>
-	<stat name="write_misses" value="{stats.system.cpu0.dcache.WriteReq_misses::total}"/>
-	<stat name="conflicts" value="{stats.system.cpu0.dcache.replacements}"/>	
+	<stat name="read_accesses" value="{stats.system.cpu1.dcache.ReadReq_accesses::total}"/>
+	<stat name="write_accesses" value="{stats.system.cpu1.dcache.WriteReq_accesses::total}"/>
+	<stat name="read_hits" value="{stats.system.cpu1.dcache.ReadReq_hits::total}"/>
+	<stat name="write_hits" value="{stats.system.cpu1.dcache.WriteReq_hits::total}"/>
+	<stat name="read_misses" value="{stats.system.cpu1.dcache.ReadReq_misses::total}"/>
+	<stat name="write_misses" value="{stats.system.cpu1.dcache.WriteReq_misses::total}"/>
+	<stat name="conflicts" value="{stats.system.cpu1.dcache.replacements}"/>	
       </component>
 
  			<component id="system.core0.metadata" name="MIM">
         <!-- Whether MIM exists/enabled -->
-        <param name="MIM_exist" value="1"/>
+        <param name="MIM_exist" value="0"/>
         <!-- Whether MIT (non-memory backed invalidation table) exists -->
         <param name="MIT_exist" value="0"/>
         <!-- Whether MIC (memory backed invalidation cache) exists -->
@@ -286,7 +286,7 @@
         <stat name="regfile_reads" value="{stats.system.cpu2.flagRegLoads}"/> 
         <stat name="regfile_writes" value="{stats.system.cpu2.flagRegStores}"/> 
         <!-- LoadStoreU -->
-        <stat name="LSU_duty_cycle" value="{stats.system.cpu2.dcache.overall_accesses::total/stats.system.cpu0.numCycles}"/>
+        <stat name="LSU_duty_cycle" value="{stats.system.cpu2.dcache.overall_accesses::total/stats.system.cpu1.numCycles}"/>
         <stat name="read_accesses" value="{stats.system.cpu2.flagCacheLoads}"/>
         <stat name="write_accesses" value="{stats.system.cpu2.flagCacheStores}"/>
         <stat name="read_misses" value="{stats.system.cpu2.dcache.ReadReq_misses::total}"/>
@@ -294,22 +294,22 @@
         <stat name="loads" value="{stats.system.cpu2.flagCacheLoads}"/>
         <stat name="stores" value="{stats.system.cpu2.flagCacheStores}"/>
         <!-- ConfigTable -->
-        <stat name="CT_duty_cycle" value="{stats.system.cpu2.drops::total / stats.system.cpu0.numCycles}"/>	
+        <stat name="CT_duty_cycle" value="{stats.system.cpu2.drops::total / stats.system.cpu1.numCycles}"/>	
         <stat name="CT_reads" value="{stats.system.cpu2.drops::total}"/>	
         <!-- FunctionalUnit -->
-        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU) / stats.system.cpu0.numCycles}"/>	
+        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU) / stats.system.cpu1.numCycles}"/>	
         <stat name="alu_accesses" value="{(stats.system.cpu2.drops::total + stats.system.cpu2.filtered::LOAD + stats.system.cpu2.filtered::STORE + stats.system.cpu2.filtered::INTALU)}"/>			
       </component>
 
  			<component id="system.core0.metadata" name="MFM">
         <!-- FunctionalUnit -->
-        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.filtered::total + stats.system.cpu2.drop::total + stats.system.cpu2.non_drops::total) / stats.system.cpu0.numCycles}"/>	
+        <stat name="ALU_duty_cycle" value="{(stats.system.cpu2.filtered::total + stats.system.cpu2.drop::total + stats.system.cpu2.non_drops::total) / stats.system.cpu1.numCycles}"/>	
         <stat name="alu_accesses" value="{stats.system.cpu2.filtered::INTALU}"/>			
         <!-- ConfigTable -->
-				<stat name="CT_duty_cycle" value="{(stats.system.cpu2.filtered::total + stats.system.cpu2.drop::total + stats.system.cpu2.non_drops::total) / stats.system.cpu0.numCycles}"/>	
+				<stat name="CT_duty_cycle" value="{(stats.system.cpu2.filtered::total + stats.system.cpu2.drop::total + stats.system.cpu2.non_drops::total) / stats.system.cpu1.numCycles}"/>	
 				<stat name="CT_reads" value="{stats.system.cpu2.filtered::total + stats.system.cpu2.drops::total + stats.system.cpu2.non_drops::total}"/>	
         <!-- FilterLookupTable -->
-        <stat name="FLT_duty_cycle" value="{stats.system.cpu2.filtered::total / stats.system.cpu0.numCycles}"/>	
+        <stat name="FLT_duty_cycle" value="{stats.system.cpu2.filtered::total / stats.system.cpu1.numCycles}"/>	
         <stat name="FLT_reads" value="{stats.system.cpu2.filtered::total}"/>	
       </component>
 
@@ -319,8 +319,8 @@
   <param name="BTB_config" value="6144,4,2,1, 1,3"/> <!--48Kbits --> <!-- ctorng rawr: NOT_SURE_IF_THIS_IS_RIGHT -->
 	<!-- the parameters are capacity,block_width,associativity,bank, throughput w.r.t. core clock, latency w.r.t. core clock,-->
   <!-- dlo: no branch predictor
-  <stat name="read_accesses" value="stats.system.cpu0.branchPred.BTBLookups"/> <!--See IFU code for guideline -->
-  <!--<stat name="write_accesses" value="stats.system.cpu0.branchPred.BTBLookups - stats.system.cpu0.branchPred.BTBHits"/> <!-- ctorng rawr: NOT_SURE_IF_THIS_IS_RIGHT -->
+  <stat name="read_accesses" value="stats.system.cpu1.branchPred.BTBLookups"/> <!--See IFU code for guideline -->
+  <!--<stat name="write_accesses" value="stats.system.cpu1.branchPred.BTBLookups - stats.system.cpu1.branchPred.BTBHits"/> <!-- ctorng rawr: NOT_SURE_IF_THIS_IS_RIGHT -->
       </component>
     </component>
     <!-- This block is ignored because number_of_L1Directories = 0 but it still has to be here-->
@@ -458,9 +458,9 @@
       <!--number of Dram_chips_per_rank= 72/output_width_of_DRAM_chip-->
       <param name="page_size_of_DRAM_chip" value="8"/> <!-- 8 or 16 -->
       <param name="burstlength_of_DRAM_chip" value="8"/>
-      <stat name="memory_accesses" value="{stats.system.cpu0.icache.overall_misses::total + stats.system.cpu0.dcache.overall_misses::total}"/>
-      <stat name="memory_reads" value="{stats.system.cpu0.icache.ReadReq_misses::total + stats.system.cpu0.dcache.ReadReq_misses::total}"/>
-      <stat name="memory_writes" value="{stats.system.cpu0.icache.WriteReq_misses::total + stats.system.cpu0.dcache.WriteReq_misses::total}"/>
+      <stat name="memory_accesses" value="{stats.system.cpu1.icache.overall_misses::total + stats.system.cpu1.dcache.overall_misses::total}"/>
+      <stat name="memory_reads" value="{stats.system.cpu1.icache.ReadReq_misses::total + stats.system.cpu1.dcache.ReadReq_misses::total}"/>
+      <stat name="memory_writes" value="{stats.system.cpu1.icache.WriteReq_misses::total + stats.system.cpu1.dcache.WriteReq_misses::total}"/>
     </component>
     <component id="system.mc" name="mc">
       <!-- Memeory controllers are for DDR(2,3...) DIMMs -->
@@ -481,9 +481,9 @@
       <param name="databus_width" value="32"/>
       <param name="addressbus_width" value="32"/>
       <!-- McPAT will add the control bus width to the addressbus width automatically -->
-      <stat name="memory_accesses" value="{stats.system.cpu0.icache.overall_misses::total + stats.system.cpu0.dcache.overall_misses::total}"/>
-      <stat name="memory_reads" value="{stats.system.cpu0.icache.ReadReq_misses::total + stats.system.cpu0.dcache.ReadReq_misses::total}"/>
-      <stat name="memory_writes" value="{stats.system.cpu0.icache.WriteReq_misses::total + stats.system.cpu0.dcache.WriteReq_misses::total}"/>
+      <stat name="memory_accesses" value="{stats.system.cpu1.icache.overall_misses::total + stats.system.cpu1.dcache.overall_misses::total}"/>
+      <stat name="memory_reads" value="{stats.system.cpu1.icache.ReadReq_misses::total + stats.system.cpu1.dcache.ReadReq_misses::total}"/>
+      <stat name="memory_writes" value="{stats.system.cpu1.icache.WriteReq_misses::total + stats.system.cpu1.dcache.WriteReq_misses::total}"/>
       <!-- McPAT does not track individual mc, instead, it takes the total accesses and calculate 
 	   the average power per MC or per channel. This is sufficent for most application. 
 	   Further trackdown can be easily added in later versions. -->  			

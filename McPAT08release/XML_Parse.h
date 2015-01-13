@@ -151,6 +151,8 @@ typedef struct{
 	double replacements;
 } BTB_systemcore;
 typedef struct {
+  // Whether MIM module is enabled
+  int MIM_exist;
   // Non-memory backed invalidation table
   int MIT_exist;
   // Memory backed invalidation cache

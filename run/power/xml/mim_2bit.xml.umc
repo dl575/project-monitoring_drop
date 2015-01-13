@@ -266,6 +266,8 @@
       </component>
 
  			<component id="system.core0.metadata" name="MIM">
+        <!-- Whether MIM exists/enabled -->
+        <param name="MIM_exist" value="1"/>
         <!-- Whether MIT (non-memory backed invalidation table) exists -->
         <param name="MIT_exist" value="0"/>
         <!-- Whether MIC (memory backed invalidation cache) exists -->

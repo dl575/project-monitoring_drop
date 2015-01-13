@@ -38,11 +38,6 @@ Functions:
 
 import os
 
-# Data directory
-base_dir = "/Users/dlo/research/monitoring_drop/data/runs/"
-# Constants
-monitors = ["umc", "hb", "dift"]
-
 """
 Return the arithmetic mean of the passed list.
 """
