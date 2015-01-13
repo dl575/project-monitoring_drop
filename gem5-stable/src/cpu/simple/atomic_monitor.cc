@@ -1320,9 +1320,11 @@ AtomicSimpleMonitor::UMCExecute()
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte++) {
             writeBitTag(pbyte, 1);
         }
+        /*
         for (Addr pbyte = mp.memAddr; pbyte <= mp.memEnd; pbyte += 4) {
             setDropMemTag(pbyte, 1, 0);
         }
+        */
     // Set tag instruction
     } else if (mp.opcode_custom == OPCODE_CUSTOM_DATA) {
         DPRINTF(Monitor, "UMC: Initializing mem[0x%x:0x%x]\n", mp.memAddr, mp.memEnd);

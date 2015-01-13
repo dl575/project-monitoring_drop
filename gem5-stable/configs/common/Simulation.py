@@ -492,6 +492,8 @@ def run_ff(options, root, testsys, cpu_list):
     testsys.switch_cpus[0].monitoring_enabled = True
     # Infinite slack (don't drop due to slack) during fast-forward period 
     testsys.timer.infinite_slack = True
+    # Do not track static coverage during fast-forward
+    testsys.cpu[2].print_static_coverage = False
 
     switch_cpu_list = [(testsys.cpu[i], switch_cpus[i]) for i in xrange(np)]
 
