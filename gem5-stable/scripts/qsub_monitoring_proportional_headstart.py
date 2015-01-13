@@ -14,6 +14,7 @@ import json
 import multiprocessing
 import itertools
 import shutil
+import optparse
 
 qsub_script_header = '''#!/usr/local/bin/tcsh
 
@@ -26,7 +27,15 @@ setenv GEM5 /ufs/cluster/dlo/monitoring_drop2/gem5-stable/
 if ( ! -d games ) then
   ln -s /ufs/cluster/tchen/spec2006/benchspec/CPU2006/445.gobmk/data/all/input/games
 endif
-    
+if ( ! -e teapot.env ) then
+  ln -s /ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/raytrace/run/teapot.env
+endif
+if ( ! -e teapot.geo ) then
+  ln -s /ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/raytrace/run/teapot.geo
+endif
+if ( ! -e random.in ) then
+  ln -s /ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/water_nsquared/run/random.in
+endif
 
 # start gem5
 '''
@@ -48,6 +57,8 @@ class ClusterDispatcher:
     '''Run tasks in task queue'''
     # build task queues
     self.queues = []
+    if self.n_jobs == 0:
+      self.n_jobs = len(self.tasks)
     for j in range(self.n_jobs):
       self.queues.append([self.tasks[i] for i in range(j, len(self.tasks), self.n_jobs)])
     # build scripts
@@ -85,6 +96,7 @@ def run(config, n_jobs):
                                 config['monitor'], config['benchmarks'], config['overhead'], 
                                 config['invalidation_cache_size']):
     prod_list = list(prod)
+
     out_dir = os.path.join(base_dir, current_time, prod[0], 'core_%s' % (prod[1]),
                            'mon_%s' % (prod[2]), prod[3], prod[6], prod[4], 'overhead_%.4f' % (prod[5]))
     if not config['dryrun']:
@@ -92,6 +104,8 @@ def run(config, n_jobs):
     gem5_args = ' --remote-gdb-port=0 --outdir=%s ' % (out_dir)
     sim_config = config['config']
     config_args = ' --cpu-type=%s --clock=%s --monfreq=%s --monitor=%s' % (prod[0], prod[1], prod[2], prod[3])
+
+
     # Scale headstart based on slack and cycles of simulation
     config_args += ' --headstart_slack=%d' % (prod[5]*config['max_insts']/10)
     if config['static_coverage']:
@@ -111,16 +125,22 @@ def run(config, n_jobs):
     if config['invalidation']:
       config_args += ' --invalidation --invalidation_cache_size=%s --overhead=%.4f' % (prod[6], prod[5])
     if config['source_dropping']:
-      #config_args += ' --source_dropping --source_propagation'
       config_args += ' --source_dropping'
-    if prod[3] == 'none':
+    if prod[3] == 'none' or prod[3] == 'ls':
       suffix = ''
-    elif prod[3] == 'multidift' or prod[3] == "insttype":
+    elif prod[3] == 'multidift' or prod[3] == 'insttype':
       suffix = '-dift'
     else:
       suffix = '-' + prod[3]
     config_args += ' --cmd=%s%s' % (config['benchmarks'][prod[4]]['executable'], suffix) 
     config_args += ' --options=\'%s\'' % (config['benchmarks'][prod[4]]['options'])
+    if config['benchmarks'][prod[4]].get('input'):
+        config_args += ' --input=\'%s\'' % (config['benchmarks'][prod[4]]['input'])
+    if config.get('optimal_dropping'):
+      # optimal dropping
+      config_args += ' --read_optimal_dropping --optimal_dropping --ipt_tagless --important_policy=always'
+      # optimal dropping points directory
+      config_args += ' --backtrack_table_dir=/ufs/cluster/tchen/run/drop_m5out/odp/atomic/core_0.5GHz/mon_0.5GHz/%s/1kB/%s/overhead_0.1000' % (prod[3], prod[4])
     run_cmd = gem5_exe + gem5_args + sim_config + config_args
     tasks.append(run_cmd)
   if not config['dryrun']:
