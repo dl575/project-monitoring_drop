@@ -1,0 +1,41 @@
+{
+    "gem5" : "gem5.fast",
+	"config" : "/ufs/cluster/dlo/monitoring_drop2/gem5-stable/configs/example/soft_drop_dual_thread.py",
+	"cpu_type" : ["atomic"],
+	"monitor" : ["ls", "none"],
+	"cache_enabled" : true,
+	"max_insts" : 2000000000,
+  "ff_insts" :  0,
+	"core_frequency" : ["2.45GHz"],
+	"monitor_frequency" : ["2.45GHz"],
+  "invalidation" : true,
+  "invalidation_cache_size" : ["1kB"], 
+  "emulate_filtering" : false,
+  "source_dropping" : false,
+  "overhead" : [0.5],
+  "static_coverage" : false,
+  "cache_sizes" : {
+      "0.5GHz" : "16kB",
+      "1GHz"   : "32kB",
+      "2GHz"   : "64kB",
+      "2.45GHz" : "32kB"
+  },
+  "l1_assoc" : 4,
+  "l2_cache_enabled" : true,
+  "l2_size": "2MB",
+  "l2_assoc" : 8,
+	"jobs" : 0,
+	"dryrun" : false,
+  "benchmarks" : {
+    "fmm" : {
+      "executable" : "/ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/fmm/inst/amd64-linux.gcc/bin/fmm",
+      "options" : "2",
+      "input" : "/ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/fmm/run/input_2"
+    },
+    "raytrace" : {
+      "executable" : "/ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/raytrace/inst/amd64-linux.gcc/bin/raytrace",
+      "options" : "-s -p2 teapot.env",
+      "input" : ""
+    }
+	}
+}

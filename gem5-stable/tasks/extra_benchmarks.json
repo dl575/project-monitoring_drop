@@ -1,0 +1,15 @@
+    "471.omnetpp": {
+      "executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/471.omnetpp/exe/omnetpp_base.gcc47",
+      "options" : "-f /ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/471.omnetpp/data/ref/input/omnetpp.ini"
+    },
+
+    "473.astar": {
+      "executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/473.astar/exe/astar_base.gcc47",
+      "options" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/473.astar/data/ref/input/BigLakes2048.cfg"
+    },
+
+    "483.xalan": {
+      "executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/483.xalancbmk/exe/Xalan_base.gcc47",
+      "options" : "-v /ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/483.xalancbmk/data/ref/input/t5.xml /ufs/cluster/dlo/spec-monitroing/benchspec/CPU2006/483.xalancbmk/data/ref/input/xalanc.xsl"
+    }
+

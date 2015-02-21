@@ -1,0 +1,75 @@
+{
+  "gem5" : "gem5.fast",
+	"config" : "/ufs/cluster/dlo/monitoring_drop2/gem5-stable/configs/example/flex_core.py",
+	"cpu_type" : ["atomic"],
+	"monitor" : ["umc"],
+	"cache_enabled" : true,
+	"max_insts" : 2000000000,
+  "ff_insts" :  1000000000,
+	"core_frequency" : ["0.5GHz"],
+	"monitor_frequency" : ["0.25GHz"],
+  "invalidation" : true,
+  "invalidation_cache_size" : ["1kB"],
+  "emulate_filtering" : false,
+  "source_dropping" : false,
+  "overhead" : [0.01, 0.05, 0.1, 0.3, 0.5, 0.7, 1.0, 99],
+  "static_coverage": false,
+  "cache_sizes" : {
+      "0.5GHz" : "16kB",
+      "1GHz"   : "32kB",
+      "2GHz"   : "64kB",
+      "2.45GHz" : "32kB"
+  },
+  "l1_assoc" : 4,
+  "l2_cache_enabled" : true,
+  "l2_size": "2MB",
+  "l2_assoc" : 8,
+	"jobs" : 0,
+	"dryrun" : false,
+	"benchmarks" : {
+    "400.perlbench" : {
+      "executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/400.perlbench/exe/perlbench_base.gcc47",
+      "options" : "-I /ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/400.perlbench/data/all/input/lib /ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/400.perlbench/data/ref/input/checkspam.pl 2500 5 25 11 150 1 1 1 1"
+    },
+
+		"401.bzip2": {
+			"executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/401.bzip2/exe/bzip2_base.gcc47",
+			"options" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/401.bzip2/data/ref/input/text.html 1"
+		},
+
+    "429.mcf": {
+			"executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/429.mcf/exe/mcf_base.gcc47",
+			"options" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/429.mcf/data/test/input/inp.in"
+		},
+
+    "403.gcc": {
+			"executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/403.gcc/exe/gcc_base.gcc47",
+			"options" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/403.gcc/data/ref/input/166.in -o 166.s"
+		},
+
+    "445.gobmk": {
+			"executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/445.gobmk/exe/gobmk_base.gcc47",
+			"options" : "--quiet --mode gtp --gtp-input /ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/445.gobmk/data/ref/input/13x13.tst"
+		},
+
+    "456.hmmer": {
+			"executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/456.hmmer/exe/hmmer_base.gcc47",
+			"options" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/456.hmmer/data/ref/input/nph3.hmm /ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/456.hmmer/data/ref/input/swiss41"
+		},
+
+    "458.sjeng" : {
+      "executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/458.sjeng/exe/sjeng_base.gcc47",
+      "options" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/458.sjeng/data/ref/input/ref.txt"
+    },
+
+    "462.libquantum": {
+			"executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/462.libquantum/exe/libquantum_base.gcc47",
+			"options" : "1397 8"
+		},
+
+    "464.h264ref": {
+			"executable" : "/ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/464.h264ref/exe/h264ref_base.gcc47",
+			"options" : "-d /ufs/cluster/dlo/spec-monitoring/benchspec/CPU2006/464.h264ref/data/ref/input/foreman_ref_encoder_baseline.cfg"
+		}
+	}
+}

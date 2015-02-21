@@ -1,0 +1,56 @@
+{
+    "gem5" : "gem5.fast",
+	"config" : "/ufs/cluster/dlo/monitoring_drop2/gem5-stable/configs/example/soft_drop_dual_thread.py",
+	"cpu_type" : ["atomic"],
+	"monitor" : ["ls"],
+	"cache_enabled" : true,
+	"max_insts" : 2000000000,
+  "ff_insts" :  1000000000,
+	"core_frequency" : ["2.45GHz"],
+	"monitor_frequency" : ["2.45GHz"],
+  "invalidation" : true,
+  "invalidation_cache_size" : ["1kB"], 
+  "emulate_filtering" : false,
+  "source_dropping" : false,
+  "overhead" : [0.5],
+  "static_coverage" : false,
+  "cache_sizes" : {
+      "0.5GHz" : "16kB",
+      "1GHz"   : "32kB",
+      "2GHz"   : "64kB",
+      "2.45GHz" : "32kB"
+  },
+  "l1_assoc" : 4,
+  "l2_cache_enabled" : true,
+  "l2_size": "2MB",
+  "l2_assoc" : 8,
+	"jobs" : 0,
+	"dryrun" : false,
+  "benchmarks" : {
+    "barnes" : {
+      "executable" : "/ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/barnes/inst/amd64-linux.gcc/bin/barnes",
+      "options" : "2",
+      "input" : "/ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/barnes/run/input_2"
+    },
+    "ocean_cp" : {
+      "executable" : "/ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/ocean_cp/inst/amd64-linux.gcc/bin/ocean_cp",
+      "options" : "-n258 -p2 -e1e-07 -r20000 -t28800",
+      "input" : ""
+    },
+    "ocean_ncp" : {
+      "executable" : "/ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/ocean_ncp/inst/amd64-linux.gcc/bin/ocean_ncp",
+      "options" : "-n258 -p2 -e1e-07 -r20000 -t28800",
+      "input" : ""
+    },
+    "radiosity" : {
+      "executable" : "/ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/radiosity/inst/amd64-linux.gcc/bin/radiosity",
+      "options" : "-batch -room -p 2",
+      "input" : ""
+    },
+    "water_nsquared" : {
+      "executable" : "/ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/water_nsquared/inst/amd64-linux.gcc/bin/water_nsquared",
+      "options" : "2",
+      "input" : "/ufs/cluster/tchen/parsec/parsec-3.0/ext/splash2/apps/water_nsquared/run/input_2"
+    }
+	}
+}
